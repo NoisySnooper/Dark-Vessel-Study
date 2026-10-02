@@ -10,8 +10,9 @@ same inclusion probability, so the share of each label within a class estimates 
 population share without bias. Shares get Wilson 95 % intervals. The vessel share over all
 candidates (high + medium) is the class-size-weighted mean with a stratified normal interval.
 
-CNN (Ca Mau view): precision and recall of the CNN verdict against the owner's labels, with
-vessel as the positive class. This is the 1D number to compare with precision 0.77 and recall
+CNN (Ca Mau view): every CNN-accepted contact is in the queue (a census), the rest come from the class
+sample. Precision and recall of the CNN verdict against the owner's labels, vessel = positive, raw and
+weighted by 1 / inclusion probability (bootstrap intervals). This is the 1D number to compare with precision 0.77 and recall
 0.75 on held-out Sentinel-1A/1B scenes (docs/ml_verifier.md).
 
 Output: data/labels/label_scores.json and printed tables.
@@ -68,8 +69,12 @@ def score(labels: pd.DataFrame, prod: pd.DataFrame) -> dict:
     unknown = int(lab.view.isna().sum())
     lab = lab.dropna(subset=["view"])
     lab["in_sample"] = [queue_key(d) < QUEUE_RATES[v].get(c, 0.0) for d, v, c in zip(lab.det_id, lab.view, lab.confidence)]
+    # Ca Mau view: every CNN-accepted contact is also in the design, with probability 1 (census)
+    accepted = lab.get("cnn_vessel", pd.Series(False, index=lab.index)).fillna(False).astype(bool) & (lab.view == "detail")
+    lab["in_design"] = lab.in_sample | accepted
     out = {"labels_read": int(len(labels)), "labels_unknown_det_id": unknown,
-           "labels_in_sample": int(lab.in_sample.sum()), "labels_outside_sample": int((~lab.in_sample).sum()),
+           "labels_in_sample": int(lab.in_sample.sum()), "labels_outside_sample": int((~lab.in_design).sum()),
+           "labels_cnn_census": int((lab.in_design & ~lab.in_sample).sum()),
            "by_view_class": [], "candidates": {}, "cnn_detail": None, "rates": QUEUE_RATES}
     totals = prod.groupby(["view", "confidence"]).size()
     s = lab[lab.in_sample]
@@ -88,7 +93,9 @@ def score(labels: pd.DataFrame, prod: pd.DataFrame) -> dict:
     for view in ("regional", "detail"):
         rows = [r for r in out["by_view_class"] if r["view"] == view and r["class"] in ("high", "medium")]
         out["candidates"][view] = stratified_share(rows)
-    d = s[(s.view == "detail") & s.label.isin(LABELS) & s.cnn_vessel.notna()] if "cnn_vessel" in s else s.iloc[:0]
+    s_design = lab[lab.in_design]
+    d = (s_design[(s_design.view == "detail") & s_design.label.isin(LABELS) & s_design.cnn_vessel.notna()]
+         if "cnn_vessel" in s_design else s_design.iloc[:0])
     if len(d):
         truth, pred = d.label == "vessel", d.cnn_vessel.astype(bool)
         tp, fp, fn = int((truth & pred).sum()), int((~truth & pred).sum()), int((truth & ~pred).sum())
@@ -96,10 +103,12 @@ def score(labels: pd.DataFrame, prod: pd.DataFrame) -> dict:
             "n": int(len(d)), "tp": tp, "fp": fp, "fn": fn,
             "precision": round(tp / (tp + fp), 3) if tp + fp else None, "precision_ci": [round(x, 3) for x in wilson(tp, tp + fp)] if tp + fp else None,
             "recall": round(tp / (tp + fn), 3) if tp + fn else None, "recall_ci": [round(x, 3) for x in wilson(tp, tp + fn)] if tp + fn else None,
-            "note": "Within the random sample, unweighted across classes; compare with held-out 1A/1B precision 0.77, recall 0.75.",
+            "note": "CNN-accepted contacts are a census; others come from the class sample. Unweighted here; "
+                    "see 'weighted' for population estimates. Compare with held-out 1A/1B precision 0.77, recall 0.75.",
         }
-        # Population estimate: weight each labelled contact by 1 / inclusion probability of its class
-        w = d.confidence.map(QUEUE_RATES["detail"]).rdiv(1.0).to_numpy()
+        # Population estimate: weight = 1 / inclusion probability (1 for CNN-accepted, class rate otherwise)
+        rate = d.confidence.map(QUEUE_RATES["detail"]).fillna(1.0).to_numpy()
+        w = np.where(d.cnn_vessel.astype(bool).to_numpy(), 1.0, 1.0 / rate)
         t, pr = truth.to_numpy(), pred.to_numpy()
         out["cnn_detail"]["weighted"] = weighted_pr(t, pr, w)
     return out

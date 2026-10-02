@@ -61,3 +61,15 @@ def test_weighted_pr_recovers_population_precision():
     assert abs(res["precision"] - 360 / 2200) < 1e-3
     assert res["precision_ci"][0] < res["precision"] < res["precision_ci"][1]
     assert rng is not None
+
+
+def test_cnn_census_counts_for_cnn_but_not_for_class_shares():
+    ids = _ids("S1D_20260929T1110", 2000)
+    prod = pd.DataFrame({"det_id": ids, "confidence": "high", "mission": "S1D", "view": "detail",
+                         "cnn_vessel": [i < 100 for i in range(2000)], "cnn_score": 0.5})
+    outside = [d for d in ids[:100] if queue_key(d) >= QUEUE_RATES["detail"]["high"]]  # accepted, not in class sample
+    lab = pd.DataFrame({"det_id": outside, "label": "clutter"})
+    res = sl.score(lab, prod)
+    assert res["labels_cnn_census"] == len(outside) and res["labels_outside_sample"] == 0
+    assert res["by_view_class"] == []  # census labels do not enter class shares
+    assert res["cnn_detail"]["fp"] == len(outside) and res["cnn_detail"]["precision"] == 0.0

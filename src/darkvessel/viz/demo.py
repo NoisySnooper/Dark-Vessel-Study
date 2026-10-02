@@ -194,11 +194,17 @@ def queue_key(det_id: str) -> float:
     return int(hashlib.sha1(det_id.encode()).hexdigest()[:8], 16) / 2 ** 32
 
 
-def label_queue(dets: pd.DataFrame, rates: dict) -> list[str]:
-    """det_ids in the labeling sample, in a fixed pseudo-random order (by hash)."""
+def label_queue(dets: pd.DataFrame, rates: dict, census: pd.Series | None = None) -> list[str]:
+    """det_ids in the labeling sample, in a fixed pseudo-random order (by hash).
+
+    census (bool, aligned with dets) adds every flagged contact with probability 1, for example all
+    contacts the CNN accepts, so the CNN's precision is measured on all of them.
+    """
     key = dets.det_id.map(queue_key)
-    rate = dets.confidence.map(rates).fillna(0.0)
-    q = dets.assign(_k=key)[key < rate].sort_values("_k")
+    take = key < dets.confidence.map(rates).fillna(0.0)
+    if census is not None:
+        take |= census.fillna(False).astype(bool)
+    q = dets.assign(_k=key)[take].sort_values("_k")
     return q.det_id.tolist()
 
 
@@ -221,7 +227,7 @@ def camau_data(max_chips: int, max_px: int = 2600) -> tuple[dict, str, dict]:
     dets = gpd.read_file(DATA_DIR / "detections_baseline.gpkg", layer="detections_baseline_utm48n")
     ml_path = DATA_DIR / "detections_ml.gpkg"
     if ml_path.exists():
-        ml = gpd.read_file(ml_path, layer="detections_verified_utm48n")[["det_id", "cnn_score"]]
+        ml = gpd.read_file(ml_path, layer="detections_verified_utm48n")[["det_id", "cnn_score", "cnn_vessel"]]
         dets = dets.merge(ml, on="det_id", how="left")
     rgb, tr, img_meta = render_map_image(DATA_DIR / "outputs" / "small" / "sigma0_vv_db_utm48n_40m_u8.tif")
     k = max(1.0, max(rgb.shape[:2]) / max_px)
@@ -235,7 +241,8 @@ def camau_data(max_chips: int, max_px: int = 2600) -> tuple[dict, str, dict]:
     dets["px_y"] = ((dets.geometry.y - tr.f) / tr.e).round(1)
     dets["scene_id"] = summary["scene_id"]
     scene = GRDScene(_scene_path(summary["scene_id"]))
-    queue = label_queue(dets, QUEUE_RATES["detail"])[:max_chips]
+    census = dets.cnn_vessel if "cnn_vessel" in dets else None
+    queue = label_queue(dets, QUEUE_RATES["detail"], census)[:max_chips]
     chips = _chips_for(dets, lambda r: scene, queue + _top_ids(dets))
     scenes, index = _scene_table(dets.det_id, dets.scene_id, pd.Series([summary["acq_utc"]] * len(dets)),
                                  pd.Series([summary["scene_id"][:3]] * len(dets)))
