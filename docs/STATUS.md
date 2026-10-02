@@ -1,46 +1,103 @@
 # Status
 
-Updated: 2026-10-02. Owner reviews; the assistant does the heavy lifting.
+Updated: 2026-10-02 (UTC). The owner reviews; the assistant does the heavy lifting.
 
-> **"Dark" does not mean illegal.** It only means no AIS position was matched to a radar detection. Every vessel product in this repo says so.
+> **"Dark" does not mean illegal.** It only means no AIS position was matched to a radar detection. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. No AIS is connected yet, so nothing in this repo is labeled dark.
+
+## Look at this first
+
+- **Demo page (private link, yours to share):** https://claude.ai/artifact/5VbpXaoghkKx8nwGoaEeUs. Regional map of the South China Sea with every vessel candidate from the regional run, the 90-day Sentinel-1 coverage layer, a radar view of one Ca Mau scene, a contact inspector (radar chip, DMS and MGRS position, date-time group) and in-browser labeling with CSV export.
+- **ArcGIS Pro:** `data/detections_regional.gpkg`, `data/detections_baseline.gpkg`, `data/aoi.gpkg`, rasters in `data/outputs/small/`. Every product has an EPSG:4326 layer or file plus a UTM one (49N regional, 48N Ca Mau).
+- **Figures:** `docs/figures/coverage.png`, `docs/figures/regional_detections.png`, `docs/figures/baseline_map.png`.
 
 ## Scope change (2026-10-02)
-AOI moved from Ca Mau to the whole South China Sea (owner request: a bigger area makes a better product). AOI = Natural Earth marine areas "South China Sea", "Gulf of Tonkin" and "Gulf of Thailand", 3.58 million km2. Ca Mau stays as the scene-detail sub-area.
+
+The AOI moved from Ca Mau to the whole South China Sea at the owner's request. AOI = Natural Earth marine areas "South China Sea", "Gulf of Tonkin" and "Gulf of Thailand", 3.58 million km2. Ca Mau stays as the scene-detail sub-area.
 
 ## Done
 
-### Workstream 3: GIS (details: `docs/scs_regional.md`, `docs/gis_baseline.md`)
-- Repo scaffold, `environment.yml` verified by a real install (micromamba, conda-forge: torch 2.13 CPU, GDAL 3.12, rasterio 1.4), `.env.example`, secret-safe `.gitignore`, walkthrough notebook.
-- South China Sea, last 90 days: 1,042 Sentinel-1C/1D IW products in 280 passes (1D 190, 1C 90). 55 % of the AOI imaged at least once; **1.61 million km2 (45 %), the whole central sea including the Spratly area, never imaged**; typical revisit about 9 days where imaged. Coverage rasters (COG, EPSG:4326 and UTM 49N) and map.
-- Ca Mau detail run on one scene (2026-09-29, 18:10 local): 720 vessel candidates (285 in both channels), 349 fixed structures, 4,936 low-confidence objects, over about 17,700 km2 of open sea.
-- Regional detector that streams whole scenes block by block over sea only, plus a per-candidate persistence check. Regional run over the most recent 6 days: see `docs/scs_regional.md` section 3.
-- Demo web page (private artifact): regional map and Ca Mau radar view, inspector with radar chips, in-browser labeling with CSV export.
-- AIS matching module (interface, synthetic generator, tests). No real AIS used.
-- Tests: offline `pytest` suite passes.
+### Workstream 1: bibliometrics (`docs/bibliometrics.md`, `data/biblio/`)
+- 4,328-work corpus, 2015 to 2026, built from the OpenAlex Parquet snapshot of 2026-09-23 on S3 (the API is blocked). Output grew 3.8 times from 2015 to 2025. Dark-vessel work: 143 papers. SAR and AIS fusion: 213. Small vessels: 813.
+- Southeast Asia: 116 on-topic works. Vietnam: 15. No on-topic work detects vessels at sea in SAR and names Vietnam. No work names the Gulf of Tonkin or the Paracels.
+- Anchor papers summarised: Paolo 2024, Park 2020, xView3-SAR, Elvidge 2015.
+- Gap analysis per paper. Paper 1: no peer-reviewed vessel detection on Sentinel-1C/1D, and the within-mission 1A to 1C/1D pair is unmeasured. Paper 2: no Sentinel-1 recall-by-length curve for Southeast Asia, nothing measured below 15 to 20 m, and no work adds coverage, detection by length and fleet share into one miss budget. Closest prior work and framing are in the section.
 
-### Workstreams 1 and 2, ML stage, data landscape
-Running in background agents; this section is filled when they report.
+### Workstream 2: journals (`docs/journals.md`, `data/journals.csv`)
+- 28 venues screened. Letter: IEEE GRSL, then IGARSS 2027, then Remote Sensing Letters. Flagship: Remote Sensing of Environment, then Fish and Fisheries, then ICES Journal of Marine Science.
+- Verified: OpenAlex fields (publisher, ISSN, OA flags, APC) and Retraction Watch counts.
+- Search snippets only: SJR, quartiles, review times and page limits.
+- Scopus discontinued list and hijacked-journal check: NOT CHECKED (hosts blocked).
+
+### Data landscape (`docs/data_landscape.md`, `data/data_sources.csv`)
+- Usable now and commercially clean: Sentinel-1 on the AWS mirror (median 3.5 h from sensing to upload), CDSE as fallback, ESA WorldCover, Skylight labels (Apache-2.0).
+- Noncommercial, so kept out of any Viettel-facing path: GFW and SARDet-100K (licences read), xView3-SAR (reported, UNVERIFIED).
+- No free AIS with verified coverage of Vietnamese waters. Sentinel-1C/1D onboard AIS is restricted (UNVERIFIED).
+- In Vietnam the compliance stream for fishing vessels of 15 m and longer is VMS, which is not open.
+
+### Workstream 3: GIS (`docs/scs_regional.md`, `docs/gis_baseline.md`)
+- Repo scaffold, `environment.yml` verified by a real install, secret-safe `.gitignore`, `.env.example`, walkthrough notebook, offline `pytest` suite (150 tests pass).
+- Coverage, 90 days: 1,042 Sentinel-1C/1D IW products in 280 passes. 55 % of the AOI imaged at least once. **1.61 million km2 (45 %), the whole central sea including the Spratly area, never imaged.** On an average day Sentinel-1 images 6.3 % of the AOI.
+- Ca Mau detail scene (Sentinel-1D, 2026-09-29): 720 vessel candidates (285 in both channels), 349 fixed structures, 4,936 low-confidence objects over about 17,700 km2 of open sea.
+- Regional run: REGIONAL_PENDING
+- AIS matching module (interface, synthetic generator, tests). No real AIS used.
+
+### ML stage (`docs/ml_verifier.md`)
+ML_PENDING
 
 ## Blocked
 
 | Blocker | Effect | Fix (owner action) |
 |---|---|---|
-| Network policy denies most hosts (api.openalex.org, planetarycomputer.microsoft.com, Copernicus Data Space, scimagojr.com, elsevier.com, retractionwatch.com, docs.google.com, doi.org, globalfishingwatch.org, esa.int, huggingface.co, zenodo.org) | No live OpenAlex API, no STAC search, no SJR file, no Scopus discontinued list, no hijacked-journal check, no DOI resolution; many facts stay UNVERIFIED | Cloud environment menu > Edit > Network access: Full, or allow the listed hosts |
-| No keys | OpenAlex API (key-only since 2026), Copernicus S3, GFW API unavailable | Add `OPENALEX_API_KEY`, `CDSE_S3_ACCESS_KEY`, `CDSE_S3_SECRET_KEY`, `GFW_API_TOKEN` as environment variables (never in chat or git) |
-| No AIS source | Nothing can be labeled dark; no AIS-based recall by length on 1C/1D scenes | GFW token (noncommercial) for research, or a commercial feed for anything Viettel-facing |
-| Compute | Only the most recent 6 days were processed regionally on this shared 4-core machine | Run `scripts/09_run_regional.py --days 90` on a bigger machine (a scene takes minutes; the code is checkpointed) |
+| Network policy denies most hosts (api.openalex.org, planetarycomputer.microsoft.com, Copernicus Data Space, scimagojr.com, elsevier.com, retractionwatch.com, doi.org, globalfishingwatch.org, esa.int, huggingface.co, zenodo.org) | No live OpenAlex API, no STAC search, no SJR file, no Scopus discontinued list, no hijacked-journal check, no DOI resolution. Many facts stay UNVERIFIED. | Cloud environment settings > Network access: Full, or allow the listed hosts |
+| No keys | OpenAlex API (key-only since 2026), Copernicus S3 and GFW API unavailable | Add `OPENALEX_API_KEY`, `CDSE_S3_ACCESS_KEY`, `CDSE_S3_SECRET_KEY` and `GFW_API_TOKEN` as environment secrets. Never in chat or git. |
+| No AIS source | Nothing can be labeled dark; no AIS-based recall by length on 1C/1D scenes | GFW token (noncommercial) for the papers; a commercial feed for anything Viettel-facing |
+| No 1C/1D ground truth | Transfer to 1C/1D cannot be scored | Hand labels: next task 2 |
+| Compute | Regional run covers the most recent days only, on a shared 4-core machine | `scripts/09_run_regional.py --days 90` on a bigger machine (checkpointed per scene) |
 
-Worked around: OpenAlex via its public S3 snapshot; Sentinel-1 via the AWS Open Data mirror; land mask via ESA WorldCover on S3; AOI and coastline via Natural Earth on GitHub.
+Worked around: OpenAlex via its public S3 snapshot; Sentinel-1 via the AWS Open Data mirror; land mask via ESA WorldCover on S3; AOI and coastline via Natural Earth on GitHub; labels via the public Skylight repo.
 
 ## Defaults applied (say the word to change any)
-- Map naming: "South China Sea" as written in your request. For a Vietnamese audience you may prefer "East Sea (Bien Dong)"; it is a one-line change.
+
+- Map naming: "South China Sea" as written in your request. For a Vietnamese audience you may prefer "East Sea (Bien Dong)"; it is a one-line change in `src/darkvessel/config.py` and the figure titles.
 - No maritime boundaries or claim lines are drawn anywhere.
-- Display: files in the repo, short chat summaries, plus one private demo page.
-- Commits: one per workstream (plus labelled work-in-progress commits), no Co-Authored-By or session trailers. Commit author is the container default; give a name and email to switch.
-- Training data for the letter: AI2 Skylight labels (Apache-2.0) first; xView3 only if its license allows your use.
+- Display: files in the repo, short chat summaries, and one private demo page.
+- Commits: one per workstream plus labeled work-in-progress commits, no Co-Authored-By trailer. Commit author is the container default; give a name and email to switch.
+- Training data: AI2 Skylight labels (Apache-2.0) only; xView3-SAR is reported noncommercial (UNVERIFIED), so it is not used.
 
 ## Next 3 tasks (smallest first, each fits a 5 h week)
-To be finalised when the background workstreams report.
+
+1. **Unblock the environment (about 1 h).** In the cloud environment settings, set network access to Full or allow the hosts in the Blocked table. Add the four keys as environment secrets. Then tell me. I will close the main UNVERIFIED items: SJR and quartiles, the Scopus and hijacked-journal screens, DOI resolution, a CDSE STAC cross-check of the scene list, and a GFW AIS pull for the regional window.
+2. **Label 200 contacts on the demo page (about 3 h).** Open the page, click through contacts in both views and press vessel, not vessel or unsure. "Copy CSV" and paste it into `data/labels/owner_2026-10.csv`, or send it to me. These are the first Sentinel-1C/1D labels. They score the transfer for paper 1 and train the next verifier.
+3. **Make three decisions (about 4 h with reading).** Read this file, `docs/scs_regional.md`, the gap analysis at the end of `docs/bibliometrics.md` and the short answer in `docs/journals.md`. Then decide:
+   - (a) AIS source: GFW (noncommercial) for the papers, plus a commercial quote for Viettel.
+   - (b) Letter venue: IGARSS 2027 or GRSL. The IGARSS 2027 deadline is not published yet. The 2026 deadline was 10 January 2026 (UNVERIFIED), so plan for early January 2027.
+   - (c) Naming: South China Sea or East Sea.
 
 ## Could not verify
-To be consolidated from all reports.
+
+Each item points to the file that holds its sources. "Snippet" means seen only in web-search result text, because the page host is blocked.
+
+Missions and data
+- Sentinel-1A end of operations on 30 June 2026: the bucket shows no 1A IW product after 2026-06-29 (verified). The official date is a snippet (`docs/data_landscape.md`).
+- Sentinel-1C/1D onboard AIS: restricted access, recording masked to European waters; 1C AIS matched 40 % of class A ships against 85 % for Spire (snippets; `docs/data_landscape.md`, gap analysis).
+- New Sentinel-1C radiometric calibration deployed 3 February 2026 (snippet; gap analysis).
+- Whether the central-sea coverage gap follows the Sentinel-1 observation scenario, and whether wave mode is the open-ocean default (ESA pages blocked; `docs/scs_regional.md`, gap analysis).
+- Scene counts from the AWS mirror were not cross-checked against CDSE (`docs/scs_regional.md`).
+- LOTUSat-1 launch timing, NISAR ocean products and RCM foreign-water products (snippets; `docs/data_landscape.md`).
+
+Vietnam, AIS and VMS
+- AIS carriage rules (SOLAS V/19) exempting most small fishing boats (snippet).
+- Vietnamese VMS: about 99 % compliance for vessels of 15 m and longer, 79,360 registered vessels, a 2-hour position interval, Viettel named among VMS providers (snippets; `docs/data_landscape.md`, gap analysis).
+- FAO SOFIA 2024: 89 % of vessels with known length under 12 m (snippet; gap analysis).
+- GFW API terms, latency (72 hours to about 5 days), AIS providers and the Vietnam partnership since 2019 (snippets; `docs/data_landscape.md`).
+
+Literature and venues
+- SJR, quartiles, review times, APCs, page limits and AI policies for every venue (snippets; `data/journals.csv` holds the URLs). Scopus discontinued and hijacked-journal screens: NOT CHECKED.
+- IGARSS 2027 dates and rules (snippets; `docs/journals.md`).
+- ESA LPS25 presentation on Sentinel-1C ship detection, the only 1C detection result found, and not peer reviewed (snippet; gap analysis).
+- Paolo 2024 detection calibration (about 60 % at 15 to 20 m) and the Liu 2025 cross-sensor AP drop of 23.75 % (snippets; gap analysis).
+- 2025 and 2026 publication counts will rise as OpenAlex indexing catches up; the lag was not measured (`docs/bibliometrics.md`).
+
+Project hypotheses
+- What the fixed structures off Ca Mau are (no infrastructure database consulted) and why low-confidence objects cluster on the shallow shelf (`docs/gis_baseline.md`).
+- The rule AI2 used to attach AIS attributes to its labels is undocumented (`docs/ml_verifier.md`).

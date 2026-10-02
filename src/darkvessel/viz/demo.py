@@ -249,6 +249,25 @@ def _geojson(geoms_props, nd=3):
     return {"type": "FeatureCollection", "features": feats}
 
 
+def label_check() -> dict | None:
+    """How the heuristic classes fared against AI2 expert labels on Sentinel-1A/1B scenes in Southeast Asia.
+
+    Share of candidates within 50 m of a label (vessel), 50 to 150 m (ambiguous), or neither (clutter).
+    Source: data/ml/candidates.parquet (scripts/04_build_training_set.py). Labels are incomplete, so the
+    vessel share is a lower bound on precision.
+    """
+    path = DATA_DIR / "ml" / "candidates.parquet"
+    if not path.exists():
+        return None
+    c = pd.read_parquet(path, columns=["confidence", "cand_class", "region", "product_id"])
+    c = c[c.region == "sea_asia"]
+    t = pd.crosstab(c.confidence, c.cand_class)
+    out = {k: {"n": int(t.loc[k].sum()), **{m: round(float(t.loc[k, m]) / float(t.loc[k].sum()), 3) for m in t.columns}}
+           for k in t.index}
+    out["scenes"] = int(c.product_id.nunique())
+    return out
+
+
 def regional_data(max_chips: int) -> tuple[dict, dict]:
     summary = json.loads((DATA_DIR / "regional_summary.json").read_text())
     cov = json.loads((DATA_DIR / "s1_coverage.json").read_text())
@@ -290,7 +309,7 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
                                               "km2": int(r.tested_km2)}) for g, r in zip(proc.geometry, proc.itertuples())]),
         "cols": COLS, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
         "n_low": int(summary["classes"].get("low", 0)),
-        "passes": pass_list,
+        "passes": pass_list, "label_check": label_check(),
     }
     return data, chips
 

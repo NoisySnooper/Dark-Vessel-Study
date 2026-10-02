@@ -271,6 +271,8 @@ const RD = expand(R, "r"), XD = expand(X, "x");
 // ---- Masthead
 const RS = R.summary, cov = R.coverage;
 $("dtg").innerHTML = `Detections: <b>${dtgOf(RS.date_range[0])}</b> to <b>${dtgOf(RS.date_range[1])}</b> &middot; ${RS.scenes} Sentinel-1C/1D scenes &middot; coverage: ${R.search_window[0]} to ${R.search_window[1]}`;
+{ const dd = (iso) => { const t = new Date(iso); return `${t.getUTCDate()} ${MON[t.getUTCMonth()].charAt(0)}${MON[t.getUTCMonth()].slice(1).toLowerCase()}`; };
+  $("tab-r").textContent = `Regional, ${dd(RS.date_range[0])} to ${dd(RS.date_range[1])}`; }
 const rc = RS.classes;
 const tiles = [
   ["AOI, km²", `${(R.aoi_km2 / 1e6).toFixed(2)}<small> M</small>`, null],
@@ -484,7 +486,7 @@ document.addEventListener("keydown", (e) => {
   svg.innerHTML = s;
 })();
 const n1c = R.passes.filter((p) => p.mis === "S1C").length;
-$("cov-key").innerHTML = `<b>${Math.round(cov.share_imaged_ge_1 * 100)} % of the AOI was imaged at least once in 90 days; ${(cov.area_never_imaged_km2 / 1e6).toFixed(2)} million km², the whole central sea including the Spratly area, was never imaged.</b> Free Sentinel-1 watches a coastal ring about every ${cov.typical_revisit_days_where_imaged} days (${R.passes.length} passes: ${R.passes.length - n1c} from 1D, ${n1c} from 1C). Watching the middle of the sea needs tasked SAR.`;
+$("cov-key").innerHTML = `<b>${Math.round(cov.share_imaged_ge_1 * 100)} % of the AOI was imaged at least once in 90 days; ${(cov.area_never_imaged_km2 / 1e6).toFixed(2)} million km², the whole central sea including the Spratly area, was never imaged.</b> Free Sentinel-1 watches a coastal ring about every ${cov.typical_revisit_days_where_imaged} days (${R.passes.length} passes: ${R.passes.length - n1c} from 1D, ${n1c} from 1C)${cov.mean_daily_share_imaged ? `; on an average day it sees ${(cov.mean_daily_share_imaged * 100).toFixed(1)} % of the AOI` : ""}. Watching the middle of the sea needs tasked SAR.`;
 
 // ---- Method, limits, footer
 $("how-lede").textContent = `${RS.scenes} recent scenes over the AOI, read in place over HTTPS and processed block by block over open sea on a 4-core shared machine (median ${Math.round(RS.scene_runtime_s_median)} s per scene). No full-scene downloads, no account, open-source Python end to end.`;
@@ -507,6 +509,8 @@ $("limits").innerHTML = [
   ["No AIS yet.", "The matcher is built and tested on synthetic data; the AIS source is pending, so nothing here is called dark."],
   ["AIS is the wrong yardstick for small Vietnamese boats.", "Most small fishing boats need not carry AIS. Vietnam's compliance stream for fishing vessels of 15 m and longer is VMS, which is not open data. A sovereign deployment would match radar contacts against VMS as well as AIS, and report \"no AIS match\" and \"no VMS match\" separately."],
   ["Baseline detector.", "CA-CFAR fires on wind streaks and slick edges in VV; those land in the low class (hidden by default) until the CNN verifier is in place."],
+  ...(R.label_check ? [["One-channel contacts are mostly leads, not boats.", (() => { const L = R.label_check, pc = (v) => Math.round(v * 100);
+    return `Same detector on ${fmt(L.scenes)} Sentinel-1A/1B scenes in Southeast Asia with AI2 expert labels: ${pc(L.high.vessel)} % of both-channel candidates and ${pc(L.medium.vessel)} % of one-channel candidates lay within 50 m of a labelled vessel (${pc(L.high.vessel + L.high.ambiguous)} % and ${pc(L.medium.vessel + L.medium.ambiguous)} % within 150 m). The labels miss some real ships, so these are lower bounds, and 1C/1D may differ.`; })()]] : []),
   ["Lengths are rough.", "Pixel extent at 10 m spacing: anything under about 20 m reads as 20 m, and bright hulls bloom."],
   ["Fixed versus moored.", "The persistence test also flags a boat moored in the same spot on every pass checked."],
   ["Snapshots, not tracks.", "Each scene is a 25-second look. Different passes are not linked into tracks."],
@@ -515,4 +519,5 @@ $("foot").innerHTML = `<p>Contains modified Copernicus Sentinel data 2026, read 
 
 // ---- Start
 setView("r");
+window.__dvReady = Math.round(performance.now());
 </script>

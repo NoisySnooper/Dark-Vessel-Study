@@ -96,6 +96,13 @@ stats = {
     "density_percentiles_valid_cells": {f"p{p}": round(float(np.percentile(dens[valid], p)), 2) for p in (10, 25, 50, 75, 90, 99)},
     "share_valid_cells_zero": round(float((counts[valid] == 0).mean()), 3),
 }
+# Densest cells with at least half a cell of sea observed, for the write-up
+solid = valid & (obs_km2 >= 0.5 * cell_km2)
+order = np.argsort(np.where(solid, dens, -1).ravel())[::-1][:12]
+stats["densest_cells"] = [
+    {"lon": round(tr_c.c + (j + 0.5) * tr_c.a, 3), "lat": round(tr_c.f + (i + 0.5) * tr_c.e, 3),
+     "density": round(float(dens[i, j]), 1), "candidates": int(counts[i, j]), "looks": round(float(looks[i, j]), 1)}
+    for i, j in zip(*np.unravel_index(order, shape_c)) if solid[i, j]]
 (DATA_DIR / "regional_density.json").write_text(json.dumps(stats, indent=2))
 print(json.dumps(stats, indent=2))
 
