@@ -34,6 +34,7 @@ GDAL_ENV = {
     "VSI_CACHE": "TRUE",
     "GDAL_HTTP_MAX_RETRY": "4",
     "GDAL_HTTP_RETRY_DELAY": "2",
+    "CPL_VSIL_CURL_CACHE_SIZE": str(512 * 1024 * 1024),  # shared HTTP range cache across handles
 }
 for _k, _v in GDAL_ENV.items():
     os.environ.setdefault(_k, _v)
@@ -173,6 +174,7 @@ class GRDScene:
         self._local = threading.local()
         self._lut_cache: dict = {}
         self._lut_lock = threading.Lock()
+        self._pool = None
 
     def _text(self, rel: str) -> bytes:
         return aws._get(aws.product_url(self.path, rel)).content
@@ -236,8 +238,11 @@ class GRDScene:
             win = Window(c, r, min(block, c0 + w - c), min(block, r0 + h - r))
             out[r - r0 : r - r0 + win.height, c - c0 : c - c0 + win.width] = self._ds(pol).read(1, window=win)
 
-        with ThreadPoolExecutor(max_workers) as ex:
-            list(ex.map(fetch, tiles))
+        # one persistent pool per scene, so each worker thread keeps its open dataset (and its
+        # block cache) between calls instead of reopening the file for every window
+        if self._pool is None:
+            self._pool = ThreadPoolExecutor(max_workers)
+        list(self._pool.map(fetch, tiles))
         return out
 
     def read_sigma0(self, pol: str, window: Window, denoise: bool = True, block_rows: int = 1024) -> np.ndarray:
