@@ -35,3 +35,18 @@ def test_lean_layout_and_caveats(tmp_path):
 def test_dms_format():
     assert _dms(8.5, "N", "S") == "8°30.000'N"
     assert _dms(-0.25, "N", "S") == "0°15.000'S"
+
+
+def test_dual_crs_without_spatial_index(tmp_path):
+    import sqlite3
+
+    from darkvessel.io import write_dual_crs
+
+    g = gpd.GeoDataFrame({"det_id": ["a", "b"], "caveat": DARK_CAVEAT_SHORT},
+                         geometry=gpd.points_from_xy([110.0, 112.0], [10.0, 12.0]), crs="EPSG:4326")
+    out = tmp_path / "r.gpkg"
+    assert write_dual_crs(g, out, "x", utm_crs="EPSG:32649", spatial_index=False) == ["x_4326", "x_utm49n"]
+    assert gpd.read_file(out, layer="x_utm49n").crs.to_epsg() == 32649
+    with sqlite3.connect(out) as con:
+        rtree = con.execute("SELECT name FROM sqlite_master WHERE name LIKE 'rtree_x_%'").fetchall()
+    assert rtree == []
