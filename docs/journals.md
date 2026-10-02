@@ -1,6 +1,6 @@
 # Target journals for the two planned papers
 
-Updated: 2026-10-02. The owner reviews; the assistant did the research. The machine-readable version is `data/journals.csv` (22 venues, one row each). The table in this file is generated from that CSV by `scripts/journals_build.py`.
+Updated: 2026-10-02. The owner reviews; the assistant did the research. The machine-readable version is `data/journals.csv` (28 venues, one row each: 22 researched, and 6 added from the bibliometric scan as skeleton rows). The table in this file is generated from that CSV by `scripts/journals_build.py`.
 
 ## Purpose
 
@@ -19,8 +19,9 @@ Fit scores are judgements from 0 (not suitable) to 3 (strong) and rest on the fa
 
 | Source | Used for | State |
 |---|---|---|
-| OpenAlex sources snapshot dated 2026-09-23, read on 2026-10-02 from `openalex.s3.amazonaws.com` (196 part files, 256,981 source records, 23 kept) | Publisher, ISSNs, fully-open-access flag, DOAJ flag, APC with price year, OpenAlex h-index, 2-year mean citedness | VERIFIED. I read the data. Cache: `data/journals/openalex_sources.csv` |
+| OpenAlex sources snapshot dated 2026-09-23, read on 2026-10-02 from `openalex.s3.amazonaws.com` (196 part files, 256,981 source records, 29 kept) | Publisher, ISSNs, fully-open-access flag, DOAJ flag, APC with price year, OpenAlex h-index, 2-year mean citedness | VERIFIED. I read the data. Cache: `data/journals/openalex_sources.csv` |
 | Retraction Watch Database, Crossref copy on GitLab, dataset generated 2026-10-01 (72,831 rows) | Retraction counts per venue | VERIFIED. I read the file. Cache: `data/journals/retractions_by_venue.csv` |
+| Bibliometric scan files `data/biblio/top_venues.csv` and `corpus.csv`, written 2026-10-02 06:53 UTC from the OpenAlex works snapshot dated 2026-09-23 (corpus of 4,554 works) | Which venues carry the literature, and counts per shortlisted venue | VERIFIED. I read the files. See "Check against the bibliometric scan" |
 | WebSearch result summaries and result links | SJR and quartiles, SCImago h-index, review times, article types and page limits, current APCs, AI policies, integrity searches | **UNVERIFIED (search snippet)**. The search tool returns a generated summary and a list of links. I did not open any of those pages. Summaries can be wrong. |
 
 Every UNVERIFIED claim is tied to the result link that matches it, in the `sources` column of `data/journals.csv`. Where two searches returned the same value, the cell says so.
@@ -39,13 +40,46 @@ The egress proxy answered HTTP 403 to the CONNECT request for every host below w
 
 Most cells in `data/journals.csv` have the form `value | provenance`. The provenance names the source and the check state. Keys point into the `sources` column: `[oa]` OpenAlex snapshot, `[sc]` SCImago page, `[p1]` to `[p4]` publisher or society pages, `[x1]` to `[x4]` other pages, `[ai]` the publisher AI policy page.
 
-`verification_status` is computed, never typed. A row is VERIFIED when no fact column carries the tags UNVERIFIED, NOT CHECKED or NOT RETRIEVED. It is PARTIAL when the publisher and ISSNs come from OpenAlex but another fact column still carries a tag. It is UNVERIFIED when even the publisher is a snippet. Today 21 rows are PARTIAL and the IGARSS row is UNVERIFIED, because OpenAlex has no publisher for IGARSS.
+`verification_status` is computed, never typed. A row is VERIFIED when no fact column carries the tags UNVERIFIED, NOT CHECKED or NOT RETRIEVED. It is PARTIAL when the publisher and ISSNs come from OpenAlex but another fact column still carries a tag. It is UNVERIFIED when even the publisher is a snippet. Today 26 rows are PARTIAL and 2 are UNVERIFIED: IGARSS and DOAJ, because OpenAlex has no publisher for them.
 
 Three limits of the OpenAlex fields:
 
 - OpenAlex does not label ISSNs as print or online. The labels in the CSV follow publisher convention (the ISSN-L is the print ISSN, a single ISSN on an open access title is online). They are not verified. Matching ignores the labels.
-- I read the OpenAlex field `is_oa` as the fully-open-access flag; the OpenAlex documentation could not be opened. Venues with `is_oa` false and an APC listed are labelled hybrid by inference. Seed cells that say hybrid without a publisher page are tagged as inferred.
+- I read the OpenAlex field `is_oa` as the fully-open-access flag; the OpenAlex documentation could not be opened. Venues with `is_oa` false and an APC listed are labelled hybrid by inference. Seed cells that say hybrid without a publisher page are tagged as inferred. For the skeleton rows added from the scan the build infers the model from the OpenAlex flags (gold, hybrid, or subscription or hybrid (undetermined)) and tags it UNVERIFIED (inferred); the four repository rows carry the `type` value `repository` and the model `not applicable`.
 - The OpenAlex h-index is computed by OpenAlex and differs from the SCImago h-index. Both are shown, labelled.
+
+### Check against the bibliometric scan
+
+`data/biblio/top_venues.csv` was written at 06:53 UTC on 2026-10-02 (4,554 works, 2015 to 2026, strict themes, see `data/biblio/queries.md`). I compared its top 15 venues with the shortlist using `scripts/journals_top_venues.py`. The first row of the file, `(no source recorded)` with 1,143 works (25.1%), is not a venue. The script skips it and it does not use up one of the 15 places. Of the 15 venues, 9 were already in the shortlist and 6 were added.
+
+| Rank | Venue (OpenAlex name) | Type in scan | Works | % of corpus | Result |
+|---|---|---|---|---|---|
+| 1 | Remote Sensing | journal | 422 | 9.27 | in the shortlist |
+| 2 | IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing | journal | 252 | 5.53 | in the shortlist |
+| 3 | IEEE Transactions on Geoscience and Remote Sensing | journal | 186 | 4.08 | in the shortlist |
+| 4 | IEEE Geoscience and Remote Sensing Letters | journal | 185 | 4.06 | in the shortlist |
+| 5 | elib (German Aerospace Center) | repository | 77 | 1.69 | added |
+| 6 | IET conference proceedings. | journal | 72 | 1.58 | added |
+| 7 | Sensors | journal | 68 | 1.49 | in the shortlist |
+| 8 | DOAJ (DOAJ: Directory of Open Access Journals) | repository | 61 | 1.34 | added |
+| 9 | Zenodo (CERN European Organization for Nuclear Research) | repository | 57 | 1.25 | added |
+| 10 | IEEE Access | journal | 56 | 1.23 | in the shortlist |
+| 11 | arXiv (Cornell University) | repository | 47 | 1.03 | added |
+| 12 | International Journal of Remote Sensing | journal | 38 | 0.83 | in the shortlist |
+| 13 | IEEE Transactions on Aerospace and Electronic Systems | journal | 35 | 0.77 | added |
+| 14 | Journal of Marine Science and Engineering | journal | 35 | 0.77 | in the shortlist |
+| 15 | IGARSS 2022 - 2022 IEEE International Geoscience and Remote Sensing Symposium | conference | 35 | 0.77 | in the shortlist (IGARSS row) |
+
+The six added rows are skeleton rows. They hold the OpenAlex identity, publisher, open access flags, APC and h-index. Every other fact reads NOT RETRIEVED, because the search budget was spent, and the fit scores are `?`, except for the four repositories (elib, DOAJ, Zenodo, arXiv), which score 0 for both papers because they are not peer-reviewed targets. A preprint on arXiv or Zenodo can still complement a journal paper, if the journal allows it. "IET conference proceedings." is typed journal by OpenAlex and proceedings here, because of its name (ISSN 2732-4494, IET). IEEE Transactions on Aerospace and Electronic Systems is an IEEE journal (OpenAlex: not fully open access, APC listed at USD 2645, which makes it hybrid by inference); its scope was not read, so it is not scored. In the corpus it holds 35 works, 23 on SAR ship detection and 4 on the flagship themes.
+
+Findings from the scan that matter for the choice:
+
+- **IGARSS is the second-largest venue of the corpus, but the top-15 list hides it.** The `(no source recorded)` group is 91% conference papers (1,043 of 1,143 works). By DOI prefix `10.1109/igarss`, 314 corpus works (6.9%) are IGARSS papers: 35 under the IGARSS 2022 source and 279 in the no-source group. That is behind Remote Sensing (422) and ahead of JSTARS (252). The DOI prefix is my inference about the venue, not a venue record. The same group also holds IEEE radar conference papers (64 works with a `10.1109/radar` prefix), `10.1109/apsar` (23), `10.1109/icassp` (12), `10.1109/oceans` (11) and 104 works with SPIE's prefix 10.1117.
+- **The fisheries journals have the topical record, RSE does not.** Of the 4,554 works, 1,004 (22%) are on the flagship themes dark vessels, SAR-AIS fusion or IUU remote sensing. RSE has 5 corpus works, 3 on SAR ship detection and none on those themes. Fish and Fisheries has 6, all on those themes. ICES Journal of Marine Science has 9, all on those themes. Marine Policy has 5 (all), Fisheries Research 7 (6), Science of Remote Sensing 2 (none), Science Advances 7 (all), Nature Communications 1 (1), Ocean and Coastal Management none. ICES Journal of Marine Science ranks 40th among the venues of the scan; the others are below its top 50, whose last entry has 8 works.
+- **Where the flagship themes concentrate.** Remote Sensing 49 of the 1,004 works, Zenodo 28, Frontiers in Marine Science 23, IOP Conference Series Earth and Environmental Science 18, arXiv 16, JMSE 11, JSTARS 10, Figshare 10, IJRS 10, then Sensors, IEEE Access, ICES JMS and elib with 9 each (186 works have no source recorded).
+- **The letter venues.** GRSL has 185 corpus works, 176 on SAR ship detection and 8 on the flagship themes. Remote Sensing Letters has 24, all on SAR ship detection.
+
+Counts come from `data/biblio/corpus.csv` (one row per work, themes separated by semicolons). They show where related work is published, not where a new paper would be accepted.
 
 ### How to refresh
 
@@ -103,11 +137,11 @@ To upgrade a cell that is still a snippet: open the cited page, confirm the valu
 
 | Check | Result | State |
 |---|---|---|
-| Scopus discontinued sources | Not run. `elsevier.com` is blocked. | NOT CHECKED for all 22 venues |
-| Retraction Watch Hijacked Journal Checker | Not run. `retractionwatch.com` and `docs.google.com` are blocked. | NOT CHECKED for all 22 venues |
-| Web searches for hijack, clone or fake-website reports naming each exact title (21 journals, plus IGARSS separately) | No report about any of these titles. Results were general articles only. | UNVERIFIED (search snippet). A search is not a list check. |
+| Scopus discontinued sources | Not run. `elsevier.com` is blocked. | NOT CHECKED for all 28 venues |
+| Retraction Watch Hijacked Journal Checker | Not run. `retractionwatch.com` and `docs.google.com` are blocked. | NOT CHECKED for all 28 venues |
+| Web searches for hijack, clone or fake-website reports naming each exact title (21 journals, plus IGARSS separately; the six venues added from the scan were not searched) | No report about any of these titles. Results were general articles only. | UNVERIFIED (search snippet). A search is not a list check. |
 | Indirect Scopus signal: current Scopus-based data in the snippet | Present for 20 of 21 journals (for Remote Sensing Letters it is a Scopus CiteScore quoted by the publisher page) and for IGARSS (2,593 documents in 2024); none retrieved for Science Advances | UNVERIFIED (search snippet). Weak evidence. |
-| ISSN uniqueness in OpenAlex | Each of the 35 ISSNs of the 21 journals maps to exactly one OpenAlex source. The two IGARSS ISSNs are not in OpenAlex at all. | VERIFIED |
+| ISSN uniqueness in OpenAlex | Each of the 35 ISSNs of the 21 journals maps to exactly one OpenAlex source. The two IGARSS ISSNs are not in OpenAlex at all. Not run for the six venues added from the scan. | VERIFIED |
 
 The script performs both list checks as soon as the hosts are reachable. Until then, no venue is cleared and none is flagged.
 
@@ -141,7 +175,7 @@ Source: Retraction Watch Database, Crossref copy, generated 2026-10-01, matched 
 | Science Advances | 15 | 10 | 3 |
 | Nature Communications | 54 | 44 | 19 |
 
-No notice found for Fish and Fisheries, GRSL, TGRS, JSTARS, JAG, Science of Remote Sensing, Fisheries Research, Ocean and Coastal Management, JMSE and IGARSS. Counts are small against each journal's output (OpenAlex works: 43,493 for Remote Sensing, 81,639 for Sensors, 92,847 for Nature Communications).
+No notice found for Fish and Fisheries, GRSL, TGRS, JSTARS, JAG, Science of Remote Sensing, Fisheries Research, Ocean and Coastal Management, JMSE, IGARSS and the six venues added from the scan (elib, IET conference proceedings, DOAJ, Zenodo, arXiv, IEEE Transactions on Aerospace and Electronic Systems). Counts are small against each journal's output (OpenAlex works: 43,493 for Remote Sensing, 81,639 for Sensors, 92,847 for Nature Communications).
 
 ## Recommendations
 
@@ -149,15 +183,17 @@ Facts marked UNVERIFIED are search snippets; the URLs are in `data/journals.csv`
 
 ### Letter (Sentinel-1A to 1C and 1D detector transfer)
 
-1. **IEEE Geoscience and Remote Sensing Letters.** Built for this format: Letters of at most 5 pages on new ideas and timely results (UNVERIFIED), Q1 with SJR 1.296 (UNVERIFIED), hybrid, so an APC (USD 2800 on the 2026 IEEE list, USD 2645 in OpenAlex for 2025) is optional (UNVERIFIED), an average turnaround of about 30 days according to GRSS pages (UNVERIFIED), and an IGARSS paper can be extended later if at least 50% of the content is new (UNVERIFIED).
-2. **IGARSS 2027 proceedings (Reykjavik, July 2027).** A 4-page full paper in IEEE Xplore suits a detector-transfer note and adds a talk (2026 rules, UNVERIFIED); the dates are not settled (11 to 16 July in two searches limited to grss-ieee.org and hi.is, 4 to 9 July in two earlier searches), the 2027 deadline is not known (2026 was 10 January 2026), SJR is only 0.263 (UNVERIFIED), and presenting first means a later GRSL version needs at least 50% new material.
-3. **Remote Sensing Letters.** The other letters journal on the list besides GRSL (Letters of up to 10 printed pages, UNVERIFIED) and hybrid, so a paper can appear without an APC (the standard APC was not found); it is the fallback after GRSL and weaker on every metric: SJR 0.434, quartile Q2, 59 days to first decision, 38% acceptance (UNVERIFIED).
+1. **IEEE Geoscience and Remote Sensing Letters.** Built for this format: Letters of at most 5 pages on new ideas and timely results (UNVERIFIED), Q1 with SJR 1.296 (UNVERIFIED), hybrid, so an APC (USD 2800 on the 2026 IEEE list, USD 2645 in OpenAlex for 2025) is optional (UNVERIFIED), an average turnaround of about 30 days according to GRSS pages (UNVERIFIED), and an IGARSS paper can be extended later if at least 50% of the content is new (UNVERIFIED). Scan evidence (VERIFIED): 185 corpus works, 176 on SAR ship detection.
+2. **IGARSS 2027 proceedings (Reykjavik, July 2027).** A 4-page full paper in IEEE Xplore suits a detector-transfer note and adds a talk (2026 rules, UNVERIFIED); the dates are not settled (11 to 16 July in two searches limited to grss-ieee.org and hi.is, 4 to 9 July in two earlier searches), the 2027 deadline is not known (2026 was 10 January 2026), SJR is only 0.263 (UNVERIFIED), and presenting first means a later GRSL version needs at least 50% new material. Scan evidence (VERIFIED, DOI prefix): 314 corpus works, second only to Remote Sensing, 292 on SAR ship detection.
+3. **Remote Sensing Letters.** The other letters journal on the list besides GRSL (Letters of up to 10 printed pages, UNVERIFIED) and hybrid, so a paper can appear without an APC (the standard APC was not found); it is the fallback after GRSL and weaker on every metric: SJR 0.434, quartile Q2, 59 days to first decision, 38% acceptance (UNVERIFIED). Scan evidence (VERIFIED): 24 corpus works, all on SAR ship detection.
 
 ### Flagship (how many vessels SAR misses in Southeast Asia, by length bin)
 
-1. **Remote Sensing of Environment.** Best scope fit: the remote sensing component must be the main contribution and single study sites are accepted if representative, and the journal has published SAR ship work (a 2023 Sentinel-1 ship velocity paper) (UNVERIFIED); Q1 with SJR 4.266 (UNVERIFIED); 15,000 word limit; slow, 193 days to acceptance, with desk decisions in about 4 days (UNVERIFIED); hybrid, APC USD 4450 only if open access is chosen (OpenAlex, price year 2025).
-2. **Fish and Fisheries.** The fisheries-audience tier named in the brief: Q1 in four SCImago categories, SJR 1.808, median 10 days to first decision, 14% acceptance (UNVERIFIED); the journal requires broad geographic or taxonomic scope and generic value, so present Southeast Asia as the case study of a general SAR detection-probability method; the journal has published satellite vessel tracking papers, including a 2026 review (Raynor et al.) that cites the SAR finding that 72 to 76% of industrial fishing vessels are not publicly trackable by AIS, so read that review first (UNVERIFIED); hybrid, APC USD 5000 only if open access is chosen (OpenAlex and the Wiley page agree).
-3. **ICES Journal of Marine Science.** The fisheries and marine science fallback if RSE judges the paper out of scope: fully open access since 2023 with an APC of GBP 2935, average 51 days to first decision in 2024, Original Article of 5 to 12 pages, Q1 with SJR 1.072, and it has published remote sensing and AIS fishing-activity papers in 2025 (all UNVERIFIED); no scope text was retrieved, so the fit is a judgement.
+1. **Remote Sensing of Environment.** Best scope fit: the remote sensing component must be the main contribution and single study sites are accepted if representative, and the journal has published SAR ship work (a 2023 Sentinel-1 ship velocity paper) (UNVERIFIED); Q1 with SJR 4.266 (UNVERIFIED); 15,000 word limit; slow, 193 days to acceptance, with desk decisions in about 4 days (UNVERIFIED); hybrid, APC USD 4450 only if open access is chosen (OpenAlex, price year 2025). Scan evidence (VERIFIED): 5 corpus works, 3 on SAR ship detection and none on the dark-vessel, SAR-AIS or IUU themes, so the topical record is thin.
+2. **Fish and Fisheries.** The fisheries-audience tier named in the brief: Q1 in four SCImago categories, SJR 1.808, median 10 days to first decision, 14% acceptance (UNVERIFIED); the journal requires broad geographic or taxonomic scope and generic value, so present Southeast Asia as the case study of a general SAR detection-probability method; the journal has published satellite vessel tracking papers, including a 2026 review (Raynor et al.) that cites the SAR finding that 72 to 76% of industrial fishing vessels are not publicly trackable by AIS, so read that review first (UNVERIFIED); hybrid, APC USD 5000 only if open access is chosen (OpenAlex and the Wiley page agree). Scan evidence (VERIFIED): 6 corpus works, all on the dark-vessel, SAR-AIS or IUU themes.
+3. **ICES Journal of Marine Science.** The fisheries and marine science fallback if RSE judges the paper out of scope: fully open access since 2023 with an APC of GBP 2935, average 51 days to first decision in 2024, Original Article of 5 to 12 pages, Q1 with SJR 1.072, and it has published remote sensing and AIS fishing-activity papers in 2025 (all UNVERIFIED); no scope text was retrieved, so the fit is a judgement. Scan evidence (VERIFIED): 9 corpus works, all on the dark-vessel, SAR-AIS or IUU themes, the most of the three.
+
+If none of the three works: the journals with the most flagship-theme works in the scan are Remote Sensing (49) and Frontiers in Marine Science (23), both in the table with fit 2.
 
 ## Generative-AI disclosure rules
 
@@ -190,6 +226,7 @@ Working rules for this project:
 8. The IGARSS row has no OpenAlex publisher or APC data because OpenAlex splits the series into fragmentary records (S4306419991, S4363604196).
 9. SCImago year labels are missing for Science Advances and IEEE Access; the IGARSS SJR is labelled 2024 and its h-index is given as 87 or 94 by two parts of one summary.
 10. A search on SAR ship detection and maritime monitoring special issues returned MDPI pages in Remote Sensing, JMSE and Sensors, with deadlines that the summary gave as already past for the Remote Sensing ones (UNVERIFIED; topic and deadline of each page not checked): https://www.mdpi.com/journal/remotesensing/special_issues/SAR_SeaSurface, https://www.mdpi.com/journal/jmse/special_issues/9LHKI2WSW6, https://www.mdpi.com/journal/sensors/special_issues/RS_VDN. Look for current ones if an MDPI route is chosen.
-11. The bibliometric scan of the project had not written `data/biblio/top_venues.csv` when this file was finished. When it does, run `python scripts/journals_top_venues.py` to list which of its top 15 venues are missing here, and `--add` to append skeleton rows. A skeleton row holds identity only and marks every other fact NOT RETRIEVED until someone researches it.
-12. Novelty of the Letter is not checked here. One search found no paper on detector transfer from Sentinel-1A to 1C or 1D, only general cross-sensor SAR ship detection domain-adaptation work (UNVERIFIED). Settle it with the bibliometric scan before the novelty claim is written.
-13. Fit scores are judgements. The owner should overrule them where the project knows better, in particular the Fish and Fisheries scope question.
+11. The six venues added from the scan (elib, IET conference proceedings, DOAJ, Zenodo, arXiv, IEEE Transactions on Aerospace and Electronic Systems) are skeleton rows. The four repositories need no research. Read the scopes of TAES and of the IET proceedings series and score them, or delete their rows from `data/journals/seed.csv` and rerun `scripts/journals_build.py`. To redo the comparison after the scan changes: `python scripts/journals_top_venues.py`, then `--add`, then `scripts/journals_openalex.py`, `scripts/journals_retractions.py` and `scripts/journals_build.py`.
+12. The scan's per-venue counts understate the conference series, because OpenAlex gives 1,143 works (25.1%) no source, 91% of them conference papers. Counting by DOI prefix, IGARSS has 314 works, not the 35 under its 2022 source. The scan owner could group no-source works by DOI prefix before the venue table is quoted anywhere.
+13. Novelty of the Letter is not checked here. One search found no paper on detector transfer from Sentinel-1A to 1C or 1D, only general cross-sensor SAR ship detection domain-adaptation work (UNVERIFIED). Settle it with the bibliometric scan before the novelty claim is written.
+14. Fit scores are judgements. The owner should overrule them where the project knows better, in particular the Fish and Fisheries scope question.

@@ -178,7 +178,7 @@ def skeleton_seed_row(venue: Mapping, oa_row: Mapping | None, used_keys: set[str
         fit_letter, fit_flagship = fit, fit + rank
     else:
         fit_letter, fit_flagship = "?: not scored, " + why, "?: not scored, " + why + rank
-    row = {c: "" for c in build.SEED_COLUMNS}
+    row = dict.fromkeys(build.SEED_COLUMNS, "")
     row.update(
         {
             "key": key,

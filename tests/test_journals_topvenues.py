@@ -11,7 +11,7 @@ A_PRINT, A_ONLINE, B_ONLINE, C_PRINT = "1111-1119", "2222-2227", "3333-3335", "4
 
 
 def seed_row(**kw):
-    row = {c: "" for c in build.SEED_COLUMNS}
+    row = dict.fromkeys(build.SEED_COLUMNS, "")
     row.update(kw)
     return row
 

@@ -14,7 +14,7 @@ A_PRINT, A_ONLINE, B_ONLINE, C_PRINT = "1111-1119", "2222-2227", "3333-3335", "4
 
 
 def seed_row(**kw):
-    row = {c: "" for c in build.SEED_COLUMNS}
+    row = dict.fromkeys(build.SEED_COLUMNS, "")
     row.update(kw)
     return row
 
@@ -194,7 +194,7 @@ def test_blocked_hosts_give_clear_messages_and_leave_seed_values_in_place(opts):
     alpha = rows[0]
     assert alpha["scopus_discontinued_check"] == "NOT CHECKED | list blocked"
     assert alpha["sjr"].startswith("4.266 (SJR 2025) | UNVERIFIED")
-    written = list(csv.DictReader(open(opts.out_csv, encoding="utf-8")))
+    written = build.read_rows(opts.out_csv)
     assert [r["venue"] for r in written] == ["Alpha Remote Sensing", "Beta Open Journal", "Gamma Symposium proceedings"]
     text = opts.doc_path.read_text(encoding="utf-8")
     assert "old table" not in text and "| Alpha Remote Sensing |" in text and text.startswith("intro\n") and text.endswith("outro\n")
