@@ -6,7 +6,7 @@ Updated: 2026-10-02 (UTC). The owner reviews; the assistant does the heavy lifti
 
 ## Look at this first
 
-- **Demo page (private link, yours to share):** https://claude.ai/artifact/5VbpXaoghkKx8nwGoaEeUs (version 5). It holds:
+- **Demo page (private link, yours to share):** https://claude.ai/artifact/5VbpXaoghkKx8nwGoaEeUs (version 6). It holds:
   - a regional map of the South China Sea with all 78,615 vessel candidates of one 12-day cycle and the 90-day Sentinel-1 coverage layer;
   - a radar view of one Ca Mau scene, with CNN scores;
   - a contact inspector (radar chip, DMS and MGRS position, date-time group);
