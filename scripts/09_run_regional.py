@@ -26,17 +26,23 @@ from darkvessel.aoi import aoi_gdf
 from darkvessel.config import CRS_UTM_REGIONAL, DARK_CAVEAT, DATA_DIR, DEFAULT_AOI
 
 CACHE = DATA_DIR / "cache" / "regional"
+PERSIST = CACHE / "persist"  # per-scene persistence results, reused while the scene's detections are unchanged
 
 
 def _work(args):
     path, pfa = args
     from darkvessel.regional import process_scene
 
+    from darkvessel.regional import SEED_INSET_DEG
+
     aoi = aoi_gdf(DEFAULT_AOI).geometry.iloc[0].simplify(0.01)
+    inner = aoi.buffer(-SEED_INSET_DEG)
     shapely.prepare(aoi)
+    shapely.prepare(inner)
     sid = path.rsplit("/", 1)[-1]
     try:
-        det, stats = process_scene(path, aoi, pfa=pfa)
+        det, stats = process_scene(path, aoi, pfa=pfa, aoi_inner=inner)
+        stats["sea_seed"] = f"AOI inset {SEED_INSET_DEG} deg"
         det.drop(columns="geometry").to_parquet(CACHE / f"{sid}.parquet")
         (CACHE / f"{sid}.json").write_text(json.dumps(stats, default=str))
         return sid, stats.get("tested_km2", 0), len(det), None
@@ -123,6 +129,20 @@ def merge(pfa: float, persist_workers: int = 6):
     fp["start_utc"] = pd.to_datetime(fp.start_utc, utc=True)
     det["acq"] = pd.to_datetime(det.acq_utc, utc=True)
     cand = det[det.confidence.isin(["high", "medium"])]
+    det["persist_dates"], det["persist_dates_checked"] = 0, 0
+    # Reuse earlier persistence results for scenes whose detections have not changed since
+    cached = []
+    for sid in cand.scene_id.unique():
+        pc = PERSIST / f"{sid}.parquet"
+        if pc.exists() and pc.stat().st_mtime >= (CACHE / f"{sid}.parquet").stat().st_mtime:
+            cached.append(pd.read_parquet(pc))
+    if cached:
+        prev_res = pd.concat(cached, ignore_index=True).set_index("det_id")
+        sel = det.det_id.isin(prev_res.index)
+        for c in ("persist_dates", "persist_dates_checked"):
+            det.loc[sel, c] = det.loc[sel, "det_id"].map(prev_res[c]).astype(int)
+        cand = cand[~cand.det_id.isin(prev_res.index)]
+        print(f"persistence reused for {int(sel.sum())} candidates, {len(cand)} to check", flush=True)
     scenes = {}
 
     def get_scene(path):
@@ -149,12 +169,14 @@ def merge(pfa: float, persist_workers: int = 6):
         return idx, sum(res), len(res)
 
     t0 = time.time()
-    det["persist_dates"], det["persist_dates_checked"] = 0, 0
     with ThreadPoolExecutor(persist_workers) as ex:
         for i, (idx, hits, n) in enumerate(ex.map(check, jobs), 1):
             det.loc[idx, ["persist_dates", "persist_dates_checked"]] = [hits, n]
             if i % 500 == 0:
                 print(f"  persistence {i}/{len(jobs)} [{time.time() - t0:.0f}s]", flush=True)
+    PERSIST.mkdir(exist_ok=True)
+    for sid, g in det.loc[cand.index].groupby("scene_id"):
+        g[["det_id", "persist_dates", "persist_dates_checked"]].to_parquet(PERSIST / f"{sid}.parquet")
     fixed = det.confidence.isin(["high", "medium"]) & (det.persist_dates_checked > 0) & (det.persist_dates >= det.persist_dates_checked)
     det.loc[fixed, "confidence"] = "fixed"
     det = det.drop(columns=["acq"])

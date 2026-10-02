@@ -57,12 +57,18 @@ def read_worldcover(bounds: tuple[float, float, float, float], factor: int = 8):
 
 
 def sea_mask_on_grid(lon: np.ndarray, lat: np.ndarray, cell_m: float, buffer_m: float = 1000.0,
-                     factor: int = 8) -> tuple[np.ndarray, np.ndarray]:
+                     factor: int = 8, seed: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """Classify a (decimated) SAR grid given per-cell lon/lat.
 
     Returns (sea_ok, land) boolean arrays of lon.shape:
       land   = WorldCover land or inland water
       sea_ok = open-sea-connected water farther than `buffer_m` from land
+
+    Water counts as open sea when its connected body holds a WorldCover code-0 cell. Inside its
+    land tiles WorldCover often codes nearshore sea as 80 (permanent water) with no code-0 cell in
+    reach, so a frame of coastal sea would be masked whole. `seed` (bool, lon.shape) marks cells
+    known to be sea, for example cells well inside a marine-area polygon; water bodies that touch a
+    seed cell count as open sea too.
     """
     pad = 0.02
     bounds = (float(np.nanmin(lon)) - pad, float(np.nanmin(lat)) - pad,
@@ -76,7 +82,10 @@ def sea_mask_on_grid(lon: np.ndarray, lat: np.ndarray, cell_m: float, buffer_m: 
     water = np.isin(code, WATER_CODES) & np.isfinite(lon)
     # keep only water bodies that touch open sea (code 0)
     lab, n = ndimage.label(water, structure=np.ones((3, 3)))
-    open_ids = np.unique(lab[(code == 0) & water])
+    is_open = (code == 0) & water
+    if seed is not None:
+        is_open |= seed & water
+    open_ids = np.unique(lab[is_open])
     sea = np.isin(lab, open_ids[open_ids > 0])
     land = ~sea & np.isfinite(lon)
     dist_m = ndimage.distance_transform_edt(~land) * cell_m

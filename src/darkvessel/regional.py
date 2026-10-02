@@ -35,15 +35,23 @@ BLOCK = 2048
 FACTOR = 16  # mask grid = 160 m
 
 
-def scene_mask(scene: GRDScene, aoi_geom, buffer_m: float = 1000.0, factor: int = FACTOR):
-    """Testable-sea mask on the decimated grid (True = sea inside the AOI, beyond the shore buffer)."""
+SEED_INSET_DEG = 0.05  # cells this far inside the marine-area AOI are certainly sea (about 5.5 km)
+
+
+def scene_mask(scene: GRDScene, aoi_geom, buffer_m: float = 1000.0, factor: int = FACTOR, aoi_inner=None):
+    """Testable-sea mask on the decimated grid (True = sea inside the AOI, beyond the shore buffer).
+
+    `aoi_inner` (the AOI shrunk by SEED_INSET_DEG) seeds the sea test so nearshore water that
+    WorldCover codes as permanent water is kept when it connects to the open sea of the AOI.
+    """
     H, W = scene.shape
     rd = np.arange(0, H, factor) + factor / 2
     cd = np.arange(0, W, factor) + factor / 2
     RR, CC = np.meshgrid(rd, cd, indexing="ij")
     lon, lat = scene.geocoder.lonlat(RR.ravel(), CC.ravel())
     lon, lat = lon.reshape(RR.shape), lat.reshape(RR.shape)
-    sea_ok, _ = sea_mask_on_grid(lon, lat, cell_m=10.0 * factor, buffer_m=buffer_m, factor=factor)
+    seed = shapely.contains_xy(aoi_inner, lon, lat) if aoi_inner is not None else None
+    sea_ok, _ = sea_mask_on_grid(lon, lat, cell_m=10.0 * factor, buffer_m=buffer_m, factor=factor, seed=seed)
     in_aoi = shapely.contains_xy(aoi_geom, lon, lat)
     return sea_ok & in_aoi
 
@@ -55,11 +63,11 @@ def _block_valid(mask_d, r0, r1, c0, c1, factor=FACTOR):
 
 
 def process_scene(path: str, aoi_geom, pfa: float = 1e-6, guard: int = 81, background: int = 161,
-                  buffer_m: float = 1000.0, min_pixels: int = 2, log=print) -> tuple[gpd.GeoDataFrame, dict]:
+                  buffer_m: float = 1000.0, min_pixels: int = 2, log=print, aoi_inner=None) -> tuple[gpd.GeoDataFrame, dict]:
     t0 = dt.datetime.now()
     scene = GRDScene(path)
     H, W = scene.shape
-    mask_d = scene_mask(scene, aoi_geom, buffer_m)
+    mask_d = scene_mask(scene, aoi_geom, buffer_m, aoi_inner=aoi_inner)
     margin = background // 2 + 1
     blocks = []
     for r0 in range(0, H, BLOCK):
