@@ -12,15 +12,15 @@ from __future__ import annotations
 import io
 import posixpath
 import re
-import zipfile
 import xml.etree.ElementTree as ET
+import zipfile
 
 _NS = {
     "m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
     "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
     "pr": "http://schemas.openxmlformats.org/package/2006/relationships",
 }
-_REL_ID = "{%s}id" % _NS["r"]
+_REL_ID = f"{{{_NS['r']}}}id"
 
 
 class XlsxError(ValueError):

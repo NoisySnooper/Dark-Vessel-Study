@@ -88,6 +88,14 @@ def entries_from_records(records: Sequence[Mapping[str, str]], kind: str) -> lis
         for h in rec:
             if h not in headers:
                 headers.append(h)
+    status_cols = [h for h in headers if re.search(r"active\s*or\s*inactive|^status$|source\s*status", h, re.IGNORECASE)]
+    if kind == "discontinued" and status_cols:
+        # A full source list marks each row Active or Inactive. Keep only the rows that are not active.
+        def is_active(rec: Mapping[str, str]) -> bool:
+            return any(str(rec.get(h, "")).strip().casefold() == "active" for h in status_cols)
+
+        if any(is_active(r) for r in records):
+            records = [r for r in records if not is_active(r)]
     issn_cols = [h for h in headers if "issn" in h.lower()]
     url_cols = [h for h in headers if _URL_HEADER.search(h) and "issn" not in h.lower()]
     clone_cols = [h for h in url_cols if re.search(r"hijack|clone|fake|fraud", h, re.IGNORECASE)]
@@ -168,7 +176,7 @@ def not_checked(reason: str) -> ScreenResult:
 
 def _entries_text(result: ScreenResult, limit: int = 3) -> str:
     parts = []
-    for entry, note in list(zip(result.entries, result.notes))[:limit]:
+    for entry, note in list(zip(result.entries, result.notes, strict=True))[:limit]:
         bits = [entry.label]
         if entry.issns:
             bits.append("ISSN " + ", ".join(entry.issns))

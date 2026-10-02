@@ -1,0 +1,7 @@
+length_bin,n_labels,cfar_detected,cfar_recall,cfar_ci_lo,cfar_ci_hi,cnn_detected,cnn_recall,cnn_ci_lo,cnn_ci_hi,cfar_detected_loose,cfar_recall_loose
+0-15 m,0,0,,,,0,,,,0,
+15-25 m,0,0,,,,0,,,,0,
+25-50 m,0,0,,,,0,,,,0,
+50-100 m,0,0,,,,0,,,,0,
+100+ m,0,0,,,,0,,,,0,
+all,0,0,,,,0,,,,0,

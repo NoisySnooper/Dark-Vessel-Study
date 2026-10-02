@@ -26,7 +26,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from darkvessel.journals import fetch, lists, openalex, scimago
-from darkvessel.journals.fetch import FetchError, Fetcher
+from darkvessel.journals.fetch import Fetcher, FetchError
 from darkvessel.journals.issn import extract_issns
 from darkvessel.journals.lists import ListEntry, ListIndex, ListMeta, ScreenResult
 from darkvessel.journals.scimago import ScimagoRecord, ScimagoTable
@@ -564,8 +564,25 @@ def _fetch_scopus(opts: Options, fetcher: Fetcher) -> tuple[ListIndex, ListMeta]
 def _csv_records(text: str, source: str) -> list[dict[str, str]]:
     if text.lstrip()[:15].lower().startswith(("<!doctype", "<html")):
         raise FetchError("parse", source, "got an HTML page instead of CSV (the sheet is not public or needs a login)")
-    reader = csv.DictReader(io.StringIO(text, newline=""))
-    return [{(k or "").strip(): (v or "").strip() for k, v in row.items() if k is not None} for row in reader]
+    rows = list(csv.reader(io.StringIO(text, newline="")))
+    hint = re.compile(r"journal|title|issn|url|name", re.IGNORECASE)
+    start = next(
+        (i for i, r in enumerate(rows) if sum(1 for c in r if c.strip()) >= 2 and any(hint.search(c) for c in r)), None
+    )
+    if start is None:
+        return []
+    headers: list[str] = []
+    for j, h in enumerate(rows[start]):  # a banner or title row above the header is skipped
+        name = h.strip() or f"column_{j + 1}"
+        while name in headers:
+            name += "_2"
+        headers.append(name)
+    out = []
+    for r in rows[start + 1 :]:
+        if any(c.strip() for c in r):
+            padded = list(r) + [""] * (len(headers) - len(r))
+            out.append({h: padded[j].strip() for j, h in enumerate(headers)})
+    return out
 
 
 def _fetch_hijacked(opts: Options, fetcher: Fetcher) -> tuple[ListIndex, ListMeta]:

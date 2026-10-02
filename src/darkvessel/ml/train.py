@@ -66,14 +66,17 @@ class ChipDataset(Dataset):
         return x
 
 
-def make_loader(ds: ChipDataset, batch: int, pos_fraction: float | None, seed: int, shuffle: bool) -> DataLoader:
+def make_loader(ds: ChipDataset, batch: int, pos_fraction: float | None, seed: int, shuffle: bool,
+                samples_per_epoch: int | None = None) -> DataLoader:
+    """Plain loader, or a balanced sampler drawing `samples_per_epoch` chips with replacement."""
     if pos_fraction is None:
         return DataLoader(ds, batch_size=batch, shuffle=shuffle, num_workers=0)
     y = ds.y
     n_pos, n_neg = max(1, int(y.sum())), max(1, int((1 - y).sum()))
     w = np.where(y > 0.5, pos_fraction / n_pos, (1 - pos_fraction) / n_neg)
     g = torch.Generator().manual_seed(seed)
-    sampler = WeightedRandomSampler(torch.as_tensor(w, dtype=torch.double), num_samples=len(y), replacement=True, generator=g)
+    n = len(y) if samples_per_epoch is None else int(samples_per_epoch)
+    sampler = WeightedRandomSampler(torch.as_tensor(w, dtype=torch.double), num_samples=n, replacement=True, generator=g)
     return DataLoader(ds, batch_size=batch, sampler=sampler, num_workers=0)
 
 
@@ -109,9 +112,10 @@ def best_f1_threshold(p: np.ndarray, y: np.ndarray, n_extra_fn: int = 0) -> tupl
     return thr, {"precision": float(prec[k]), "recall": float(rec[k]), "f1": float(f1[k])}
 
 
-def train_verifier(train_chips, y_train, val_chips, y_val, *, width: int = 24, epochs: int = 30, batch: int = 128,
+def train_verifier(train_chips, y_train, val_chips, y_val, *, width: int = 16, epochs: int = 30, batch: int = 128,
                    lr: float = 1e-3, weight_decay: float = 1e-4, pos_fraction: float = 0.33, patience: int = 6,
-                   threads: int = 3, seed: int = 0, log=print) -> tuple[VerifierCNN, dict, pd.DataFrame]:
+                   samples_per_epoch: int | None = 16000, threads: int = 3, seed: int = 0,
+                   log=print) -> tuple[VerifierCNN, dict, pd.DataFrame]:
     """Train from scratch with early stopping on validation average precision."""
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -119,7 +123,7 @@ def train_verifier(train_chips, y_train, val_chips, y_val, *, width: int = 24, e
     mean, std = chip_stats(train_chips[: min(len(train_chips), 20000)])
     tr = ChipDataset(train_chips, y_train, mean, std, augment=True, seed=seed)
     va = ChipDataset(val_chips, y_val, mean, std, augment=False)
-    tr_loader = make_loader(tr, batch, pos_fraction, seed, shuffle=True)
+    tr_loader = make_loader(tr, batch, pos_fraction, seed, shuffle=True, samples_per_epoch=samples_per_epoch)
     va_loader = make_loader(va, 256, None, seed, shuffle=False)
     model = VerifierCNN(width=width)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -136,7 +140,7 @@ def train_verifier(train_chips, y_train, val_chips, y_val, *, width: int = 24, e
             loss.backward()
             opt.step()
             sched.step()
-            tot += float(loss) * len(yb)
+            tot += loss.item() * len(yb)
             n += len(yb)
         logits, yv = predict_logits(model, va_loader)
         m = val_metrics(logits, yv)
@@ -157,6 +161,7 @@ def train_verifier(train_chips, y_train, val_chips, y_val, *, width: int = 24, e
     model.eval()
     meta = {"norm_mean": mean.tolist(), "norm_std": std.tolist(), "best_epoch": best_epoch, "best_val_ap": float(best),
             "epochs_run": len(rows), "width": width, "batch": batch, "lr": lr, "weight_decay": weight_decay,
-            "pos_fraction": pos_fraction, "patience": patience, "seed": seed, "n_params": model.n_params(),
-            "train_time_s": round(time.time() - t0, 1)}
+            "pos_fraction": pos_fraction, "samples_per_epoch": samples_per_epoch, "patience": patience, "seed": seed,
+            "n_params": model.n_params(), "train_time_s": round(time.time() - t0, 1),
+            "augmentation": "8 dihedral views, shift <= 2 px, per-channel offset <= 1 dB, gain <= 0.5 dB"}
     return model, meta, pd.DataFrame(rows)

@@ -1,0 +1,327 @@
+{
+  "model_id": "verifier_v0",
+  "threshold": 0.38684993982315063,
+  "train_meta": {
+    "norm_mean": [
+      -16.265426635742188,
+      -25.211471557617188
+    ],
+    "norm_std": [
+      5.484158992767334,
+      3.4935336112976074
+    ],
+    "best_epoch": 2,
+    "best_val_ap": 0.13564442165443666,
+    "epochs_run": 2,
+    "width": 8,
+    "batch": 128,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "pos_fraction": 0.33,
+    "samples_per_epoch": 1500,
+    "patience": 2,
+    "seed": 0,
+    "n_params": 73841,
+    "train_time_s": 21.7,
+    "augmentation": "8 dihedral views, shift <= 2 px, per-channel offset <= 1 dB, gain <= 0.5 dB",
+    "threshold": 0.38684993982315063,
+    "threshold_rule": "best F1 on validation windows (candidate precision, label recall)",
+    "threshold_val_stats": {
+      "precision": 0.375,
+      "recall": 0.25,
+      "f1": 0.3
+    },
+    "model_id": "verifier_v0",
+    "train_counts": {
+      "pos": 302,
+      "neg": 1510,
+      "val": 163,
+      "test": 449
+    },
+    "scenes": {
+      "total": 454,
+      "test": 91
+    },
+    "training_data": "AI2 Skylight Sentinel-1 point labels (Apache-2.0), S1A/S1B 2020-2022; Contains modified Copernicus Sentinel data 2020-2022",
+    "trained_utc": "2026-10-02T06:35:47Z",
+    "git_commit": "009198f"
+  },
+  "test_scenes": 91,
+  "test_labels_total": 41,
+  "test_labels_evaluable": 41,
+  "test_labels_off_testable_sea": 0,
+  "test_candidates": 449,
+  "test_candidate_classes": {
+    "clutter": 398,
+    "vessel": 41,
+    "ambiguous": 10
+  },
+  "test_candidate_ap": 0.05812079797777841,
+  "cfar_only": {
+    "accepted": 449,
+    "tp_candidates": 41,
+    "fp_candidates": 398,
+    "ambiguous_accepted": 10,
+    "labels": 41,
+    "labels_detected": 41,
+    "labels_missed": 0,
+    "precision": 0.09339407744874716,
+    "precision_ci": [
+      0.06959080165206136,
+      0.12425187256824677
+    ],
+    "recall": 1.0,
+    "recall_ci": [
+      0.9143295511310926,
+      1.0
+    ],
+    "f1": 0.17083333333333334
+  },
+  "cfar_plus_cnn": {
+    "accepted": 165,
+    "tp_candidates": 3,
+    "fp_candidates": 162,
+    "ambiguous_accepted": 0,
+    "labels": 41,
+    "labels_detected": 3,
+    "labels_missed": 38,
+    "precision": 0.01818181818181818,
+    "precision_ci": [
+      0.006202298221943011,
+      0.052086654263700335
+    ],
+    "recall": 0.07317073170731707,
+    "recall_ci": [
+      0.025197373252564145,
+      0.19427740017211292
+    ],
+    "f1": 0.029126213592233007
+  },
+  "cfar_only_loose": {
+    "labels_detected_loose": 41,
+    "recall_loose": 1.0
+  },
+  "by_region": {
+    "cfar": [
+      {
+        "region": "sea_asia",
+        "accepted": 449,
+        "tp_candidates": 41,
+        "fp_candidates": 398,
+        "ambiguous_accepted": 10,
+        "labels": 41,
+        "labels_detected": 41,
+        "labels_missed": 0,
+        "precision": 0.09339407744874716,
+        "precision_ci": [
+          0.06959080165206136,
+          0.12425187256824677
+        ],
+        "recall": 1.0,
+        "recall_ci": [
+          0.9143295511310926,
+          1.0
+        ],
+        "f1": 0.17083333333333334
+      }
+    ],
+    "cnn": [
+      {
+        "region": "sea_asia",
+        "accepted": 165,
+        "tp_candidates": 3,
+        "fp_candidates": 162,
+        "ambiguous_accepted": 0,
+        "labels": 41,
+        "labels_detected": 3,
+        "labels_missed": 38,
+        "precision": 0.01818181818181818,
+        "precision_ci": [
+          0.006202298221943011,
+          0.052086654263700335
+        ],
+        "recall": 0.07317073170731707,
+        "recall_ci": [
+          0.025197373252564145,
+          0.19427740017211292
+        ],
+        "f1": 0.029126213592233007
+      }
+    ]
+  },
+  "by_campaign": {
+    "cfar": [
+      {
+        "campaign": "nov-2021",
+        "accepted": 449,
+        "tp_candidates": 41,
+        "fp_candidates": 398,
+        "ambiguous_accepted": 10,
+        "labels": 41,
+        "labels_detected": 41,
+        "labels_missed": 0,
+        "precision": 0.09339407744874716,
+        "precision_ci": [
+          0.06959080165206136,
+          0.12425187256824677
+        ],
+        "recall": 1.0,
+        "recall_ci": [
+          0.9143295511310926,
+          1.0
+        ],
+        "f1": 0.17083333333333334
+      }
+    ],
+    "cnn": [
+      {
+        "campaign": "nov-2021",
+        "accepted": 165,
+        "tp_candidates": 3,
+        "fp_candidates": 162,
+        "ambiguous_accepted": 0,
+        "labels": 41,
+        "labels_detected": 3,
+        "labels_missed": 38,
+        "precision": 0.01818181818181818,
+        "precision_ci": [
+          0.006202298221943011,
+          0.052086654263700335
+        ],
+        "recall": 0.07317073170731707,
+        "recall_ci": [
+          0.025197373252564145,
+          0.19427740017211292
+        ],
+        "f1": 0.029126213592233007
+      }
+    ]
+  },
+  "by_confidence_class": [
+    {
+      "confidence": "high",
+      "ambiguous_reject": 0,
+      "clutter_reject": 22,
+      "clutter_accept": 2,
+      "vessel_reject": 27,
+      "vessel_accept": 1
+    },
+    {
+      "confidence": "low",
+      "ambiguous_reject": 5,
+      "clutter_reject": 167,
+      "clutter_accept": 154,
+      "vessel_reject": 4,
+      "vessel_accept": 1
+    },
+    {
+      "confidence": "medium",
+      "ambiguous_reject": 5,
+      "clutter_reject": 47,
+      "clutter_accept": 6,
+      "vessel_reject": 7,
+      "vessel_accept": 1
+    }
+  ],
+  "recall_by_length": [
+    {
+      "length_bin": "0-15 m",
+      "n_labels": 0,
+      "cfar_detected": 0,
+      "cfar_recall": NaN,
+      "cfar_ci_lo": NaN,
+      "cfar_ci_hi": NaN,
+      "cnn_detected": 0,
+      "cnn_recall": NaN,
+      "cnn_ci_lo": NaN,
+      "cnn_ci_hi": NaN,
+      "cfar_detected_loose": 0,
+      "cfar_recall_loose": NaN
+    },
+    {
+      "length_bin": "15-25 m",
+      "n_labels": 0,
+      "cfar_detected": 0,
+      "cfar_recall": NaN,
+      "cfar_ci_lo": NaN,
+      "cfar_ci_hi": NaN,
+      "cnn_detected": 0,
+      "cnn_recall": NaN,
+      "cnn_ci_lo": NaN,
+      "cnn_ci_hi": NaN,
+      "cfar_detected_loose": 0,
+      "cfar_recall_loose": NaN
+    },
+    {
+      "length_bin": "25-50 m",
+      "n_labels": 0,
+      "cfar_detected": 0,
+      "cfar_recall": NaN,
+      "cfar_ci_lo": NaN,
+      "cfar_ci_hi": NaN,
+      "cnn_detected": 0,
+      "cnn_recall": NaN,
+      "cnn_ci_lo": NaN,
+      "cnn_ci_hi": NaN,
+      "cfar_detected_loose": 0,
+      "cfar_recall_loose": NaN
+    },
+    {
+      "length_bin": "50-100 m",
+      "n_labels": 0,
+      "cfar_detected": 0,
+      "cfar_recall": NaN,
+      "cfar_ci_lo": NaN,
+      "cfar_ci_hi": NaN,
+      "cnn_detected": 0,
+      "cnn_recall": NaN,
+      "cnn_ci_lo": NaN,
+      "cnn_ci_hi": NaN,
+      "cfar_detected_loose": 0,
+      "cfar_recall_loose": NaN
+    },
+    {
+      "length_bin": "100+ m",
+      "n_labels": 0,
+      "cfar_detected": 0,
+      "cfar_recall": NaN,
+      "cfar_ci_lo": NaN,
+      "cfar_ci_hi": NaN,
+      "cnn_detected": 0,
+      "cnn_recall": NaN,
+      "cnn_ci_lo": NaN,
+      "cnn_ci_hi": NaN,
+      "cfar_detected_loose": 0,
+      "cfar_recall_loose": NaN
+    },
+    {
+      "length_bin": "all",
+      "n_labels": 0,
+      "cfar_detected": 0,
+      "cfar_recall": NaN,
+      "cfar_ci_lo": NaN,
+      "cfar_ci_hi": NaN,
+      "cnn_detected": 0,
+      "cnn_recall": NaN,
+      "cnn_ci_lo": NaN,
+      "cnn_ci_hi": NaN,
+      "cfar_detected_loose": 0,
+      "cfar_recall_loose": NaN
+    }
+  ],
+  "label_quality_by_campaign": {
+    "jun-2020": {
+      "bright_vessel": 86,
+      "bright_ambiguous": 4,
+      "bright_unlabelled": 17,
+      "unlabelled_frac": 0.159
+    },
+    "nov-2021": {
+      "bright_vessel": 83,
+      "bright_ambiguous": 0,
+      "bright_unlabelled": 67,
+      "unlabelled_frac": 0.447
+    }
+  },
+  "runtime_s": 37.6
+}

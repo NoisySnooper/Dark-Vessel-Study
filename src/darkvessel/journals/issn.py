@@ -21,7 +21,7 @@ def check_digit(first_seven: str) -> str:
     """ISSN check character for the first seven digits (weights 8 down to 2, modulus 11)."""
     if len(first_seven) != 7 or not first_seven.isdigit():
         raise ValueError(f"need exactly seven digits, got {first_seven!r}")
-    total = sum(int(d) * w for d, w in zip(first_seven, range(8, 1, -1)))
+    total = sum(int(d) * w for d, w in zip(first_seven, range(8, 1, -1), strict=True))
     remainder = (11 - total % 11) % 11
     return "X" if remainder == 10 else str(remainder)
 

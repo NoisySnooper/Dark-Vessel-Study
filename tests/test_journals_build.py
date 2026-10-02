@@ -2,7 +2,6 @@
 
 import csv
 import json
-from pathlib import Path
 
 import pytest
 
@@ -123,7 +122,7 @@ def test_seed_that_contradicts_the_openalex_flags_is_marked():
 
 SCIMAGO = (
     "Rank;Sourceid;Title;Type;Issn;SJR;SJR Best Quartile;H index;Total Docs. (2025);Total Docs. (3years);Country;Publisher;Coverage;Categories;Areas\n"
-    f'1;100;"Alpha Remote Sensing";journal;"11111119, 22222227";4,266;Q1;397;439;1300;UK;"Fake Elsevier";"1969-2025";'
+    '1;100;"Alpha Remote Sensing";journal;"11111119, 22222227";4,266;Q1;397;439;1300;UK;"Fake Elsevier";"1969-2025";'
     '"Computers in Earth Sciences (Q1); Geology (Q1); Earth and Planetary Sciences (miscellaneous) (Q2)";"Earth and Planetary Sciences"\n'
 )
 POLICY_PAGE = '<a href="https://www.elsevier.com/files/Discontinued_sources.xlsx">Discontinued sources from Scopus</a>'
@@ -288,3 +287,20 @@ def test_repo_files_contain_no_em_dashes():
     for path in paths:
         if path.exists():
             assert em not in path.read_text(encoding="utf-8"), f"em dash in {path}"
+
+
+def test_hijack_sheet_with_a_banner_row_and_blank_rows_is_still_read():
+    text = (
+        "Retraction Watch Hijacked Journal Checker,,,\n"
+        ",,,\n"
+        "Journal title,Authentic URL,Hijacked URL,ISSN\n"
+        f"Alpha Remote Sensing,https://alpha.example,https://alpha-clone.example,{A_PRINT}\n"
+        ",,,\n"
+        "Other Journal,https://other.example,https://other-clone.example,\n"
+    )
+    records = build._csv_records(text, "fake.csv")
+    assert [r["Journal title"] for r in records] == ["Alpha Remote Sensing", "Other Journal"]
+    assert records[0]["ISSN"] == A_PRINT
+    with pytest.raises(FetchError, match="HTML page"):
+        build._csv_records("<!DOCTYPE html><html></html>", "fake.csv")
+    assert build._csv_records("just one column\nvalue\n", "fake.csv") == []
