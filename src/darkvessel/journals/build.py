@@ -243,8 +243,35 @@ def publisher_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
     return seed_row.get("publisher_fallback", "") or join_cell("NOT RETRIEVED", "no publisher in the OpenAlex snapshot")
 
 
-def oa_model_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
+def inferred_oa_model(oa_row: Mapping | None) -> tuple[str, str] | None:
+    """The model that the OpenAlex flags imply, with its evidence. Always marked as an inference.
+
+    Used only for rows whose seed has no researched model (skeleton rows added from the scan).
+    """
+    if not oa_row:
+        return None
+    if oa_row["is_oa"] and oa_row["is_in_doaj"]:
+        return "gold", "inferred from the OpenAlex flags alone UNVERIFIED (inferred)"
+    if oa_row.get("apc_usd"):
+        return "hybrid", "inferred from the OpenAlex flags alone UNVERIFIED (inferred)"
+    return (
+        "subscription or hybrid (undetermined)",
+        "OpenAlex lists no APC and the journal is not fully open access UNVERIFIED (inferred)",
+    )
+
+
+def _seed_oa(seed_row: Mapping[str, str], oa_row: Mapping | None) -> tuple[str, str, str]:
+    """(model, provenance, evidence) from the seed, or the OpenAlex inference when the seed has none."""
     value, prov = split_cell(seed_row.get("oa_model", ""))
+    evidence = seed_row.get("oa_evidence", "").strip()
+    guess = inferred_oa_model(oa_row)
+    if guess and (not value or value.upper().startswith("NOT RETRIEVED")):
+        return guess[0], "", guess[1]
+    return value, prov, evidence
+
+
+def oa_model_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
+    value, prov, evidence = _seed_oa(seed_row, oa_row)
     value = value or "NOT RETRIEVED"
     parts = []
     if oa_row:
@@ -258,7 +285,6 @@ def oa_model_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
             parts.append("CONFLICT: seed says gold but OpenAlex says not fully OA")
         if word == "hybrid" and oa_row["is_oa"]:
             parts.append("CONFLICT: seed says hybrid but OpenAlex says fully OA")
-    evidence = seed_row.get("oa_evidence", "").strip()
     if prov:
         parts.append(prov)
     if evidence:
@@ -275,7 +301,7 @@ def apc_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
     note = seed_row.get("apc_note", "").strip()
     if oa_row and oa_row.get("apc_usd"):
         value = str(oa_row["apc_usd"])
-        model = split_cell(seed_row.get("oa_model", ""))[0].lower()
+        model = _seed_oa(seed_row, oa_row)[0].lower()
         if model.startswith("hybrid"):
             value += " (optional, hybrid)"
         listed = ", ".join(f"{p['currency']} {p['price']}" for p in oa_row.get("apc_prices", []))
@@ -285,7 +311,7 @@ def apc_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
         return join_cell(value, prov)
     if note:
         return note
-    return join_cell("NOT RETRIEVED", "no APC in the OpenAlex snapshot and none found by search")
+    return join_cell("NOT RETRIEVED", "no APC in the OpenAlex snapshot; no other source consulted")
 
 
 def h_index_cell(seed_row: Mapping[str, str], oa_row: Mapping | None, sc: tuple[ScimagoRecord | None, str] | None, sc_ext: ExternalScimago | None) -> str:

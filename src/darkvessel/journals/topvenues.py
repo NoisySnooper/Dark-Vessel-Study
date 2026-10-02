@@ -198,22 +198,14 @@ def skeleton_seed_row(venue: Mapping, oa_row: Mapping | None, used_keys: set[str
             "scopus_discontinued_check": "NOT CHECKED | list not downloaded; " + why,
             "hijacked_check": "NOT CHECKED | list not downloaded; " + why,
             "sources": f"scan file data/biblio/top_venues.csv; OpenAlex source ID {venue['openalex_id'] or 'not given'}",
-            "apc_note": f"NOT RETRIEVED | {why}",
+            "apc_note": "",
         }
     )
     if kind == "repository":
         row["oa_model"] = "not applicable (repository)"
         row["oa_evidence"] = "source type repository in the scan file UNVERIFIED (inferred)"
-    elif oa_row:
-        if oa_row.get("is_oa") and oa_row.get("is_in_doaj"):
-            row["oa_model"], row["oa_evidence"] = "gold", "inferred from the OpenAlex flags alone UNVERIFIED (inferred)"
-        elif oa_row.get("apc_usd"):
-            row["oa_model"], row["oa_evidence"] = "hybrid", "inferred from the OpenAlex flags alone UNVERIFIED (inferred)"
-        else:
-            row["oa_model"] = "subscription or hybrid (undetermined)"
-            row["oa_evidence"] = "OpenAlex lists no APC and the journal is not fully open access UNVERIFIED (inferred)"
     else:
-        row["oa_model"] = "NOT RETRIEVED"
+        row["oa_model"] = unknown  # the build infers it from the OpenAlex flags once the OpenAlex rows are loaded
     return row
 
 

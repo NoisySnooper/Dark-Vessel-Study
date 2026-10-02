@@ -53,6 +53,7 @@ CORPUS_COLUMNS = [
     "vn_flag",
 ]
 EXTRA_COLUMNS = [
+    "cited_by_with_merged",
     "n_authors",
     "first_author",
     "authors",
@@ -101,6 +102,14 @@ def ensure_deleted_ids_file(cache_dir: Path) -> Path:
 
 def find_deleted(cache_dir: Path, candidate_ids: set[str]) -> tuple[set[str], int]:
     """IDs from candidate_ids that appear in the deleted list. Returns (hits, rows in list)."""
+    import hashlib
+
+    key = hashlib.sha1("\n".join(sorted(candidate_ids)).encode()).hexdigest()
+    cache_file = Path(cache_dir) / "deleted_hits.json"
+    if cache_file.exists():
+        cached = json.loads(cache_file.read_text())
+        if cached.get("key") == key:
+            return set(cached["hits"]), cached["total"]
     path = ensure_deleted_ids_file(cache_dir)
     hits: set[str] = set()
     total = 0
@@ -108,6 +117,7 @@ def find_deleted(cache_dir: Path, candidate_ids: set[str]) -> tuple[set[str], in
         total += len(chunk)
         short = chunk["work_id"].str.rsplit("/", n=1).str[-1]
         hits.update(short[short.isin(candidate_ids)].tolist())
+    cache_file.write_text(json.dumps({"key": key, "hits": sorted(hits), "total": total}))
     return hits, total
 
 
@@ -180,6 +190,7 @@ def _dedupe_record(rec: dict) -> dict:
         "themes": list(rec["themes_strict"]),
         "venue": rec["venue"],
         "source_type": rec["source_type"],
+        "first_author": rec["authors"][0] if rec["authors"] else "",
     }
 
 
@@ -246,6 +257,7 @@ def build_corpus_rows(rows: list[dict], deleted: set[str]) -> tuple[list[dict], 
                 "venue_type": base["source_type"] or "",
                 "issn": base["issn"],
                 "cited_by_count": base["cited_by_count"] or 0,
+                "cited_by_with_merged": sum((g["cited_by_count"] or 0) for g in group),
                 "countries": countries,
                 "inst_ids": inst_ids,
                 "inst_names": inst_names,
@@ -293,6 +305,7 @@ def corpus_frame(corpus: list[dict]) -> pd.DataFrame:
                 "themes": ";".join(c["themes"]),
                 "sea_flag": c["sea_flag"],
                 "vn_flag": c["vn_flag"],
+                "cited_by_with_merged": c["cited_by_with_merged"],
                 "n_authors": c["n_authors"],
                 "first_author": c["authors"][0] if c["authors"] else "",
                 "authors": "; ".join(c["authors"]),
@@ -396,7 +409,8 @@ def institution_countries(rows: list[dict]) -> dict[str, str]:
 
 
 def top_cited(corpus: list[dict], n: int = 20) -> pd.DataFrame:
-    ordered = sorted(corpus, key=lambda c: (-c["cited_by_count"], c["year"], c["openalex_id"]))[:n]
+    """Top n by citations summed over the kept record and any preprint or copy merged into it."""
+    ordered = sorted(corpus, key=lambda c: (-c["cited_by_with_merged"], c["year"], c["openalex_id"]))[:n]
     return pd.DataFrame(
         [
             {
@@ -407,6 +421,7 @@ def top_cited(corpus: list[dict], n: int = 20) -> pd.DataFrame:
                 "year": c["year"],
                 "venue": c["venue"],
                 "cited_by_count": c["cited_by_count"],
+                "cited_by_with_merged": c["cited_by_with_merged"],
                 "themes": ";".join(c["themes"]),
                 "first_author": c["authors"][0] if c["authors"] else "",
             }

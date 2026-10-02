@@ -8,14 +8,20 @@ Order of operations (see dedupe()):
 2. merge records that share an OpenAlex ID;
 3. merge records that share a DOI (case and URL prefix ignored);
 4. merge records that share a normalised title and the same year;
-5. merge a preprint with a published record that has the same normalised title
-   when the years differ by at most one (the published paper usually appears the
-   year after the preprint).
+5. merge a secondary record with a primary record that has the same normalised
+   title when the years differ by at most one. Secondary means a preprint, a copy
+   held by a repository (OpenAlex source type "repository") or a record with
+   neither DOI nor venue. Primary means everything else. The published paper
+   usually appears the year after the preprint;
+6. merge a record that has neither DOI nor venue into any record whose normalised
+   title contains it or is contained by it (typical cause: "Article " or
+   "ORIGINAL ARTICLE " glued to the front of the title), years within one.
 
-Within each merged group the published version is kept over the preprint. The
-kept record gets the union of the themes and a note listing what was merged in.
-Titles shorter than min_title_len characters are never merged on title alone,
-because generic titles ("Introduction") would collide.
+Steps 5 and 6 also require the first authors to share a name token when both
+records have one. Within each merged group the published version is kept over the
+preprint and repository copy. The kept record gets the union of the themes and a
+note listing what was merged in. Titles shorter than min_title_len characters are
+never merged on title alone, because generic titles ("Introduction") would collide.
 """
 
 from __future__ import annotations
@@ -80,6 +86,31 @@ def is_preprint(rec: dict) -> bool:
     if doi.startswith(_PREPRINT_DOI_PREFIXES):
         return True
     return False
+
+
+def is_secondary(rec: dict) -> bool:
+    """Preprint, repository copy, or a record with neither DOI nor venue."""
+    if is_preprint(rec) or rec.get("source_type") == "repository":
+        return True
+    return not normalize_doi(rec.get("doi")) and not rec.get("venue")
+
+
+def is_weak(rec: dict) -> bool:
+    """A record with neither DOI nor venue."""
+    return not normalize_doi(rec.get("doi")) and not rec.get("venue")
+
+
+def _name_tokens(name: str | None) -> set[str]:
+    folded = normalize_title(name)
+    return {t for t in folded.split() if len(t) >= 3}
+
+
+def same_first_author(a: dict, b: dict) -> bool:
+    """True unless both records give a first author and the two share no name token."""
+    ta, tb = _name_tokens(a.get("first_author")), _name_tokens(b.get("first_author"))
+    if not ta or not tb:
+        return True
+    return bool(ta & tb)
 
 
 class _UnionFind:
@@ -176,13 +207,27 @@ def dedupe(
     for members in group_by(title_key).values():
         if len(members) < 2:
             continue
-        pre = [i for i in members if is_preprint(live[i])]
-        pub = [i for i in members if not is_preprint(live[i])]
-        for p in pre:
-            for q in pub:
+        secondary = [i for i in members if is_secondary(live[i])]
+        primary = [i for i in members if not is_secondary(live[i])]
+        for p in secondary:
+            for q in primary:
                 yp, yq = live[p].get("year"), live[q].get("year")
-                if yp and yq and abs(yp - yq) <= preprint_year_gap:
-                    merge(p, q, "preprint_published_pair")
+                if yp and yq and abs(yp - yq) <= preprint_year_gap and same_first_author(live[p], live[q]):
+                    merge(p, q, "preprint_published_pair" if is_preprint(live[p]) else "repository_or_weak_pair")
+
+    titles = [normalize_title(r.get("title")) for r in live]
+    for i, rec in enumerate(live):
+        if not is_weak(rec) or len(titles[i]) < min_title_len:
+            continue
+        for j, other in enumerate(live):
+            if i == j or uf.find(i) == uf.find(j) or len(titles[j]) < min_title_len:
+                continue
+            short, long_ = sorted((titles[i], titles[j]), key=len)
+            if short not in long_ or len(short) < 0.6 * len(long_):
+                continue
+            yi, yj = rec.get("year"), other.get("year")
+            if yi and yj and abs(yi - yj) <= preprint_year_gap and same_first_author(rec, other):
+                merge(i, j, "weak_record_title_variant")
 
     groups: dict[int, list[int]] = defaultdict(list)
     for idx in range(n):
