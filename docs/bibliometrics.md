@@ -434,4 +434,53 @@ A weak duplicate (W7097694407, a CiteSeerX copy dated 2016-09-17 whose title sta
 
 ## Gap analysis
 
-Pending: written in a separate pass.
+Method: titles and abstracts of candidate corpus works were read (theme tags were not trusted), then web search covered work outside the corpus. Every item consulted, with DOI, URL and status, is in `data/biblio/gap_evidence.csv`; snippet-only items are tagged UNVERIFIED (search snippet).
+
+### Paper 1. Detector transfer from Sentinel-1A to Sentinel-1C and 1D (letter)
+
+**Table 16. Paper 1, done versus open.**
+
+| Sub-question | Done | Open |
+| :--- | :--- | :--- |
+| (a) 1C/1D data quality, calibration or noise relative to 1A/1B | No work found in corpus; the only 1C/1D mention is the pre-launch design paper Torres 2018 (W3010735264). Search: a new 1C radiometric calibration was deployed on 3 February 2026, UNVERIFIED (search snippet, dataspace.copernicus.eu). | Open. Two 1C calibration states; 1D data from April 2026 (this project, docs/data_landscape.md). |
+| (b) Ship or vessel detection on 1C/1D imagery | No work found in corpus. Search: one ESA LPS25 presentation on 1C ship detection fused with onboard AIS (9,532 targets in six areas, none in Southeast Asia), UNVERIFIED (search snippet, lps25.esa.int presentation 1943). Nothing on 1D, nothing peer reviewed. | Open. |
+| (c) Cross-sensor or cross-platform domain adaptation | Crowded: about 60 corpus works, 26 of them SAR to SAR, all between missions: Zhao 2022 and 2023 (W4293057086, W4322730577), Liu 2024 and 2025 (W4399939523, W4412563656). Velotto 2015 and 2016 (W2052192463, W2333312646): Sentinel-1A against TerraSAR-X with AIS truth. | Open only for the within-mission pair: no work measures one detector across two satellites of the same design. |
+| (d) 1C/1D onboard AIS for co-located validation | No work found in corpus; RCM has onboard AIS beside SAR (Thompson 2015, W2269655503). Search: 1C AIS matched 40% of class A detections against 85% for Spire; access is restricted and recording masked to European waters; UNVERIFIED (search snippet, CDSE forum threads 4798 and 3179). | Closed for this project: inaccessible and not recorded over the South China Sea. |
+| (e) Public labelled 1C/1D vessel datasets | No work found in corpus. All Sentinel-1 label sets are 1A/1B: OpenSARShip (Huang 2017, W2762294195), LS-SSDD (Zhang 2020, W3089780760), xView3-SAR (Paolo 2022, W7133194003), OSSDD (arXiv 2608.01963, from OpenSARShip; UNVERIFIED search snippet). Skylight labels: 98% 1A, none 1C/1D (this project, docs/data_landscape.md). | Open; hence no 1C/1D ground truth yet (this project, docs/ml_verifier.md). |
+
+### Paper 2. How many vessels SAR misses in Southeast Asia, by length (flagship)
+
+**Table 17. Paper 2, done versus open.** Row (f) is added because acquisition coverage is part of the miss rate.
+
+| Sub-question | Done | Open |
+| :--- | :--- | :--- |
+| (a) Detection probability or recall against vessel length, Sentinel-1 IW | Measured with AIS truth outside Southeast Asia: Pelich 2019 (W2944261991; above 80% beyond 60 m, down to 40% for smaller vessels; English Channel), Shin 2024 and 2025 (W4393950641, W4415444090; Korea, with V-Pass small-boat transponders). Global: Paolo 2024 (W4390535614; deposit W6902286902: above 70% at 25 m, above 90% at 50 m; calibrated to 60% at 15 to 20 m per snippet, UNVERIFIED). Southeast Asia: Fitriani 2020 (W3027811057; Java Sea, two scenes, 7% of detections matched to VMS, no lengths); Marzuki 2021 (W4200244151; 21 SAR boats, 4 VIIRS boats). | Open for Southeast Asia and, below about 20 m, everywhere: no Sentinel-1 IW curve goes below 15 to 20 m; Lanz 2021 and 2023 (W3153986963, W4364368505) measured one 12 m inflatable on a lake; the project's own table is empty (data/ml/metrics.json). |
+| (b) Incidence angle, wind or sea state, polarisation | Done above about 20 m and for X-band: Pelich 2015 (W1974447969); Velotto 2017 (W2762015358); Bezerra 2023 (W4383818607); Lanz 2021 and 2023; Shin 2024 and 2025. | Partly open: no joint model of length, incidence angle and wind for Sentinel-1 IW boats under 20 m at sea. |
+| (c) Total vessel numbers including undetected small boats | Untracked shares among detected vessels are well measured: Greidanus 2016 (W2738892649; a third of SAR ships off AIS, western Indian Ocean), Kroodsma 2022 (W4310959365), Paolo 2024 (72 to 76% of industrial fishing vessels untracked, much of it around Southeast Asia; over 15 m only). Small boats: Park 2020 (W3045253480); Hsu 2019 (W2940541941; VIIRS counts exceed VMS counts in Indonesia). | Open. No corpus work corrects a SAR count for detection probability by length, none in Southeast Asia or Vietnam, and all condition on the vessel having been imaged. |
+| (d) VIIRS or optical complements for small boats | Done, strong for the South China Sea: Elvidge 2015 (W2113827159); Li 2021 (W4206029051; open-sea lit boats about 400 to about 2,000, 2012 to 2020); Wang 2025 (W4413757851; small and medium lit boats outnumber large 4.4 to 1); Guido 2022 (W4367664131; Spratly); Asanuma 2017 (W2596131037; VIIRS and SAR). | Narrow: no work uses the lit-boat record to bound the unlit small boats SAR misses. |
+| (e) Southeast Asian fleet composition (share under 15 m) | Fragments: Nofandi 2022 (W4321462360; 90% of Indonesia's fleet under 30 GT). Search: 79,360 Vietnamese vessels registered in November 2025, VMS on over 99.1% of those 15 m and longer; FAO SOFIA 2024: 89% of vessels with known length under 12 m; UNVERIFIED (search snippet; vietnamnews.vn, fao.org). No national count of vessels 15 m and longer was found. | Open in the literature, but a registry question; the compliance stream for 15 m and longer is VMS, which is not open (this project, docs/data_landscape.md). |
+| (f) Sentinel-1 acquisition coverage gaps for vessel monitoring | No corpus work quantifies them; Mdakane 2022 (W4281871930) and Krecke 2021 (W3133879474) note the limits of open Sentinel-1 for EEZ monitoring. Search: wave mode is the default over open ocean, IW or EW only over coastal and selected areas, UNVERIFIED (search snippet, sentiwiki.copernicus.eu). | Open. In 90 days Sentinel-1 never imaged 45% of the South China Sea AOI (1.61 million km2, including the Spratly area) in IW mode (this project, docs/scs_regional.md). |
+
+### Where the opening is
+
+Paper 1.
+- No journal or conference paper reports vessel detection on 1C or 1D imagery; the LPS25 item is UNVERIFIED. Falsifiable by an IEEE Xplore and MDPI search for "Sentinel-1C" with "ship detection" at submission.
+- The within-mission pair is unmeasured: report the change in recall and false-alarm rate of a 1A-trained detector on 1C and 1D scenes without retraining. A near-zero change is itself the result, because it licenses reuse of every 1A label set.
+- Three instrument states sit in one archive (1C before and after the February 2026 calibration, 1D from April 2026); a per-state check of the VH noise floor, which docs/ml_verifier.md names as the likely source of shift, is unpublished (this project).
+
+Paper 2.
+- No Sentinel-1 recall-by-length curve exists for Southeast Asia (published ones: English Channel, Mediterranean, Korea, global GFW model). Falsifiable by one AIS- or VMS-matched curve for any Southeast Asian sea.
+- No work adds up the three miss terms: area never imaged, detection probability by length, and the fleet share below the detection floor; the "unseen" literature conditions on imaging and detection. Falsifiable by one paper that counts vessels missed because their water was never imaged.
+- Below about 20 m nothing is measured at scale. In Vietnam the no-AIS population is dominated by lawful boats because compliance tracking above 15 m is VMS (this project, docs/data_landscape.md), so the under-15 m bin needs non-AIS truth: VMS, V-Pass-like transponders, VIIRS lit boats or field counts.
+
+### Threats to novelty
+
+Paper 1. Closest: the LPS25 1C presentation (UNVERIFIED); differentiate by measuring transfer of existing detectors (the project's CFAR and CNN, the Skylight model) rather than a new system, by including 1D, by the South China Sea and by releasing labels. The cross-platform groups (Liu 2025; Zhao 2022, 2023) could add a 1A-to-1C task in weeks; differentiate by physical attribution (calibration state, NESZ, VH noise floor), not a new network. Reviewers may call same-design transfer trivial, so the letter needs a measured shift or a tight negative result.
+
+Paper 2. Closest: Paolo 2024 (global, includes Southeast Asia, over 15 m), Kroodsma 2022, Hsu 2019, Wang 2025 and Li 2021, and the 2018 CSIS AMTI and Skylight Spratly fleet study from AIS, SAR and VIIRS (UNVERIFIED search snippet, amti.csis.org). Global Fishing Watch could publish a Southeast Asian cut quickly (its data are noncommercial; this project, docs/data_landscape.md). Differentiate by the three-term miss budget, the under-15 m bin, VMS rather than AIS as truth, and an independent detector. Internal threat: recall below 25 m cannot yet be claimed; Skylight attribute labels have a median length of 115 m with 54 vessels under 15 m, and the CNN verifier does not yet beat CFAR (this project, docs/data_landscape.md, docs/ml_verifier.md).
+
+### Recommended framing
+
+Paper 1 (GRSL or IGARSS): "Does a Sentinel-1A-trained vessel detector transfer to Sentinel-1C and 1D?" A measurement, not a method: one detector on 1A, 1C and 1D scenes of the South China Sea with hand-checked labels; recall, false-alarm rate and length error per satellite and calibration state; the VH noise floor as explanatory variable; labels and code released as the first public 1C/1D vessel labels. State up front that a null shift is the hoped-for result.
+
+Paper 2 (RSE or Fish and Fisheries): "How many vessels does free SAR miss in the South China Sea? A miss budget by coverage, length and fleet composition." Three terms with uncertainty: the 45% never imaged in IW mode, a recall-by-length curve against VMS or V-Pass-like truth and VIIRS lit boats rather than AIS alone, and the registry share under 15 m. Report a range, not a count; keep "dark" as "no AIS match", never illegal. The coverage term alone is a result no detector paper has reported.
