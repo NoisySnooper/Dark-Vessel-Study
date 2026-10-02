@@ -45,6 +45,50 @@ def _work(args):
         return sid, 0, 0, repr(e)
 
 
+LEAN = DATA_DIR / "detections_regional.gpkg"
+LEAN_COLS = ["det_id", "scene_idx", "mission", "acq_utc", "confidence", "lat", "lon", "length_est_m", "scr_vv_db",
+             "scr_vh_db", "inc_angle_deg", "persist_dates", "persist_dates_checked", "ais_status", "caveat", "geometry"]
+
+
+def write_lean(det: gpd.GeoDataFrame, proc: gpd.GeoDataFrame, about: dict, out=LEAN):
+    """Committed product: vessel candidates and fixed structures with essential columns, small enough for git.
+
+    `scene_idx` links each detection to the scenes_processed layer (product_id, footprint, sea tested).
+    """
+    from darkvessel.io import write_dual_crs
+
+    proc = proc.sort_values("start_utc").reset_index(drop=True)
+    proc["scene_idx"] = np.arange(len(proc), dtype=np.int16)
+    idx = dict(zip(proc.product_id, proc.scene_idx))
+    lean = det.loc[det.confidence != "low"].copy()
+    lean["scene_idx"] = lean.scene_id.map(idx).astype("int16")
+    lean["ais_status"] = "not_checked"
+    lean = lean[LEAN_COLS]
+    for c in ("lat", "lon"):
+        lean[c] = lean[c].round(5)
+    for c in ("length_est_m", "scr_vv_db", "scr_vh_db", "inc_angle_deg"):
+        lean[c] = lean[c].round(1)
+    if out.exists():
+        out.unlink()
+    write_dual_crs(lean, out, "detections_regional", utm_crs=CRS_UTM_REGIONAL, spatial_index=False)
+    keep = ["scene_idx", "product_id", "mission", "start_utc", "pass_dir", "orbit_rel", "tested_km2", "blocks_processed",
+            "runtime_s", *[c for c in ("high", "medium", "fixed", "low") if c in proc], "geometry"]
+    write_dual_crs(proc[keep], out, "scenes_processed", utm_crs=CRS_UTM_REGIONAL)
+    pyogrio.write_dataframe(pd.DataFrame([{**about, "ais_status": "not_checked = no AIS source connected yet"}]), out,
+                            layer="about", driver="GPKG")
+    return out
+
+
+def relean():
+    """Rebuild the committed product from detections_regional_all.gpkg without redoing persistence."""
+    full = DATA_DIR / "detections_regional_all.gpkg"
+    det = gpd.read_file(full, layer="detections_regional_4326", where="confidence <> 'low'")
+    proc = gpd.read_file(full, layer="scenes_processed_4326")
+    about = pd.DataFrame(pyogrio.read_dataframe(full, layer="about")).iloc[0].to_dict()
+    about.pop("geometry", None)
+    print("wrote", write_lean(det, proc, about), f"{len(det)} rows")
+
+
 def run(days: int, workers: int, pfa: float, max_scenes: int | None, min_overlap_km2: float = 2000.0):
     CACHE.mkdir(parents=True, exist_ok=True)
     sc = pd.read_csv(DATA_DIR / "s1_scenes.csv", parse_dates=["start_utc"])
@@ -121,25 +165,12 @@ def merge(pfa: float, persist_workers: int = 6):
     if full.exists():
         full.unlink()
     write_dual_crs(det, full, "detections_regional", utm_crs=CRS_UTM_REGIONAL)
-    # Lean committed product: vessel candidates and fixed structures, essential columns.
-    out = DATA_DIR / "detections_regional.gpkg"
-    if out.exists():
-        out.unlink()
-    lean_cols = ["det_id", "scene_id", "mission", "acq_utc", "confidence", "lat", "lon", "length_est_m", "scr_vv_db",
-                 "scr_vh_db", "inc_angle_deg", "persist_dates", "persist_dates_checked", "ais_status", "caveat", "geometry"]
-    lean = det.loc[det.confidence != "low", lean_cols].copy()
-    for c in ("lat", "lon"):
-        lean[c] = lean[c].round(5)
-    for c in ("length_est_m", "scr_vv_db", "scr_vh_db", "inc_angle_deg"):
-        lean[c] = lean[c].round(1)
-    write_dual_crs(lean, out, "detections_regional", utm_crs=CRS_UTM_REGIONAL)
     st = pd.DataFrame(stats)
     proc = fp[fp.product_id.isin(st.scene_id)].merge(st[["scene_id", "tested_km2", "blocks_processed", "runtime_s"]],
                                                      left_on="product_id", right_on="scene_id")
     counts = det.groupby(["scene_id", "confidence"]).size().unstack(fill_value=0)
     proc = proc.merge(counts, left_on="product_id", right_index=True, how="left").fillna(0)
-    for f in (out, full):
-        write_dual_crs(proc, f, "scenes_processed", utm_crs=CRS_UTM_REGIONAL)
+    write_dual_crs(proc, full, "scenes_processed", utm_crs=CRS_UTM_REGIONAL)
     about = {"caveat_full": DARK_CAVEAT, "detector": "ca_cfar_v0 regional, block streaming", "pfa": str(pfa),
              "guard_px": "81", "background_px": "161", "land_buffer_m": "1000",
              "confidence_classes": "high = VV and VH; medium = VH only or strong VV only; low = weak VV only or longer "
@@ -147,8 +178,8 @@ def merge(pfa: float, persist_workers: int = 6):
              "persistence": "20 m overview window, contrast >= 7 dB within ~60 m, up to 2 earlier passes 1 to 30 days before",
              "data_credit": "Contains modified Copernicus Sentinel data 2026; ESA WorldCover 2021 v200 (CC BY 4.0); "
                             "Natural Earth (public domain)"}
-    for f in (out, full):
-        pyogrio.write_dataframe(pd.DataFrame([about]), f, layer="about", driver="GPKG")
+    pyogrio.write_dataframe(pd.DataFrame([about]), full, layer="about", driver="GPKG")
+    write_lean(det, proc, about)
 
     vessels = det[det.confidence.isin(["high", "medium"])]
     summary = {
@@ -171,8 +202,11 @@ if __name__ == "__main__":
     ap.add_argument("--pfa", type=float, default=1e-6)
     ap.add_argument("--max-scenes", type=int, default=None)
     ap.add_argument("--merge", action="store_true")
+    ap.add_argument("--relean", action="store_true", help="rebuild data/detections_regional.gpkg from the full file")
     a = ap.parse_args()
-    if a.merge:
+    if a.relean:
+        relean()
+    elif a.merge:
         merge(a.pfa)
     else:
         run(a.days, a.workers, a.pfa, a.max_scenes)
