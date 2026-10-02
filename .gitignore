@@ -26,6 +26,7 @@ data/interim/
 data/chips/
 data/models/
 data/*_perpol.gpkg
+data/detections_regional_all.gpkg
 data/outputs/demo/
 *.SAFE/
 *.zip

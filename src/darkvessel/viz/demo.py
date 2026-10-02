@@ -2,7 +2,7 @@
 
 Two views share one inspector:
 - Regional: South China Sea AOI, 90-day Sentinel-1 coverage, the most recent processed scenes and
-  their detections (data/detections_regional.gpkg, data/outputs/small/s1_passes_4326.tif).
+  their detections (data/detections_regional_all.gpkg, data/outputs/small/s1_passes_4326.tif).
 - Ca Mau detail: one scene in radar view (data/detections_baseline.gpkg and the 40 m VV COG).
 Imagery chips are re-read from the AWS mirror. Optional CNN scores from data/detections_ml.gpkg.
 """
@@ -221,8 +221,8 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
     summary = json.loads((DATA_DIR / "regional_summary.json").read_text())
     cov = json.loads((DATA_DIR / "s1_coverage.json").read_text())
     search = json.loads((DATA_DIR / "s1_search_summary.json").read_text())
-    dets = gpd.read_file(DATA_DIR / "detections_regional.gpkg", layer="detections_regional_4326")
-    proc = gpd.read_file(DATA_DIR / "detections_regional.gpkg", layer="scenes_processed_4326")
+    dets = gpd.read_file(DATA_DIR / "detections_regional_all.gpkg", layer="detections_regional_4326")
+    proc = gpd.read_file(DATA_DIR / "detections_regional_all.gpkg", layer="scenes_processed_4326")
     a = aoi_gdf(DEFAULT_AOI)
     aoi = a.geometry.iloc[0]
     view = (aoi.bounds[0] - 1.0, aoi.bounds[1] - 1.0, aoi.bounds[2] + 1.0, aoi.bounds[3] + 1.0)

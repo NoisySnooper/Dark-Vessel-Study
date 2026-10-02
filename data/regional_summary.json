@@ -1,0 +1,32 @@
+{
+  "scenes": 7,
+  "date_range": [
+    "2026-10-01T10:56:47+00:00",
+    "2026-10-01T23:09:55+00:00"
+  ],
+  "tested_km2": 136474,
+  "objects": 40744,
+  "classes": {
+    "low": 30648,
+    "medium": 4338,
+    "high": 3715,
+    "fixed": 2043
+  },
+  "vessel_candidates": 8053,
+  "by_mission": {
+    "S1D": 8053
+  },
+  "candidates_per_1000km2": 59.01,
+  "length_est_m_vessels": {
+    "count": 8053.0,
+    "mean": 69.2,
+    "std": 67.2,
+    "min": 20.0,
+    "25%": 24.1,
+    "50%": 45.0,
+    "75%": 82.5,
+    "max": 448.9
+  },
+  "scene_runtime_s_median": 349.295978,
+  "persistence_checks": 10096
+}
