@@ -505,7 +505,7 @@ const steps = [
   ["Clutter zones", `A candidate among 5 or more weak returns within 1 km (rain cells, wind fronts, aquaculture rafts) moves to the low class: ${fmt(RS.clutter_zone_downgraded || 0)} in this run.`],
 ];
 const next = [
-  ["CNN verifier (in training)", "A small network trained on AI2 Skylight expert labels from Sentinel-1A/1B re-scores candidates. Applying it here is the 1A to 1C/1D transfer test."],
+  ["CNN verifier (trained, under test on 1D)", "A small network trained on AI2 Skylight expert labels from Sentinel-1A/1B. On held-out 1A/1B scenes it lifts precision from 9 % to 77 % for a recall drop from 80 % to 75 %. On the Ca Mau 1D scene it keeps 149 of 720 candidates and nothing under 25 m, because its labels are mostly large ships. Scores show in the Ca Mau inspector; your labels decide whether it transfers."],
   ["AIS correlation (built, no data yet)", "Matcher interpolates AIS to the radar time and assigns contacts one to one. Unmatched candidates become dark candidates."],
 ];
 $("steps").innerHTML = steps.map(([t, s]) => `<li><b>${t}</b><span>${s}</span></li>`).join("") + next.map(([t, s]) => `<li class="next"><b>${t}</b><span>${s}</span></li>`).join("");
