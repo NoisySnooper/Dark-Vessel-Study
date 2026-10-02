@@ -100,8 +100,8 @@ def test_preprint_pair_needs_years_within_one():
 
 
 def test_two_published_versions_in_different_years_are_not_merged():
-    a = rec("W1", LONG_TITLE, 2019, "10.1/a")
-    b = rec("W2", LONG_TITLE, 2020, "10.1/b")
+    a = rec("W1", LONG_TITLE, 2019, "10.1/a", venue="Journal A")
+    b = rec("W2", LONG_TITLE, 2020, "10.1/b", venue="Journal B")
     kept, _ = dedupe.dedupe([a, b])
     assert len(kept) == 2
 
