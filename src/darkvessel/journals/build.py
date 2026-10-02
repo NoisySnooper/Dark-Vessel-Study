@@ -268,7 +268,7 @@ def oa_model_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
 
 def _price_year(oa_row: Mapping) -> str:
     years = [p.get("year") for p in oa_row.get("apc_usd_by_year", []) if p.get("year")]
-    return str(max(years)) if years else "year not given"
+    return str(max(years)) if years else "not given"
 
 
 def apc_cell(seed_row: Mapping[str, str], oa_row: Mapping | None) -> str:
@@ -688,7 +688,8 @@ def summarize(rows: Sequence[Mapping[str, str]]) -> str:
     return ", ".join(f"{k}: {v}" for k, v in sorted(counts.items()))
 
 
-def print_reports(reports: Sequence[SourceReport], out=sys.stdout) -> None:
+def print_reports(reports: Sequence[SourceReport], out=None) -> None:
+    out = out or sys.stdout  # looked up at call time so redirected output works
     for r in reports:
         label = {"fresh": "OK     ", "cached": "CACHED ", "unavailable": "MISSING", "failed": "FAILED "}[r.state]
         out.write(f"[{label}] {r.name}\n")

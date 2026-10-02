@@ -2,10 +2,6 @@
 
 Updated: 2026-10-02. The owner reviews; the assistant did the research. The machine-readable version is `data/journals.csv` (22 venues, one row each). The table in this file is generated from that CSV by `scripts/journals_build.py`.
 
-## Bottom line
-
-Letter: IEEE GRSL, IGARSS 2027, Remote Sensing Letters. Flagship: Remote Sensing of Environment, Fish and Fisheries, ICES Journal of Marine Science. Only the OpenAlex fields (publisher, ISSN, open access flags, APC, h-index) and the retraction counts are verified. SJR, quartiles, review times, page limits, AI policies and both integrity screens are not, because the hosts that hold them are blocked here. `scripts/journals_build.py` closes most of that gap once the network opens.
-
 ## Purpose
 
 This file shortlists publication venues for two planned papers of the dark-vessel project. A dark vessel here is a vessel with a radar detection and no matched AIS position. Dark does not mean illegal.
@@ -14,6 +10,8 @@ This file shortlists publication venues for two planned papers of the dark-vesse
 2. **Flagship paper.** How many vessels SAR misses in Southeast Asia, by vessel length bin (detection probability against length, from AIS-matched detections). Target tier: Remote Sensing of Environment or Fish and Fisheries.
 
 Fit scores are judgements from 0 (not suitable) to 3 (strong) and rest on the facts in each CSV row. Read the Method section before relying on any number, because most venue facts could only be seen in search summaries.
+
+**Short answer.** Letter: IEEE GRSL, IGARSS 2027, Remote Sensing Letters. Flagship: Remote Sensing of Environment, Fish and Fisheries, ICES Journal of Marine Science. Only the OpenAlex fields (publisher, ISSN, open access flags, APC, h-index) and the retraction counts are verified. SJR, quartiles, review times, page limits, AI policies and both integrity screens are not, because the hosts that hold them are blocked here. `scripts/journals_build.py` closes most of that gap once the network opens.
 
 ## Method
 
@@ -37,7 +35,7 @@ The egress proxy answered HTTP 403 to the CONNECT request for every host below w
 
 ### How cells read
 
-Most cells in `data/journals.csv` have the form `value | provenance`. The provenance names the source and the check state. Keys point into the `sources` column: `[oa]` OpenAlex snapshot, `[sc]` SCImago page, `[p1]` to `[p3]` publisher or society pages, `[x1]` to `[x3]` other pages, `[ai]` the publisher AI policy page.
+Most cells in `data/journals.csv` have the form `value | provenance`. The provenance names the source and the check state. Keys point into the `sources` column: `[oa]` OpenAlex snapshot, `[sc]` SCImago page, `[p1]` to `[p4]` publisher or society pages, `[x1]` to `[x4]` other pages, `[ai]` the publisher AI policy page.
 
 `verification_status` is computed, never typed. A row is VERIFIED when no fact column carries the tags UNVERIFIED, NOT CHECKED or NOT RETRIEVED. It is PARTIAL when the publisher and ISSNs come from OpenAlex but another fact column still carries a tag. It is UNVERIFIED when even the publisher is a snippet. Today 21 rows are PARTIAL and the IGARSS row is UNVERIFIED, because OpenAlex has no publisher for IGARSS.
 
@@ -61,12 +59,12 @@ To upgrade a cell that is still a snippet: open the cited page, confirm the valu
 
 ## Venue table
 
-`*` after a quartile means SJR and quartile come from a search snippet (UNVERIFIED). Status: P is PARTIAL, U is UNVERIFIED, V is VERIFIED. The APC is the OpenAlex value in USD for price year 2025; for hybrid venues it is paid only if open access is chosen. `n/r` means not retrieved. Snippets showed higher current prices than OpenAlex for four venues (JAG USD 3610 against 3550, Science of Remote Sensing 2510 against 2180, ICES JMS GBP 2935 against 2795, Science Advances 5450 against 4500), so treat every APC as a lower bound until the 2026 price pages are read.
+`*` after a quartile means SJR and quartile come from a search snippet (UNVERIFIED). Status: P is PARTIAL, U is UNVERIFIED, V is VERIFIED. The APC is the OpenAlex value in USD for price year 2025; for hybrid venues it is paid only if open access is chosen. `n/r` means not retrieved. Snippets showed higher prices than OpenAlex for eight venues (JAG USD 3610 against 3550, Science of Remote Sensing 2510 against 2180, ICES JMS GBP 2935 against 2795, Science Advances 5450 against 4500, and the 2026 IEEE list: GRSL and TGRS 2800 against 2645, JSTARS 2160 against 1800, IEEE Access 2160 against 2075), and one snippet was lower (RSE, USD 4230 against 4450; 4230 equals the OpenAlex value for 2024), so treat every APC as approximate until the 2026 price pages are read.
 
 <!-- journals-table:begin -->
 | Venue | Publisher | SJR (year), best quartile | OA model, APC (USD) | Letters or short type | Fit letter | Fit flagship | Status |
 |---|---|---|---|---|---|---|---|
-| Remote Sensing of Environment | Elsevier | 4.266 (SJR 2025), Q1* | hybrid, 4450 | yes: Short Communication, 5,000 words | 0 | 3 | P |
+| Remote Sensing of Environment | Elsevier | 4.266 (SJR 2025), Q1* | hybrid, 4450 | yes: Short Communication, limit 5,000 words in one search | 0 | 3 | P |
 | Fish and Fisheries | Wiley | 1.808 (SJR 2025), Q1* | hybrid, 5000 | no: no letter or short research type found | 0 | 2 | P |
 | IEEE Geoscience and Remote Sensing Letters | IEEE | 1.296 (SJR 2025), Q1* | hybrid, 2645 | yes: Letters, max 5 pages | 3 | 0 | P |
 | IEEE Transactions on Geoscience and Remote Sensing | IEEE | 2.649 (SJR 2025), Q1* | hybrid, 2645 | no: regular papers only | 1 | 2 | P |
@@ -142,15 +140,15 @@ Facts marked UNVERIFIED are search snippets; the URLs are in `data/journals.csv`
 
 ### Letter (Sentinel-1A to 1C and 1D detector transfer)
 
-1. **IEEE Geoscience and Remote Sensing Letters.** Built for this format: Letters of at most 5 pages on new ideas and timely results (UNVERIFIED), Q1 with SJR 1.296 (UNVERIFIED), hybrid by inference so an APC (OpenAlex USD 2645, price year 2025) is probably optional, about 30 days to first decision according to an aggregator because the venue publishes no figure (UNVERIFIED), and an IGARSS paper can be extended later if at least 50% of the content is new (UNVERIFIED).
-2. **IGARSS 2027 proceedings (Reykjavik, 4 to 9 July 2027).** A 4-page full paper in IEEE Xplore suits a detector-transfer note and adds a talk (2026 rules, UNVERIFIED); the 2027 deadline is not known (2026 was 10 January 2026), SJR is only 0.263 (UNVERIFIED), and presenting first means a later GRSL version needs at least 50% new material.
+1. **IEEE Geoscience and Remote Sensing Letters.** Built for this format: Letters of at most 5 pages on new ideas and timely results (UNVERIFIED), Q1 with SJR 1.296 (UNVERIFIED), hybrid, so an APC (USD 2800 on the 2026 IEEE list, USD 2645 in OpenAlex for 2025) is optional (UNVERIFIED), an average turnaround of about 30 days according to GRSS pages (UNVERIFIED), and an IGARSS paper can be extended later if at least 50% of the content is new (UNVERIFIED).
+2. **IGARSS 2027 proceedings (Reykjavik, July 2027).** A 4-page full paper in IEEE Xplore suits a detector-transfer note and adds a talk (2026 rules, UNVERIFIED); the dates are not settled (11 to 16 July in two searches limited to grss-ieee.org and hi.is, 4 to 9 July in two earlier searches), the 2027 deadline is not known (2026 was 10 January 2026), SJR is only 0.263 (UNVERIFIED), and presenting first means a later GRSL version needs at least 50% new material.
 3. **Remote Sensing Letters.** The only letters-only journal on the list (up to 10 printed pages, UNVERIFIED) and hybrid, so a paper can appear without an APC (the standard APC was not found); it is the fallback after GRSL and weaker on every metric: SJR 0.434, quartile Q2, 59 days to first decision, 38% acceptance (UNVERIFIED).
 
 ### Flagship (how many vessels SAR misses in Southeast Asia, by length bin)
 
-1. **Remote Sensing of Environment.** Best scope fit: the remote sensing component must be the main contribution and single study sites are accepted if representative (UNVERIFIED); Q1 with SJR 4.266 (UNVERIFIED); 15,000 word limit; slow, 193 days to acceptance, with desk decisions in about 4 days (UNVERIFIED); hybrid, APC USD 4450 only if open access is chosen (OpenAlex, price year 2025).
-2. **Fish and Fisheries.** The fisheries-audience tier named in the brief: Q1 in four SCImago categories, SJR 1.808, median 10 days to first decision, 14% acceptance (UNVERIFIED); the journal requires broad geographic or taxonomic scope and generic value, so present Southeast Asia as the case study of a general SAR detection-probability method; hybrid, APC USD 5000 only if open access is chosen (OpenAlex and the Wiley page agree).
-3. **ICES Journal of Marine Science.** The fisheries and marine science fallback if RSE judges the paper out of scope: fully open access since 2023 with an APC of GBP 2935, average 51 days to first decision in 2024, Original Article of 5 to 12 pages, Q1 with SJR 1.072 (all UNVERIFIED); scope text for SAR-based vessel estimation was not retrieved, so the fit is a judgement.
+1. **Remote Sensing of Environment.** Best scope fit: the remote sensing component must be the main contribution and single study sites are accepted if representative, and the journal has published SAR ship work (a 2023 Sentinel-1 ship velocity paper) (UNVERIFIED); Q1 with SJR 4.266 (UNVERIFIED); 15,000 word limit; slow, 193 days to acceptance, with desk decisions in about 4 days (UNVERIFIED); hybrid, APC USD 4450 only if open access is chosen (OpenAlex, price year 2025).
+2. **Fish and Fisheries.** The fisheries-audience tier named in the brief: Q1 in four SCImago categories, SJR 1.808, median 10 days to first decision, 14% acceptance (UNVERIFIED); the journal requires broad geographic or taxonomic scope and generic value, so present Southeast Asia as the case study of a general SAR detection-probability method; the journal has published satellite vessel tracking papers, including a 2026 review (Raynor et al.) that cites the SAR finding that 72 to 76% of industrial fishing vessels are not publicly trackable by AIS, so read that review first (UNVERIFIED); hybrid, APC USD 5000 only if open access is chosen (OpenAlex and the Wiley page agree).
+3. **ICES Journal of Marine Science.** The fisheries and marine science fallback if RSE judges the paper out of scope: fully open access since 2023 with an APC of GBP 2935, average 51 days to first decision in 2024, Original Article of 5 to 12 pages, Q1 with SJR 1.072, and it has published remote sensing and AIS fishing-activity papers in 2025 (all UNVERIFIED); no scope text was retrieved, so the fit is a judgement.
 
 ## Generative-AI disclosure rules
 
@@ -175,9 +173,9 @@ Working rules for this project:
 
 1. Run `scripts/journals_build.py` with open network access, or pass the three files by hand. This replaces the SJR, quartile and SCImago h-index snippets with the official values and runs both integrity screens. Quartile lists per category are incomplete for most venues until then.
 2. Open the cited pages for the six recommended venues first and upgrade their seed cells: review times, article types and limits, 2026 APCs, AI policies.
-3. IGARSS 2027: the call for papers, the full-paper deadline, the paper kit and the registration fee were not found. The 2026 deadline was 10 January 2026. Check whether the J-STARS special issue for IGARSS authors (seen for IGARSS 2025, UNVERIFIED) will run again.
-4. GRSL publishes no review time on the pages seen. The figure of about 30 days comes from an aggregator. Ask the editor or measure it from recent papers.
-5. TGRS and JSTARS page limits and current JSTARS APC (USD 1800 was for submissions from 1 January 2025) need confirmation. The TGRS mandatory overlength charge of USD 230 per page applies to submissions after 1 January 2026 above 10 pages (UNVERIFIED).
+3. IGARSS 2027: the dates conflict between searches (11 to 16 July or 4 to 9 July 2027, Reykjavik), and the call for papers, the full-paper deadline, the paper kit and the registration fee were not found. The 2026 deadline was 10 January 2026. Check whether the J-STARS special issue for IGARSS authors (seen for IGARSS 2025, UNVERIFIED) will run again.
+4. The GRSL turnaround of about 30 days is a society statement without a year or a definition (UNVERIFIED). GRSL takes part in IEEE Transparent Peer Review (UNVERIFIED): find out what is published with an accepted paper before submitting. TGRS: the GRSS page gives an acceptance rate below 30% and a blog gives 50 to 60%, so the blog figure is not used.
+5. TGRS and JSTARS page limits need confirmation. The JSTARS APC was USD 1800 for submissions from 1 January 2025 and is USD 2160 on the 2026 IEEE list, with subsidised pricing that moves towards the standard fee each year (UNVERIFIED). The TGRS mandatory overlength charge of USD 230 per page applies to submissions after 1 January 2026 above 10 pages (UNVERIFIED).
 6. Remote Sensing Letters: the standard Open Select APC was not found. Letter limits for MDPI Remote Sensing were not found.
 7. Science Advances SJR and h-index are weakly supported: the search results did not include the SCImago page of that journal.
 8. The IGARSS row has no OpenAlex publisher or APC data because OpenAlex splits the series into fragmentary records (S4306419991, S4363604196).

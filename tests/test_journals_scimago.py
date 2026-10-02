@@ -14,7 +14,7 @@ ROWS = [
     '2;200;"Beta Symposium";conference and proceedings;"33333335";0,263;-;87;2593;5817;United States;"Fake IEEE";"1998-2024";"Earth and Planetary Sciences (miscellaneous) (-)";"Earth and Planetary Sciences"',
     '3;300;"Gamma Letters";journal;"";0,434;Q2;64;120;380;United Kingdom;"Fake T&F";"2010-2025";"Remote Sensing (Q2)";"Earth and Planetary Sciences"',
 ]
-TEXT = "﻿" + HEADER + "\n" + "\n".join(ROWS) + "\n"
+TEXT = "\ufeff" + HEADER + "\n" + "\n".join(ROWS) + "\n"
 
 
 def test_parses_decimal_comma_year_and_hyphenless_issns():

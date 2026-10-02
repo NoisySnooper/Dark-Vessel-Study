@@ -12,7 +12,7 @@ import re
 import unicodedata
 
 # Hyphen, hyphen-like dashes (U+2010 to U+2015) and the minus sign are all seen in real lists.
-_SEP = "‐-―−\\-\\s"
+_SEP = "\u2010-\u2015\u2212\\-\\s"
 _ISSN_RE = re.compile(rf"(?<![0-9A-Za-z])(\d{{4}})[{_SEP}]?(\d{{3}}[0-9Xx])(?![0-9A-Za-z])")
 _PREFIX_RE = re.compile(r"^\s*(?:e-|p-|print\s+|online\s+|electronic\s+)?issn(?:-l)?\s*[:#]?\s*", re.IGNORECASE)
 

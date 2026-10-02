@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import re
+from contextlib import contextmanager
 
 THEMES: tuple[str, ...] = (
     "sar_ship_detection",
@@ -239,9 +240,26 @@ _SAR_WORDS = ("sar", "synthetic", "sentinel", "radarsat", "terrasar", "cosmo", "
 _DETECT_WORDS = ("detect", "recogni", "classif", "segment")
 _SHIP_WORDS = ("ship", "vessel", "boat")
 
+_GATES_ON = [True]
+
+
+@contextmanager
+def gates_disabled():
+    """Run theme tests without the substring gates (used to check that gates never change a result)."""
+    _GATES_ON[0] = False
+    try:
+        yield
+    finally:
+        _GATES_ON[0] = True
+
+
+def _gate(condition: bool) -> bool:
+    """A gate passes when its condition holds, or always when gates are disabled."""
+    return condition or not _GATES_ON[0]
+
 
 def _any(low: str, words: tuple[str, ...]) -> bool:
-    return any(w in low for w in words)
+    return _gate(any(w in low for w in words))
 
 
 def _t_sar_ship_detection(text: str, low: str, strict: bool) -> bool:
@@ -252,7 +270,7 @@ def _t_sar_ship_detection(text: str, low: str, strict: bool) -> bool:
 
 
 def _t_dark_vessels(text: str, low: str, strict: bool) -> bool:
-    if not (_any(low, ("dark", "broadcast")) or "AIS" in text or ("automatic" in low and "identification" in low)):
+    if not (_any(low, ("dark", "broadcast")) or _gate("AIS" in text or ("automatic" in low and "identification" in low))):
         return False
     if not _DARK.search(text):
         return False
@@ -265,7 +283,7 @@ def _t_dark_vessels(text: str, low: str, strict: bool) -> bool:
 
 
 def _t_sar_ais_fusion(text: str, low: str, strict: bool) -> bool:
-    if not (("AIS" in text or ("automatic" in low and "identification" in low)) and _any(low, _SAR_WORDS)):
+    if not (_gate("AIS" in text or ("automatic" in low and "identification" in low)) and _any(low, _SAR_WORDS)):
         return False
     if not _any(low, ("fus", "match", "correlat", "associat", "integrat", "combin")):
         return False
@@ -279,7 +297,7 @@ def _t_sar_ais_fusion(text: str, low: str, strict: bool) -> bool:
 
 
 def _t_xview3(text: str, low: str, strict: bool) -> bool:
-    return "xview" in low and bool(_XVIEW3.search(text))
+    return _gate("xview" in low) and bool(_XVIEW3.search(text))
 
 
 def _t_iuu_remote_sensing(text: str, low: str, strict: bool) -> bool:
@@ -291,7 +309,7 @@ def _t_iuu_remote_sensing(text: str, low: str, strict: bool) -> bool:
 
 
 def _t_small_vessel(text: str, low: str, strict: bool) -> bool:
-    if not (("detect" in low) and (("small" in low) or ("artisanal" in low))):
+    if not (_gate("detect" in low) and _gate("small" in low or "artisanal" in low)):
         return False
     small = bool(_SMALL_CRAFT.search(text))
     if not small and _SMALL_TARGET.search(text) and _MARITIME_TERM.search(text):

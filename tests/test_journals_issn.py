@@ -17,7 +17,7 @@ def make_issn(first_seven: str) -> str:
 
 @pytest.mark.parametrize(
     "raw",
-    ["0034-4257", "00344257", " ISSN: 0034-4257 ", "e-ISSN 0034 4257", "0034‐4257", "0034–4257"],
+    ["0034-4257", "00344257", " ISSN: 0034-4257 ", "e-ISSN 0034 4257", "0034\u20104257", "0034\u20134257"],
 )
 def test_normalize_accepts_common_spellings(raw):
     assert normalize_issn(raw) == "0034-4257"
@@ -62,11 +62,11 @@ def test_extract_does_not_cut_issns_out_of_longer_numbers():
 def test_normalize_title_ignores_case_accents_punctuation_and_qualifiers():
     assert normalize_title("Remote Sensing (Basel)") == normalize_title("remote  sensing")
     assert normalize_title("Ocean & Coastal Management") == normalize_title("Ocean and Coastal Management")
-    assert normalize_title("The Journal of Rémote Sensing") == "journal of remote sensing"
+    assert normalize_title("The Journal of R\u00e9mote Sensing") == "journal of remote sensing"
     assert normalize_title("IEEE Access") == "ieee access"
 
 
 def test_normalize_title_empty_never_matches():
     assert normalize_title(None) == ""
     assert normalize_title("  (Basel)") == ""
-    assert normalize_title("遥感") == ""
+    assert normalize_title("\u9065\u611f") == ""

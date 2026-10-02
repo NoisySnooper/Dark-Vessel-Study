@@ -93,8 +93,8 @@ def test_finds_google_sheets_and_builds_csv_export_addresses():
 
 
 def test_decode_text_handles_bom_and_latin1():
-    assert fetch.decode_text("﻿Title;Issn".encode()) == "Title;Issn"
-    assert fetch.decode_text("café".encode("latin-1")) == "café"
+    assert fetch.decode_text("\ufeffTitle;Issn".encode()) == "Title;Issn"
+    assert fetch.decode_text("caf\u00e9".encode("latin-1")) == "caf\u00e9"
 
 
 def test_xlsx_round_trip_and_header_detection():

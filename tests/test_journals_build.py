@@ -304,3 +304,47 @@ def test_hijack_sheet_with_a_banner_row_and_blank_rows_is_still_read():
     with pytest.raises(FetchError, match="HTML page"):
         build._csv_records("<!DOCTYPE html><html></html>", "fake.csv")
     assert build._csv_records("just one column\nvalue\n", "fake.csv") == []
+
+
+def test_direct_urls_skip_the_page_lookups_and_year_is_added_to_the_scimago_url(opts):
+    routes = all_routes()
+    routes["https://www.scimagojr.com/journalrank.php?out=xls&year=2024"] = routes.pop(build.SCIMAGO_URL)
+    routes["https://example.org/discontinued.xlsx"] = routes.pop("https://www.elsevier.com/files/Discontinued_sources.xlsx")
+    routes["https://example.org/hijacked.csv"] = routes.pop("https://docs.google.com/spreadsheets/d/e/2PACX-1vFAKE/pub?output=csv")
+    fetcher = FakeFetcher(routes)
+    direct = build.Options(
+        **{**opts.__dict__, "scimago_year": 2024, "scopus_url": "https://example.org/discontinued.xlsx", "hijacked_url": "https://example.org/hijacked.csv"}
+    )
+    rows, reports = build.run(direct, fetcher=fetcher)
+    assert [r.state for r in reports] == ["fresh", "fresh", "fresh"]
+    assert build.SCOPUS_POLICY_URL not in fetcher.calls and build.RW_CHECKER_URL not in fetcher.calls
+    assert rows[0]["sjr"].startswith("4.266 (SJR 2025)") and "year=2024" in rows[0]["sources"]
+
+
+def load_script(name):
+    import importlib.util
+
+    path = REPO_ROOT / "scripts" / name
+    spec = importlib.util.spec_from_file_location(name[:-3], path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_command_line_offline_run_writes_the_csv_and_returns_zero(opts, capsys):
+    script = load_script("journals_build.py")
+    code = script.main(
+        ["--seed", str(opts.seed), "--openalex-csv", str(opts.openalex_csv), "--out", str(opts.out_csv),
+         "--cache", str(opts.cache_json), "--doc", str(opts.doc_path), "--offline"]
+    )
+    out = capsys.readouterr().out
+    assert code == 0 and opts.out_csv.exists()
+    assert "3 venues" in out and "offline mode, no download attempted" in out
+    missing = script.main(["--seed", str(opts.seed), "--openalex-csv", str(opts.seed.parent / "nope.csv"), "--out", str(opts.out_csv), "--offline"])
+    assert missing == 1
+
+
+def test_openalex_script_reads_issns_and_ids_from_the_seed(opts):
+    script = load_script("journals_openalex.py")
+    issns, ids = script.venue_keys(opts.seed)
+    assert issns == {A_PRINT, A_ONLINE, B_ONLINE, C_PRINT} and ids == {"S1", "S2", "S3", "S4"}

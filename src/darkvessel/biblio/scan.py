@@ -214,6 +214,7 @@ def scan_file(
     ahead: int = 2,
     year_min: int = T.YEAR_MIN,
     year_max: int = T.YEAR_MAX,
+    prefilter: str = T.ARROW_PREFILTER,
 ) -> tuple[pa.Table, dict]:
     """Scan one remote file. Returns (matched rows as a FILTERED_SCHEMA table, stats)."""
     t_start = time.time()
@@ -267,8 +268,8 @@ def scan_file(
             # regex over whole columns, then mask by year: avoids copying the big abstract column
             anchor = pc.fill_null(
                 pc.or_kleene(
-                    pc.match_substring_regex(ta["abstract_inverted_index"], T.ARROW_PREFILTER),
-                    pc.match_substring_regex(ta["title"], T.ARROW_PREFILTER),
+                    pc.match_substring_regex(ta["abstract_inverted_index"], prefilter),
+                    pc.match_substring_regex(ta["title"], prefilter),
                 ),
                 False,
             )
