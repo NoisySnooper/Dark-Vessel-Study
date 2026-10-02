@@ -666,6 +666,11 @@ ANCHORS = [
 ]
 
 
+ANCHOR_META_COLUMNS = [
+    "landing_page_url", "oa_status", "license", "volume", "issue", "pages", "primary_topic", "locations_count", "fwci",
+]
+
+
 def find_anchor_rows(anchor: dict, rows: list[dict]) -> list[dict]:
     """Stored rows that match an anchor by DOI or by title."""
     hits = []
@@ -677,14 +682,23 @@ def find_anchor_rows(anchor: dict, rows: list[dict]) -> list[dict]:
     return hits
 
 
-def anchors_table(prepared: list[dict], corpus: list[dict], summaries: dict[str, str] | None = None) -> pd.DataFrame:
-    """One row per stored record that matches an anchor paper, with its fate in the corpus."""
+def anchors_table(
+    prepared: list[dict],
+    corpus: list[dict],
+    summaries: dict[str, str] | None = None,
+    metadata: dict[str, dict] | None = None,
+) -> pd.DataFrame:
+    """One row per stored record that matches an anchor paper, with its fate in the corpus.
+
+    metadata: optional {openalex_id: flat dict} from scripts/biblio_anchors.py (landing page, licence, pages, topic).
+    """
     summaries = summaries or {}
+    metadata = metadata or {}
     in_corpus = {c["openalex_id"]: c for c in corpus}
-    merged_into: dict[str, str] = {}
+    merged_into: dict[str, tuple[str, str]] = {}
     for c in corpus:
-        for m in c["merged_from"]:
-            merged_into[m] = c["openalex_id"]
+        for m, why in zip(c["merged_from"], c["merge_reasons"]):
+            merged_into[m] = (c["openalex_id"], why)
     rows = []
     for a in ANCHORS:
         hits = find_anchor_rows(a, prepared)
@@ -697,11 +711,14 @@ def anchors_table(prepared: list[dict], corpus: list[dict], summaries: dict[str,
             if rid in in_corpus:
                 status = "in corpus"
             elif rid in merged_into:
-                status = f"merged into {merged_into[rid]} (preprint/published pair)"
+                survivor, why = merged_into[rid]
+                status = f"merged into {survivor} ({why})"
             else:
                 ok, why = eligible(r)
                 status = f"not in corpus: {why}" if not ok else "not in corpus"
             authors = r["authors"]
+            note = summaries.get(rid, "")
+            summary, summary_source = (note.get("summary", ""), note.get("source", "")) if isinstance(note, dict) else (note, "")
             rows.append(
                 {
                     "anchor_key": a["key"],
@@ -722,7 +739,9 @@ def anchors_table(prepared: list[dict], corpus: list[dict], summaries: dict[str,
                     "themes_loose": ";".join(r["themes_loose"].split(";")) if r["themes_loose"] else "",
                     "themes_strict": ";".join(r["themes_strict"]),
                     "status": status,
-                    "summary": summaries.get(rid, summaries.get(a["key"], "")),
+                    "summary": summary,
+                    "summary_source": summary_source,
+                    **{k: (metadata.get(rid) or {}).get(k, "") for k in ANCHOR_META_COLUMNS},
                     "abstract": r["abstract"],
                 }
             )
@@ -890,7 +909,9 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
 
     summaries_path = out / "anchor_summaries.json"
     summaries = json.loads(summaries_path.read_text()) if summaries_path.exists() else {}
-    anchors = anchors_table(prepare_rows(rows, recovery), corpus, summaries)
+    meta_path = out / "anchor_metadata.json"
+    metadata = json.loads(meta_path.read_text()).get("records", {}) if meta_path.exists() else {}
+    anchors = anchors_table(prepare_rows(rows, recovery), corpus, summaries, metadata)
     anchors.to_csv(out / "anchors.csv", index=False)
     elvidge_viirs_table(corpus).to_csv(out / "elvidge_viirs_boats.csv", index=False)
 

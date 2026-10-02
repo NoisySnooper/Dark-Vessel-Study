@@ -1,0 +1,30 @@
+{
+ "W4390535614": {
+  "summary": "The paper combines satellite imagery, vessel GPS data and deep-learning models to map industrial vessel activity and offshore energy infrastructure in the world's coastal waters from 2017 to 2021. It finds that 72 to 76% of industrial fishing vessels are not publicly tracked (much of that fishing is around South Asia, Southeast Asia and Africa) and that 21 to 30% of transport and energy vessel activity is missing from public tracking systems; global fishing fell by 12 +/- 1% at the onset of COVID-19 in 2020.",
+  "source": "OpenAlex abstract of W4390535614 (DOI 10.1038/s41586-023-06825-8). That abstract does not name SAR or AIS; the SAR (Sentinel-1) and AIS details are in the abstract of the Figshare data deposit W6902286902 (DOI 10.6084/m9.figshare.24309475.v4), which is not the paper."
+ },
+ "W6902286902": {
+  "summary": "Not the paper. A Figshare data deposit (analysis data) for the Nature paper, typed as an article by OpenAlex.",
+  "source": "OpenAlex record W6902286902 (DOI 10.6084/m9.figshare.24309475.v4)."
+ },
+ "W6920716883": {
+  "summary": "Not the paper. A Figshare data deposit (training data) for the Nature paper, typed as an article by OpenAlex.",
+  "source": "OpenAlex record W6920716883 (DOI 10.6084/m9.figshare.24309469.v1)."
+ },
+ "W3045253480": {
+  "summary": "The study combines four satellite technologies to find illegal fishing by dark fleets, which do not broadcast their positions in public monitoring systems, in the waters between the Koreas, Japan and Russia. It finds more than 900 Chinese-origin vessels in 2017 and more than 700 in 2018 fishing illegally in North Korean waters, with an estimated Todarodes pacificus catch of more than 164,000 t worth more than USD 440 million (about the catch of Japan and South Korea combined), and about 3,000 small-scale North Korean vessels fishing, mostly illegally, in Russian waters.",
+  "source": "The abstract stored for W3045253480 (DOI 10.1126/sciadv.abb1197) is truncated: it starts mid-sentence at 'approximating that of Japan and South Korea combined'. The first part of the summary (four satellite technologies, dark fleets, the Chinese vessel counts) comes from the Faculty Opinions record W4239783885 (DOI 10.3410/f.738375089.793579871), which reproduces the full abstract; its last three sentences match the truncated text word for word. UNVERIFIED against the journal page, which could not be retrieved."
+ },
+ "W4320009597": {
+  "summary": "xView3-SAR is presented as the largest labeled dataset for training machine learning models to detect and characterize vessels and ocean structures in SAR imagery: nearly 1,000 analysis-ready Sentinel-1 images of about 29,400 by 24,400 pixels, annotated by automated and manual analysis, each with co-located bathymetry and wind rasters. The paper also describes the xView3 Computer Vision Challenge, an international competition that uses the dataset for large-scale ship detection and characterization, and releases the data and code.",
+  "source": "OpenAlex abstract of the arXiv preprint W4320009597 (DOI 10.48550/arxiv.2206.00897)."
+ },
+ "W7133194003": {
+  "summary": "Same paper as the arXiv preprint W4320009597: the largest labeled dataset for detecting and characterizing vessels and ocean structures in Sentinel-1 SAR imagery (nearly 1,000 images with bathymetry and wind rasters). It also describes the xView3 Computer Vision Challenge for large-scale ship detection and characterization.",
+  "source": "The OpenAlex record W7133194003 (DOI 10.52202/068431-2726, 'Advances in Neural Information Processing Systems 35', pages 37604-37616) has no abstract; the text is taken from the preprint W4320009597. That the paper appeared in the NeurIPS Datasets and Benchmarks track is from the task brief and is UNVERIFIED in the OpenAlex records retrieved."
+ },
+ "W2113827159": {
+  "summary": "The paper presents algorithms that automatically detect lit fishing boats in VIIRS day/night band data by treating boat lights as spikes, rate each detection as strong or weak, flag cloud-blurred detections with a sharpness index, and remove land features and gas flares. A validation against analyst-selected boat detections found that the algorithm detected 99.3% of the reference pixel set, and the authors state that the data can give fishery agencies up-to-date information on fishing boat activity and indications of illegal fishing in restricted areas and across Exclusive Economic Zone boundaries.",
+  "source": "OpenAlex abstract of W2113827159 (DOI 10.3390/rs70303020)."
+ }
+}
