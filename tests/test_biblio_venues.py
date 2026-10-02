@@ -147,3 +147,68 @@ def test_precision_by_theme_counts_only_judged_records():
     assert p["per_theme"]["sar_ship_detection"] == {"n": 1, "relevant": 1, "precision": 1.0}
     assert p["per_theme"]["dark_vessels"]["precision"] == 0.0
     assert p["per_theme"]["xview3"]["precision"] is None
+
+
+# --------------------------------------------------------------------------
+# anchors and the Southeast Asia judgments
+# --------------------------------------------------------------------------
+def test_anchor_flatten_picks_table_fields_and_tolerates_missing_parts():
+    from darkvessel.biblio import anchors  # noqa: E402
+
+    rec = {
+        "primary_location": {"landing_page_url": "https://doi.org/10.1/x", "license": "cc-by", "version": "publishedVersion",
+                             "source": {"host_organization_name": "Publisher"}},
+        "locations": [{"landing_page_url": "https://doi.org/10.1/x"}, {"landing_page_url": None}],
+        "open_access": {"is_oa": True, "oa_status": "gold"},
+        "biblio": {"volume": "7", "issue": "3", "first_page": "3020", "last_page": "3036"},
+        "primary_topic": {"display_name": "Topic", "subfield": {"display_name": "Sub"}, "field": {"display_name": "Field"}},
+        "referenced_works_count": 21,
+        "locations_count": 2,
+        "fwci": 8.6,
+    }
+    flat = anchors.flatten(rec)
+    assert flat["pages"] == "3020-3036" and flat["oa_status"] == "gold" and flat["host_organization"] == "Publisher"
+    assert flat["location_urls"] == ["https://doi.org/10.1/x"]
+    empty = anchors.flatten({})
+    assert empty["pages"] == "" and empty["landing_page_url"] == "" and empty["location_urls"] == []
+
+
+def test_sea_judgments_are_merged_and_counted():
+    sea_rows = [
+        dict(work("W1", 2020, ["sar_ship_detection"], "J", "journal", ["VN"], []), sea_flag=True, vn_flag=True,
+             sea_places=[], vn_places=[], sea_affiliation_countries=["VN"], merged_from=[], merge_reasons=[], type="article"),
+        dict(work("W2", 2021, ["iuu_remote_sensing"], "J", "journal", ["ID"], []), sea_flag=True, vn_flag=False,
+             sea_places=["Java Sea"], vn_places=[], sea_affiliation_countries=["ID"], merged_from=[], merge_reasons=[], type="article",),
+        dict(work("W3", 2021, ["small_vessel"], "J", "journal", ["US"], []), sea_flag=False, vn_flag=False,
+             sea_places=[], vn_places=[], sea_affiliation_countries=[], merged_from=[], merge_reasons=[], type="article"),
+    ]
+    for r in sea_rows:
+        r["inst_names"] = []
+    judgments = {"W1": {"judgment": "relevant", "note": ""}, "W2": {"judgment": "not relevant", "note": "Oil spill."}}
+    df = corpus.sea_vietnam(sea_rows, {}, judgments).set_index("openalex_id")
+    assert list(df.index) == ["W1", "W2"]  # W3 is outside Southeast Asia
+    assert bool(df.loc["W1", "judged_on_topic"]) is True and bool(df.loc["W2", "judged_on_topic"]) is False
+    assert df.loc["W2", "judgment_note"] == "Oil spill."
+    counts = corpus.sea_judged_counts(sea_rows, judgments)
+    assert counts["sea"] == {"works": 2, "judged": 2, "relevant": 1}
+    assert counts["vn"] == {"works": 1, "judged": 1, "relevant": 1}
+
+
+def test_anchor_table_uses_the_actual_merge_reason_and_summary_by_id():
+    prepared = [
+        {"id": "W10", "doi": "10.48550/arxiv.2206.00897", "title": "xView3-SAR: Detecting Dark Fishing Activity", "publication_year": 2022,
+         "publication_date": "2022-06-02", "type": "preprint", "venue": "arXiv", "venue_type": "repository", "cited_by_count": 17,
+         "authors": ["A", "B"], "n_authors": 2, "themes_loose": "xview3", "themes_strict": ["xview3"], "abstract": "x"},
+        {"id": "W11", "doi": "10.52202/068431-2726", "title": "xView3-SAR: Detecting Dark Fishing Activity Using Synthetic Aperture Radar Imagery",
+         "publication_year": 2022, "publication_date": "2022-01-01", "type": "conference-paper", "venue": "NeurIPS", "venue_type": "conference",
+         "cited_by_count": 3, "authors": ["A", "B"], "n_authors": 2, "themes_loose": "xview3", "themes_strict": ["xview3"], "abstract": ""},
+    ]
+    kept = [{"openalex_id": "W11", "merged_from": ["W10"], "merge_reasons": ["same_title_year"]}]
+    df = corpus.anchors_table(prepared, kept, {"W11": {"summary": "S", "source": "preprint abstract"}}, {"W11": {"pages": "1-2"}})
+    row = df[df.anchor_key == "xview3_sar_2022"].set_index("openalex_id")
+    assert row.loc["W10", "status"] == "merged into W11 (same_title_year)"
+    assert row.loc["W11", "status"] == "in corpus" and row.loc["W11", "summary"] == "S"
+    assert row.loc["W11", "summary_source"] == "preprint abstract" and row.loc["W11", "pages"] == "1-2"
+    assert row.loc["W10", "summary"] == ""
+    # anchors that are absent from the stored rows are reported as not found
+    assert (df[df.anchor_key == "paolo_2024_nature"]["found_in_snapshot"] == False).all()  # noqa: E712

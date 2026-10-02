@@ -10,7 +10,9 @@ Modules:
     dedupe    duplicate removal (OpenAlex ID, DOI, normalised title) and merge notes
     snapshot  HTTP range client and sparse in-memory Parquet access
     scan      per-file scanner used by scripts/biblio_scan.py
+    venues    venue recovery for works with no OpenAlex primary source, conference series names
     corpus    corpus build, counting rules and summary tables
+    anchors   extra metadata for the anchor papers
     figures   matplotlib charts
 
 Importing this package does not import pyarrow or pandas, so the pure-Python
@@ -19,4 +21,4 @@ pieces (themes, dedupe) can be unit tested offline.
 "Dark" here means only that a vessel does not broadcast AIS. It does not mean illegal.
 """
 
-__all__ = ["themes", "dedupe", "snapshot", "scan", "corpus", "figures"]
+__all__ = ["themes", "dedupe", "snapshot", "scan", "venues", "corpus", "anchors", "figures"]

@@ -489,7 +489,20 @@ def top_cited(corpus: list[dict], n: int = 20) -> pd.DataFrame:
     )
 
 
-def sea_vietnam(corpus: list[dict], names: dict[str, str]) -> pd.DataFrame:
+def sea_judged_counts(corpus: list[dict], judgments: dict[str, dict]) -> dict:
+    """How many Southeast Asia and Vietnam works were judged on topic by reading (single rater)."""
+    out = {}
+    for key, flag in (("sea", "sea_flag"), ("vn", "vn_flag")):
+        group = [c for c in corpus if c[flag]]
+        judged = [(judgments.get(c["openalex_id"]) or {}).get("judgment") for c in group]
+        n = sum(1 for j in judged if j in ("relevant", "not relevant"))
+        out[key] = {"works": len(group), "judged": n, "relevant": sum(1 for j in judged if j == "relevant")}
+    return out
+
+
+def sea_vietnam(corpus: list[dict], names: dict[str, str], judgments: dict[str, dict] | None = None) -> pd.DataFrame:
+    """Southeast Asia subset. judgments: optional {openalex_id: {judgment, note}} from reading each title and abstract."""
+    judgments = judgments or {}
     rows = []
     for c in corpus:
         if not c["sea_flag"]:
@@ -515,6 +528,10 @@ def sea_vietnam(corpus: list[dict], names: dict[str, str]) -> pd.DataFrame:
                     "text and affiliation" if (c["sea_places"] and c["sea_affiliation_countries"])
                     else "text only" if c["sea_places"] else "affiliation only"
                 ),
+                "judged_on_topic": (
+                    {"relevant": True, "not relevant": False}.get((judgments.get(c["openalex_id"]) or {}).get("judgment"))
+                ),
+                "judgment_note": (judgments.get(c["openalex_id"]) or {}).get("note", ""),
             }
         )
     df = pd.DataFrame(rows)
@@ -900,7 +917,9 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
     top_countries(corpus, names).to_csv(out / "top_countries.csv", index=False)
     top_institutions(corpus, inst_country).to_csv(out / "top_institutions.csv", index=False)
     top_cited(corpus).to_csv(out / "top20_cited.csv", index=False)
-    sea_vietnam(corpus, names).to_csv(out / "sea_vietnam.csv", index=False)
+    sea_judgments_path = out / "sea_vietnam_judgments.json"
+    sea_judgments = json.loads(sea_judgments_path.read_text()) if sea_judgments_path.exists() else {}
+    sea_vietnam(corpus, names, sea_judgments).to_csv(out / "sea_vietnam.csv", index=False)
     pd.DataFrame(merge_log).to_csv(out / "dedupe_log.csv", index=False)
 
     q = queries_json()
@@ -936,6 +955,7 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
         "multi_theme_papers": sum(1 for c in corpus if len(c["themes"]) > 1),
         "sea_papers": sum(1 for c in corpus if c["sea_flag"]),
         "vn_papers": sum(1 for c in corpus if c["vn_flag"]),
+        "sea_judged": sea_judged_counts(corpus, sea_judgments),
         "papers_without_country_data": sum(1 for c in corpus if not c["countries"]),
         "venues": venue_coverage(corpus),
         "loose_matcher_mismatches": mismatches,

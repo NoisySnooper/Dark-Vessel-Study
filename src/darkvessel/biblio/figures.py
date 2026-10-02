@@ -284,57 +284,92 @@ def fig_top_countries(countries: pd.DataFrame, out: Path, snapshot: str, n: int,
 
 
 # ---------------------------------------------------------------------------
-# figure 4: Southeast Asia and Vietnam papers per year
+# figure 4: Southeast Asia and Vietnam papers per year, split by relevance judged on reading
 # ---------------------------------------------------------------------------
-def fig_sea_vietnam(sea: pd.DataFrame, out: Path, snapshot: str, n: int, note: str = "") -> Path:
-    _style()
-    years = list(range(T.YEAR_MIN, T.YEAR_MAX + 1))
-    vn = sea[sea["vn_flag"]].groupby("year").size().reindex(years, fill_value=0)
-    other = sea[~sea["vn_flag"]].groupby("year").size().reindex(years, fill_value=0)
-    total = vn + other
-    fig_h = 4.9
-    fig = plt.figure(figsize=(7.2, fig_h), dpi=DPI)
-    left, right = 0.75 / 7.2, 0.35 / 7.2
-    top_in, bottom_in = 1.45, 0.95
-    ax = fig.add_axes([left, bottom_in / fig_h, 1 - left - right, (fig_h - top_in - bottom_in) / fig_h])
-    ymax = total.max()
+NEUTRAL = "#8f8e86"  # muted neutral for the works judged not on topic (not a categorical hue)
+NEUTRAL_HATCH = "#5d5c56"
+
+
+def _stacked_year_panel(ax, years, on_topic, off_topic, *, last_year_partial=True, label_peak=True) -> None:
+    """Stacked bars per year: judged on topic (blue) on the baseline, not on topic (neutral, hatched) on top."""
+    ymax = int(max((on_topic + off_topic).max(), 1))
     ax.set_xlim(years[0] - 0.7, years[-1] + 0.7)
-    ax.set_ylim(0, ymax * 1.18)
-    ax.yaxis.set_major_locator(MaxNLocator(nbins=5, integer=True))
+    ax.set_ylim(0, ymax * 1.22)
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
     ax.yaxis.set_major_formatter(FuncFormatter(_thousands))
     _style_axes(ax, grid_axis="y")
     sx, sy = _scale(ax)
     gap = _px(2) / sy  # 2 css px of surface between the stacked segments
     w = 0.62
     for yr in years:
-        partial = yr == years[-1]
-        a = PARTIAL_ALPHA if partial else 1.0
-        v_vn, v_ot = int(vn[yr]), int(other[yr])
-        # Vietnam sits on the baseline, other Southeast Asia stacks on top
-        top_is_other = v_ot > 0
-        if v_vn:
-            _add_bar(ax, yr - w / 2, 0, yr + w / 2, v_vn, ORANGE, end=None if top_is_other else "top", alpha=a, hatch="////", hatch_color=HATCH_ORANGE, radius_css=3)
-        if v_ot:
-            _add_bar(ax, yr - w / 2, v_vn + (gap if v_vn else 0), yr + w / 2, v_vn + v_ot, BLUE, end="top", alpha=a, radius_css=3)
-    peak_year = int(total.idxmax())
-    ax.text(peak_year, total[peak_year] + ymax * 0.03, f"{int(total[peak_year]):,}{'*' if peak_year == years[-1] else ''}", ha="center", va="bottom", fontsize=8.8, color=INK, fontweight="bold")
-    last_full = years[-2]
-    if last_full != peak_year:
-        ax.text(last_full, total[last_full] + ymax * 0.03, f"{int(total[last_full]):,}", ha="center", va="bottom", fontsize=8.8, color=INK, fontweight="bold")
+        a = PARTIAL_ALPHA if (last_year_partial and yr == years[-1]) else 1.0
+        v_on, v_off = int(on_topic[yr]), int(off_topic[yr])
+        if v_on:
+            _add_bar(ax, yr - w / 2, 0, yr + w / 2, v_on, BLUE, end=None if v_off else "top", alpha=a, radius_css=3)
+        if v_off:
+            _add_bar(
+                ax, yr - w / 2, v_on + (gap if v_on else 0), yr + w / 2, v_on + v_off, NEUTRAL, end="top", alpha=a,
+                hatch="////", hatch_color=NEUTRAL_HATCH, radius_css=3,
+            )
+    total = on_topic + off_topic
+    if label_peak:
+        peak = int(total.idxmax())
+        star = "*" if (last_year_partial and peak == years[-1]) else ""
+        ax.text(peak, total[peak] + ymax * 0.04, f"{int(total[peak]):,}{star}", ha="center", va="bottom", fontsize=8.8, color=INK, fontweight="bold")
+        last_full = years[-2]
+        if last_full != peak and total[last_full] > 0:
+            ax.text(last_full, total[last_full] + ymax * 0.04, f"{int(total[last_full]):,}", ha="center", va="bottom", fontsize=8.8, color=INK, fontweight="bold")
     ax.set_xticks(years)
     ax.set_xticklabels([str(y) if y != years[-1] else f"{y}*" for y in years], fontsize=8.5)
-    ax.set_xlabel("Publication year", fontsize=9, color=INK2, labelpad=6)
-    ax.set_ylabel("Papers per year", fontsize=9, color=INK2, labelpad=6)
+
+
+def fig_sea_vietnam(sea: pd.DataFrame, out: Path, snapshot: str, n: int, note: str = "") -> Path:
+    """Two panels: all Southeast Asia works, and the Vietnam subset, each split by the on-topic judgment."""
+    _style()
+    years = list(range(T.YEAR_MIN, T.YEAR_MAX + 1))
+    on_flag = sea["judged_on_topic"].fillna(False).astype(bool)
+    vn_flag = sea["vn_flag"].astype(bool)
+
+    def per_year(mask) -> pd.Series:
+        return sea[mask].groupby("year").size().reindex(years, fill_value=0)
+
+    sea_on, sea_off = per_year(on_flag), per_year(~on_flag)
+    vn_on, vn_off = per_year(on_flag & vn_flag), per_year(~on_flag & vn_flag)
+    n_sea, n_vn = len(sea), int(vn_flag.sum())
+    h_sea, h_vn, gap_in = 3.0, 1.55, 1.1
+    top_in, bottom_in = 1.9, 0.95
+    fig_h = top_in + h_sea + gap_in + h_vn + bottom_in
+    fig = plt.figure(figsize=(7.2, fig_h), dpi=DPI)
+    left, right = 0.75 / 7.2, 0.35 / 7.2
+    ax1 = fig.add_axes([left, (fig_h - top_in - h_sea) / fig_h, 1 - left - right, h_sea / fig_h])
+    ax2 = fig.add_axes([left, bottom_in / fig_h, 1 - left - right, h_vn / fig_h])
+    _stacked_year_panel(ax1, years, sea_on, sea_off)
+    _stacked_year_panel(ax2, years, vn_on, vn_off)
+    for ax, title, on, off in (
+        (ax1, "All Southeast Asia", int(on_flag.sum()), int((~on_flag).sum())),
+        (ax2, "Vietnam subset", int((on_flag & vn_flag).sum()), int((~on_flag & vn_flag).sum())),
+    ):
+        ax.set_title(title, loc="left", fontsize=10, fontweight="bold", color=INK, pad=16)
+        ax.annotate(
+            f"{on + off:,} papers: {on:,} judged on topic, {off:,} not", xy=(0, 1), xycoords="axes fraction",
+            xytext=(0, 3), textcoords="offset points", ha="left", va="bottom", fontsize=8.3, color=INK2,
+        )
+    ax2.set_xlabel("Publication year", fontsize=9, color=INK2, labelpad=6)
+    fig.text(0.012, (bottom_in + (h_vn + gap_in + h_sea) / 2) / fig_h, "Papers per year", rotation=90, ha="center", va="center", fontsize=9, color=INK2)
     handles = [
-        plt.Rectangle((0, 0), 1, 1, facecolor=ORANGE, edgecolor=HATCH_ORANGE, hatch="////", linewidth=0),
         plt.Rectangle((0, 0), 1, 1, facecolor=BLUE, edgecolor="none"),
+        plt.Rectangle((0, 0), 1, 1, facecolor=NEUTRAL, edgecolor=NEUTRAL_HATCH, hatch="////", linewidth=0),
     ]
-    leg = fig.legend(handles, [f"Vietnam subset ({int(vn.sum()):,} papers)", f"Other Southeast Asia ({int(other.sum()):,} papers)"], loc="upper left", bbox_to_anchor=(0.035, 1 - 1.02 / fig_h), ncol=2, frameon=False, fontsize=8.8, handlelength=1.4, handleheight=0.9, columnspacing=1.6)
+    leg = fig.legend(
+        handles, ["Judged on topic (read title and abstract)", "Judged not on topic"], loc="upper left",
+        bbox_to_anchor=(0.035, 1 - 1.12 / fig_h), ncol=2, frameon=False, fontsize=8.8, handlelength=1.4, handleheight=0.9, columnspacing=1.6,
+    )
     for t in leg.get_texts():
         t.set_color(INK2)
     subtitle = textwrap.fill(
         "Papers whose title or abstract names a Southeast Asian place, or with an author affiliated in VN, TH, MY, ID, PH, SG, KH, LA, "
-        "MM, BN or TL. The Vietnam subset names Vietnam, Tonkin, Ca Mau, Mekong Delta or the East Sea of Vietnam, or has a VN affiliation.",
+        "MM, BN or TL. The Vietnam subset names Vietnam, Tonkin, Ca Mau, Mekong Delta or the East Sea of Vietnam, or has a VN affiliation. "
+        "Each panel has its own vertical scale.",
         width=104,
     )
     _frame(

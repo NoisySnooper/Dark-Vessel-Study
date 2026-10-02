@@ -1,0 +1,814 @@
+{
+ "W2133541467": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2180638940": {
+  "judgment": "not relevant",
+  "note": "Estuary inlet model; fishing boats named as users."
+ },
+ "W2206613473": {
+  "judgment": "not relevant",
+  "note": "borderline: civil maritime surveillance and vulnerability mapping; broad security essay."
+ },
+ "W2329586195": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2547514449": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2561939013": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2563185542": {
+  "judgment": "not relevant",
+  "note": "Mangrove damage valuation."
+ },
+ "W2564181966": {
+  "judgment": "not relevant",
+  "note": "Coral Triangle Initiative policy."
+ },
+ "W2588504383": {
+  "judgment": "relevant",
+  "note": "borderline: ship detection with wireless sensor networks, not satellite."
+ },
+ "W2596131037": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2611282737": {
+  "judgment": "relevant",
+  "note": "VMS compliance of purse seine vessels."
+ },
+ "W2618352681": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2737999009": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2756803671": {
+  "judgment": "not relevant",
+  "note": "borderline: night-light processing system for island activities."
+ },
+ "W2766021374": {
+  "judgment": "not relevant",
+  "note": "Tsunami fragility of aquaculture rafts."
+ },
+ "W2770375415": {
+  "judgment": "not relevant",
+  "note": "Oil pollution mapped with SAR."
+ },
+ "W2771852713": {
+  "judgment": "not relevant",
+  "note": "borderline: island-building lights; vessels are incidental."
+ },
+ "W2771992700": {
+  "judgment": "not relevant",
+  "note": "Oil pollution mapped with SAR."
+ },
+ "W2786368535": {
+  "judgment": "not relevant",
+  "note": "Military capability analysis."
+ },
+ "W2799451018": {
+  "judgment": "relevant",
+  "note": "borderline: ship detection with wireless sensor networks, not satellite."
+ },
+ "W2801975478": {
+  "judgment": "relevant",
+  "note": "VIIRS boat detection to rate fishery closures."
+ },
+ "W2844893744": {
+  "judgment": "relevant",
+  "note": "borderline: AIS monitoring of fishing vessels."
+ },
+ "W2890121564": {
+  "judgment": "relevant",
+  "note": "borderline: island reclamation lights checked against AIS vessel tracks."
+ },
+ "W2891191818": {
+  "judgment": "relevant",
+  "note": "borderline: global night-time lights at sea, including fishing lights."
+ },
+ "W2897839944": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2900475502": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2903393935": {
+  "judgment": "relevant",
+  "note": "borderline: micro-satellite design with an AIS receiver and SAR for illegal fishing."
+ },
+ "W2905911001": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2906398788": {
+  "judgment": "not relevant",
+  "note": "Chlorophyll and SST for a mackerel fishing ground."
+ },
+ "W2910714315": {
+  "judgment": "not relevant",
+  "note": "borderline: offshore platform extraction in SAR; ships are removed as interference."
+ },
+ "W2922261253": {
+  "judgment": "not relevant",
+  "note": "SST and chlorophyll against purse seine catch."
+ },
+ "W2940541941": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2943875170": {
+  "judgment": "not relevant",
+  "note": "Ferry port service performance."
+ },
+ "W2944781944": {
+  "judgment": "not relevant",
+  "note": "Estuary morphology."
+ },
+ "W2947369977": {
+  "judgment": "relevant",
+  "note": "borderline: satellite design to detect illegal fishing."
+ },
+ "W2947395337": {
+  "judgment": "not relevant",
+  "note": "Medical imaging."
+ },
+ "W2947456723": {
+  "judgment": "not relevant",
+  "note": "borderline: offshore platform extraction in SAR."
+ },
+ "W2948210186": {
+  "judgment": "not relevant",
+  "note": "Tuna habitat model."
+ },
+ "W2949499114": {
+  "judgment": "not relevant",
+  "note": "Sardinella distribution and oceanography; boat positions only as a covariate."
+ },
+ "W2954617821": {
+  "judgment": "relevant",
+  "note": "borderline: low-cost GPS loggers for fishing vessel monitoring."
+ },
+ "W2962956401": {
+  "judgment": "not relevant",
+  "note": "CubeSat camera payload."
+ },
+ "W2967647423": {
+  "judgment": "not relevant",
+  "note": "Sardine fishery and climate."
+ },
+ "W2970672304": {
+  "judgment": "not relevant",
+  "note": "Potential fishing zone forecast validation."
+ },
+ "W2975131739": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2980325731": {
+  "judgment": "not relevant",
+  "note": "Fish habitat ecology."
+ },
+ "W2996015590": {
+  "judgment": "not relevant",
+  "note": "Suspended solids mapping."
+ },
+ "W3003385220": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3014495690": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3022267450": {
+  "judgment": "not relevant",
+  "note": "Socio-economics of coastal communities."
+ },
+ "W3022664958": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3027811057": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3029894858": {
+  "judgment": "relevant",
+  "note": "borderline: SAR change detection of ephemeral objects such as ships."
+ },
+ "W3035190983": {
+  "judgment": "not relevant",
+  "note": "Coastal sediment analysis."
+ },
+ "W3049386737": {
+  "judgment": "not relevant",
+  "note": "Oil spill detection."
+ },
+ "W3083338186": {
+  "judgment": "not relevant",
+  "note": "Military intelligence collection (Korean)."
+ },
+ "W3087977789": {
+  "judgment": "relevant",
+  "note": "borderline: ship location estimation from camera images."
+ },
+ "W3093942418": {
+  "judgment": "relevant",
+  "note": "borderline: UAV imagery, not satellite."
+ },
+ "W3104110018": {
+  "judgment": "not relevant",
+  "note": "Economics dissertation; the abstract covers attention to time and air conditioning, no vessel work."
+ },
+ "W3113338673": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3114841683": {
+  "judgment": "not relevant",
+  "note": "Economic impact of IUU fishing; no monitoring."
+ },
+ "W3118814988": {
+  "judgment": "relevant",
+  "note": "VIIRS boat detection as a fisheries data source."
+ },
+ "W3122835659": {
+  "judgment": "relevant",
+  "note": "borderline: economics paper that uses satellite fishing-boat detection data as the measure of fishing effort."
+ },
+ "W3130005010": {
+  "judgment": "not relevant",
+  "note": "Potential fishing areas from MODIS SST and chlorophyll for patrol planning; no vessel detection."
+ },
+ "W3135257094": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3136576510": {
+  "judgment": "not relevant",
+  "note": "Chlorophyll-a data for patrol planning; no vessel detection."
+ },
+ "W3137209321": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3145108592": {
+  "judgment": "not relevant",
+  "note": "Oil spill mapping with Sentinel-1."
+ },
+ "W3158223807": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3159780453": {
+  "judgment": "relevant",
+  "note": "AIS and VBD fusion for fishing intensity."
+ },
+ "W3162812363": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3164905357": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3175844481": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3191781564": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3194836031": {
+  "judgment": "not relevant",
+  "note": "Seagrass mapping."
+ },
+ "W3194886242": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3197875143": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3202230382": {
+  "judgment": "not relevant",
+  "note": "Oil spill detection."
+ },
+ "W3202446499": {
+  "judgment": "not relevant",
+  "note": "Reef fish stock risk analysis."
+ },
+ "W3206562267": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3212012411": {
+  "judgment": "not relevant",
+  "note": "Blue carbon pressure mapping; VBD is one input layer."
+ },
+ "W4200244151": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4200283324": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4200468460": {
+  "judgment": "not relevant",
+  "note": "borderline: UAV route planning; no vessel detection."
+ },
+ "W4200523534": {
+  "judgment": "not relevant",
+  "note": "Oil spill distribution."
+ },
+ "W4206029051": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4210675347": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4224224810": {
+  "judgment": "not relevant",
+  "note": "Bibliometric study of the Sentinel-1 literature; ship detection is one of many topics."
+ },
+ "W4231070414": {
+  "judgment": "not relevant",
+  "note": "News digest on a toxic pollution report."
+ },
+ "W4234850981": {
+  "judgment": "not relevant",
+  "note": "News digest."
+ },
+ "W4281551273": {
+  "judgment": "not relevant",
+  "note": "Tsunami early warning by radio."
+ },
+ "W4282047046": {
+  "judgment": "not relevant",
+  "note": "Feature article in a food science magazine."
+ },
+ "W4283659296": {
+  "judgment": "not relevant",
+  "note": "Passive radar recognition of small UAVs against birds."
+ },
+ "W4296642582": {
+  "judgment": "not relevant",
+  "note": "borderline: intercalibration of DMSP night lights; fishing vessel lights are treated as noise."
+ },
+ "W4301401589": {
+  "judgment": "not relevant",
+  "note": "Fisheries around oil and gas platforms."
+ },
+ "W4311603024": {
+  "judgment": "relevant",
+  "note": "borderline: AIS track anomaly prediction."
+ },
+ "W4311924825": {
+  "judgment": "relevant",
+  "note": "borderline: potential fishing zones that use boat detection."
+ },
+ "W4312784466": {
+  "judgment": "not relevant",
+  "note": "Journal summaries."
+ },
+ "W4313306828": {
+  "judgment": "relevant",
+  "note": "borderline: ship classification and counting by YOLOv5."
+ },
+ "W4316041497": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4318832786": {
+  "judgment": "relevant",
+  "note": "borderline: compares fishing vessel locations with potential fishing zones."
+ },
+ "W4319027653": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4319601939": {
+  "judgment": "relevant",
+  "note": "IUU forecasting from VIIRS data."
+ },
+ "W4319756669": {
+  "judgment": "relevant",
+  "note": "borderline: fishing ground model that uses VBD vessel positions."
+ },
+ "W4321462360": {
+  "judgment": "relevant",
+  "note": "borderline: vessel position and distress monitoring for small fishing vessels."
+ },
+ "W4322493137": {
+  "judgment": "not relevant",
+  "note": "Overview of potential fishing ground prediction from SST/chlorophyll; no vessel detection."
+ },
+ "W4361268344": {
+  "judgment": "not relevant",
+  "note": "Offshore hydrocarbon platform extraction from night lights; not vessels."
+ },
+ "W4367664131": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4376614841": {
+  "judgment": "not relevant",
+  "note": "Teaching-method study."
+ },
+ "W4382196876": {
+  "judgment": "not relevant",
+  "note": "Fisheries and conflict, using ocean productivity data."
+ },
+ "W4386226544": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4389678108": {
+  "judgment": "relevant",
+  "note": "borderline: Sentinel-1 detection of sand mining boats on a river, not marine."
+ },
+ "W4390078975": {
+  "judgment": "not relevant",
+  "note": "Bathymetry from Landsat-8."
+ },
+ "W4390079163": {
+  "judgment": "relevant",
+  "note": "borderline: fishing ground estimated from fishing vessel distribution."
+ },
+ "W4390187693": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4390277399": {
+  "judgment": "relevant",
+  "note": "borderline: fishing ground analysis that uses DNB boat lights."
+ },
+ "W4390563010": {
+  "judgment": "not relevant",
+  "note": "Fishing ground degradation."
+ },
+ "W4390691920": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4391377810": {
+  "judgment": "not relevant",
+  "note": "Oceanography of small pelagic fishes; VIIRS boat positions only as a covariate."
+ },
+ "W4392847020": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4393977779": {
+  "judgment": "relevant",
+  "note": "borderline: radar detection of small boats by unmanned surface vehicles."
+ },
+ "W4395665805": {
+  "judgment": "not relevant",
+  "note": "Oil spill monitoring."
+ },
+ "W4396698889": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (SAR ship detection)."
+ },
+ "W4398179756": {
+  "judgment": "not relevant",
+  "note": "Fishing grounds from catch data and SST/chlorophyll."
+ },
+ "W4398218548": {
+  "judgment": "not relevant",
+  "note": "Shark movement tagging."
+ },
+ "W4402491950": {
+  "judgment": "relevant",
+  "note": "borderline: Sentinel-1 detection of sand mining boats on a river, not marine."
+ },
+ "W4403075149": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4403277343": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4403639261": {
+  "judgment": "not relevant",
+  "note": "borderline: policy review of maritime security in the Natuna Sea."
+ },
+ "W4403782508": {
+  "judgment": "not relevant",
+  "note": "Lobster habitat conservation."
+ },
+ "W4404468348": {
+  "judgment": "relevant",
+  "note": "borderline: tropical cyclone effects on fishing activity from vessel tracking data."
+ },
+ "W4404520880": {
+  "judgment": "relevant",
+  "note": "borderline: SAR detection of fish aggregating devices, not vessels."
+ },
+ "W4404569340": {
+  "judgment": "not relevant",
+  "note": "IMO membership and regulation news."
+ },
+ "W4404619509": {
+  "judgment": "not relevant",
+  "note": "Tuna habitat model."
+ },
+ "W4406128179": {
+  "judgment": "not relevant",
+  "note": "Oil spill model."
+ },
+ "W4406165795": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4406774232": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4406786647": {
+  "judgment": "not relevant",
+  "note": "borderline: legal analysis of dark fleet tankers; no detection or monitoring."
+ },
+ "W4408717739": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4408880585": {
+  "judgment": "relevant",
+  "note": "borderline: review of VMS, AIS and remote sensing tools against illegal fishing in the Natuna Sea."
+ },
+ "W4409200587": {
+  "judgment": "not relevant",
+  "note": "Sea ice concentration monitoring."
+ },
+ "W4409475772": {
+  "judgment": "relevant",
+  "note": "borderline: fishery law enforcement study that uses VIIRS-DNB analysis."
+ },
+ "W4410635202": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4411109782": {
+  "judgment": "not relevant",
+  "note": "Purse seine fishery characterisation; no vessel detection."
+ },
+ "W4411192576": {
+  "judgment": "not relevant",
+  "note": "Fishing ground survey by direct observation."
+ },
+ "W4411220789": {
+  "judgment": "not relevant",
+  "note": "borderline: legal geography of the dark fleet; no detection or monitoring."
+ },
+ "W4411299872": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4411695175": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4412880721": {
+  "judgment": "relevant",
+  "note": "borderline: Indonesian version of an AI threat detection study (see index 8)."
+ },
+ "W4413208036": {
+  "judgment": "not relevant",
+  "note": "Policy study of fisheries oversight."
+ },
+ "W4413757851": {
+  "judgment": "relevant",
+  "note": "VIIRS lit fishing boats in the South China Sea."
+ },
+ "W4413953909": {
+  "judgment": "relevant",
+  "note": "borderline: ship detection in optical remote sensing imagery."
+ },
+ "W4414122041": {
+  "judgment": "relevant",
+  "note": "borderline: Sentinel-1 boat detection on a river (sand mining barges), not marine."
+ },
+ "W4414550502": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4415183121": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4415285655": {
+  "judgment": "relevant",
+  "note": "borderline: tropical cyclone effects on fishing boats from vessel tracking data."
+ },
+ "W4415727458": {
+  "judgment": "relevant",
+  "note": "borderline: potential fishing zones that use VIIRS boat detection (VBD)."
+ },
+ "W4416123938": {
+  "judgment": "relevant",
+  "note": "borderline: GPS-based fishing vessel monitoring."
+ },
+ "W4416194656": {
+  "judgment": "not relevant",
+  "note": "borderline: legal study of flags of convenience; no detection or monitoring."
+ },
+ "W4416827876": {
+  "judgment": "relevant",
+  "note": "borderline: AIS and smartphone GPS ship tracking."
+ },
+ "W4417052393": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4417165410": {
+  "judgment": "not relevant",
+  "note": "borderline: legal study of illegal waste disposal by foreign vessels."
+ },
+ "W6921509980": {
+  "judgment": "not relevant",
+  "note": "Tsunami early warning by radio."
+ },
+ "W6939116456": {
+  "judgment": "relevant",
+  "note": "borderline: low-cost GPS loggers as an alternative to VMS."
+ },
+ "W6957776784": {
+  "judgment": "relevant",
+  "note": "borderline: tropical cyclone effects on fishing activity from vessel tracking data."
+ },
+ "W7066742819": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7096415365": {
+  "judgment": "not relevant",
+  "note": "Tsunami remote sensing."
+ },
+ "W7099944105": {
+  "judgment": "not relevant",
+  "note": "Oil spill monitoring with satellite and coastal radar."
+ },
+ "W7105824527": {
+  "judgment": "relevant",
+  "note": "borderline: fishing grounds from VBD vessel positions and environmental data."
+ },
+ "W7108316195": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7108651807": {
+  "judgment": "not relevant",
+  "note": "Fishing gear recycling."
+ },
+ "W7110058062": {
+  "judgment": "relevant",
+  "note": "VMS records used to find fishing violation hotspots."
+ },
+ "W7110534747": {
+  "judgment": "relevant",
+  "note": "Dark activity and ship-to-ship meetings from vessel tracking data; the region is the Americas, not Southeast Asia."
+ },
+ "W7116380133": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7118013629": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7124145476": {
+  "judgment": "not relevant",
+  "note": "Art exhibition review."
+ },
+ "W7125686255": {
+  "judgment": "relevant",
+  "note": "AIS-based fishing boat analysis."
+ },
+ "W7127177206": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7127339065": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7127967114": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7128407600": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (SAR ship detection)."
+ },
+ "W7130829117": {
+  "judgment": "relevant",
+  "note": "AIS plus imagery anomaly detection."
+ },
+ "W7147466083": {
+  "judgment": "not relevant",
+  "note": "borderline: qualitative study of a patrol strategy; no detection method."
+ },
+ "W7150978809": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7153345150": {
+  "judgment": "not relevant",
+  "note": "Fishing ground suitability from oceanographic data; no vessel detection."
+ },
+ "W7160109805": {
+  "judgment": "not relevant",
+  "note": "Economics of sanctioned oil exports; no detection method."
+ },
+ "W7162114145": {
+  "judgment": "relevant",
+  "note": "borderline: qualitative study of an AI threat detection model for illegal fishing; no sensor data."
+ },
+ "W7162496881": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7163546299": {
+  "judgment": "not relevant",
+  "note": "Fishing ground analysis from SST and chlorophyll; no vessel detection."
+ },
+ "W7164385225": {
+  "judgment": "not relevant",
+  "note": "borderline: legal study of dark ships; no detection or monitoring."
+ },
+ "W7166036782": {
+  "judgment": "not relevant",
+  "note": "Coral reef ecology."
+ },
+ "W7166680637": {
+  "judgment": "not relevant",
+  "note": "Seagrass ecosystem study."
+ },
+ "W7167506360": {
+  "judgment": "not relevant",
+  "note": "Shark and ray bycatch from catch data."
+ },
+ "W7167731618": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7172392314": {
+  "judgment": "relevant",
+  "note": "borderline: review of maritime defense technology that includes satellite surveillance and AIS analytics."
+ },
+ "W7172533317": {
+  "judgment": "not relevant",
+  "note": "borderline: legal accountability for AI in fisheries supervision; no detection method."
+ },
+ "W7201956090": {
+  "judgment": "relevant",
+  "note": "borderline: fishing vessel tracking hardware."
+ },
+ "W7202177692": {
+  "judgment": "not relevant",
+  "note": "Beamforming for radar and sonar; ship detection named only as a use."
+ },
+ "W7203831484": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7204620849": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7204934088": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7213862670": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7213865140": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7213903444": {
+  "judgment": "not relevant",
+  "note": "Sea clutter statistics for wave height estimation."
+ }
+}

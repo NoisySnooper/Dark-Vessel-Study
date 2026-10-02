@@ -1,0 +1,78 @@
+{
+ "repository_group_works_in_corpus": 427,
+ "repository_primary_works_checked": 409,
+ "with_journal_or_conference_location": 14,
+ "examples": [
+  {
+   "id": "W3175401960",
+   "venue": "Acta Geodaetica et Cartographica Sinica",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2738892649",
+   "venue": "Living Planet Symposium",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2293656900",
+   "venue": "Proceedings of the International Conference on Port and Ocean Engineering Under Arctic Conditions",
+   "venue_type": "conference"
+  },
+  {
+   "id": "W2562383705",
+   "venue": "JOURNAL OF RADARS",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2591214915",
+   "venue": "EGU General Assembly Conference Abstracts",
+   "venue_type": "conference"
+  },
+  {
+   "id": "W2899098734",
+   "venue": "Turkish Journal of Maritime and Marine Sciences",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2756803671",
+   "venue": "Free and Open Source Software for Geospatial (FOSS4G) Conference Proceedings",
+   "venue_type": "conference"
+  },
+  {
+   "id": "W2785009462",
+   "venue": "Free and Open Source Software for Geospatial (FOSS4G) Conference Proceedings",
+   "venue_type": "conference"
+  },
+  {
+   "id": "W2914003108",
+   "venue": "Journal of Environmental Studies and Sciences",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W3134166610",
+   "venue": "International Journal of Scientific Research in Computer Science Engineering and Information Technology",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2554940458",
+   "venue": "World Academy of Science, Engineering and Technology, International Journal of Electrical, Computer, Energetic, Electronic and Communication Engineering",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2296233843",
+   "venue": "AGUOS",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2412299364",
+   "venue": "EGUGA",
+   "venue_type": "journal"
+  },
+  {
+   "id": "W2596131037",
+   "venue": "World Academy of Science, Engineering and Technology, International Journal of Computer, Electrical, Automation, Control and Information Engineering",
+   "venue_type": "journal"
+  }
+ ],
+ "seconds": 18
+}
