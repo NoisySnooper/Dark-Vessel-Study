@@ -108,7 +108,13 @@ def main():
     det = gpd.read_file(args.baseline, layer="detections_baseline_4326", engine="pyogrio")
     log(f"baseline detections {len(det)}; model {model_id} threshold {thr:.3f}", t0)
     scene = GRDScene(args.scene)
-    assert det.scene_id.iloc[0] == scene.product_id, "baseline layer is for a different scene"
+    # scene-level fields live in data/baseline_run_summary.json (the lean detection layers carry only scene_id)
+    summary_path = DATA_DIR / "baseline_run_summary.json"
+    base = json.loads(summary_path.read_text()) if summary_path.exists() else {}
+    scene_id = det.scene_id.iloc[0] if "scene_id" in det.columns else base.get("scene_id", scene.product_id)
+    assert scene_id == scene.product_id, "baseline layer is for a different scene"
+    platform = base.get("platform") or f"SENTINEL-1{scene.meta['mission'][-1]}"
+    acq_utc = base.get("acq_utc") or scene.meta["start"].isoformat() + "+00:00"
     chips = chips_for_detections(scene, det.row.values.astype(float), det.col.values.astype(float), args.band, t0=t0)
     valid = np.isfinite(chips[:, :, CHIP_HALF - 4 : CHIP_HALF + 4, CHIP_HALF - 4 : CHIP_HALF + 4].astype(np.float32)).mean(axis=(1, 2, 3))
     score = predict_proba(model, chips, meta, tta=True)
@@ -118,7 +124,7 @@ def main():
     det["cnn_model_id"] = model_id
     det["cnn_chip_valid_frac"] = valid.astype(float)
     det["cnn_training_data"] = "AI2 Skylight S1A/S1B point labels 2020-2022 (Apache-2.0); no S1D ground truth"
-    assert "caveat" in det.columns
+    assert "caveat" in det.columns, "the baseline layer lost its caveat column"
     out = DATA_DIR / "detections_ml.gpkg"
     if out.exists():
         out.unlink()
@@ -132,13 +138,13 @@ def main():
                          "score_q10_q90": [round(float(g.cnn_score.quantile(0.1)), 3), round(float(g.cnn_score.quantile(0.9)), 3)]}
     by_pol = {k: {"n": int(len(g)), "cnn_vessel": int(g.cnn_vessel.sum()), "cnn_vessel_frac": round(float(g.cnn_vessel.mean()), 3)}
               for k, g in det.groupby("pol_class")}
-    summary = {"scene_id": scene.product_id, "platform": det.platform.iloc[0], "acq_utc": str(det.acq_utc.iloc[0]),
+    summary = {"scene_id": scene.product_id, "platform": platform, "acq_utc": acq_utc,
                "model_id": model_id, "model_path": args.model, "threshold": thr, "n_detections": int(len(det)),
                "n_cnn_vessel": int(det.cnn_vessel.sum()), "by_confidence": by_class, "by_pol_class": by_pol,
                "vessel_candidates_baseline": int(det.confidence.isin(["high", "medium"]).sum()),
                "vessel_candidates_cnn": int(det.cnn_vessel.sum()),
                "chips_with_missing_centre_px": int((valid < 1).sum()), "runtime_s": round(time.time() - t0, 1),
-               "caveat": det.caveat.iloc[0]}
+               "caveat": det.caveat.iloc[0], "baseline_classes": base.get("classes")}
     ML_DIR.mkdir(parents=True, exist_ok=True)
     (ML_DIR / "apply_summary.json").write_text(json.dumps(summary, indent=2, default=str))
     print(json.dumps({k: v for k, v in summary.items() if k != "caveat"}, indent=2, default=str))

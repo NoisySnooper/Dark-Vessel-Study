@@ -120,8 +120,10 @@ def test_wilson_interval():
 
 
 def _toy_eval():
+    # non-trivial index on purpose: a filtered frame must not be re-aligned against a RangeIndex
     labels = pd.DataFrame({"label_id": [1, 2, 3, 4], "cfar_detected": [True, True, True, False],
-                           "cfar_detected_loose": [True, True, True, False], "length_m": [10.0, 30.0, 120.0, 60.0]})
+                           "cfar_detected_loose": [True, True, True, False], "length_m": [10.0, 30.0, 120.0, 60.0]},
+                          index=[7, 11, 23, 42])
     cands = pd.DataFrame({"cand_class": ["vessel", "vessel", "vessel", "clutter", "clutter", "ambiguous"],
                           "match_label_id": [1, 2, 3, -1, -1, 3]})
     scores = np.array([0.9, 0.8, 0.2, 0.7, 0.1, 0.6])
@@ -136,9 +138,14 @@ def test_system_metrics_and_pr_curve():
     m = system_metrics(labels, cands, scores >= 0.5)
     assert m["tp_candidates"] == 2 and m["fp_candidates"] == 1 and m["labels_detected"] == 2
     assert m["precision"] == pytest.approx(2 / 3) and m["recall"] == pytest.approx(0.5)
+    # loose: the ambiguous candidate (score 0.6, label 3) counts as a detection of label 3
+    assert m["precision_loose"] == pytest.approx(3 / 4) and m["recall_loose"] == pytest.approx(0.75)
+    assert m["labels_detected_loose"] == 3
     pr = pr_curve(labels, cands, scores, n_points=20)
     assert pr.recall.iloc[0] == pytest.approx(0.75)  # everything accepted = CFAR-only
-    assert pr.recall.is_monotonic_decreasing
+    assert pr.recall_loose.iloc[0] == pytest.approx(0.75)
+    assert pr.recall.is_monotonic_decreasing and pr.recall_loose.is_monotonic_decreasing
+    assert (pr.recall_loose >= pr.recall).all()
 
 
 def test_recall_by_length_table():
@@ -147,6 +154,7 @@ def test_recall_by_length_table():
     tab = tab.set_index("length_bin")
     assert tab.loc["0-15 m", "n_labels"] == 1 and tab.loc["0-15 m", "cfar_recall"] == 1.0 and tab.loc["0-15 m", "cnn_recall"] == 1.0
     assert tab.loc["100+ m", "cnn_recall"] == 0.0 and tab.loc["100+ m", "cfar_recall"] == 1.0
+    assert tab.loc["100+ m", "cnn_loose_recall"] == 1.0 and tab.loc["all", "cnn_loose_detected"] == 3
     assert tab.loc["50-100 m", "cfar_recall"] == 0.0
     assert tab.loc["all", "n_labels"] == 4 and tab.loc["all", "cfar_detected"] == 3
     assert tab.loc["15-25 m", "n_labels"] == 0 and np.isnan(tab.loc["15-25 m", "cfar_recall"])

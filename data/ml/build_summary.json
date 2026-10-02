@@ -1,0 +1,49 @@
+{
+  "scenes_selected": 454,
+  "scenes_done": 454,
+  "scenes_failed_this_run": 0,
+  "scenes_by_region": {
+    "sea_asia": 334,
+    "other": 120
+  },
+  "scenes_by_split": {
+    "other/test": 24,
+    "other/trainval": 96,
+    "sea_asia/test": 67,
+    "sea_asia/trainval": 267
+  },
+  "windows_selected": 3188,
+  "windows_by_use": {
+    "train": 2290,
+    "test": 616,
+    "val": 282
+  },
+  "candidates": 69274,
+  "positives": 6756,
+  "candidates_by_use": {
+    "size": {
+      "test": 14056,
+      "train": 49355,
+      "val": 5863
+    },
+    "sum": {
+      "test": 1213,
+      "train": 4947,
+      "val": 596
+    }
+  },
+  "labels_in_done_scenes": 10625,
+  "labels_on_testable_sea": 7970,
+  "labels_cfar_detected": 6280,
+  "args": {
+    "n_other": 120,
+    "cap_labelled": 16,
+    "cap_empty": 3,
+    "test_frac": 0.2,
+    "workers": 3,
+    "max_scenes": null,
+    "region": null,
+    "seed": 20261002
+  },
+  "runtime_s": 9.7
+}

@@ -63,6 +63,7 @@ def main():
     ap.add_argument("--patience", type=int, default=6)
     ap.add_argument("--threads", type=int, default=3)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--eval-only", action="store_true", help="skip training; evaluate the saved model")
     args = ap.parse_args()
     t0 = time.time()
     cands = pd.read_parquet(ML_DIR / "candidates.parquet")
@@ -83,32 +84,43 @@ def main():
     te = cands[cands.use == "test"]  # ambiguous kept for reporting; excluded inside the metrics
     log(f"train {len(tr)} (pos {len(pos)}, neg {len(neg)} of {int((~clean[clean.use == 'train'].is_vessel).sum())}); "
         f"val {len(va)} (pos {int(va.is_vessel.sum())}); test {len(te)} (pos {int(te.is_vessel.sum())})", t0)
-    x_tr, x_va, x_te = (load_chips(d, CHIP_DIR) for d in (tr, va, te))
-    log(f"chips loaded: {x_tr.nbytes / 1e6:.0f} MB train", t0)
+    x_te = load_chips(te, CHIP_DIR)
+    if args.eval_only:
+        x_tr = x_va = None
+    else:
+        x_tr, x_va = load_chips(tr, CHIP_DIR), load_chips(va, CHIP_DIR)
+        log(f"chips loaded: {x_tr.nbytes / 1e6:.0f} MB train", t0)
 
-    model, meta, curve = train_verifier(x_tr, tr.is_vessel.values, x_va, va.is_vessel.values, width=args.width,
-                                        epochs=args.epochs, batch=args.batch, lr=args.lr, patience=args.patience,
-                                        samples_per_epoch=args.samples_per_epoch, threads=args.threads, seed=args.seed,
-                                        log=lambda m: log(m, t0))
-    curve.to_csv(ML_DIR / "training_log.csv", index=False)
+    if args.eval_only:
+        from darkvessel.ml.model import load_model
+        model, meta = load_model(MODEL_PATH)
+        curve = pd.read_csv(ML_DIR / "training_log.csv")
+        thr = float(meta["threshold"])
+        log(f"eval only: loaded {MODEL_PATH} (best epoch {meta['best_epoch']}, threshold {thr:.3f})", t0)
+    else:
+        model, meta, curve = train_verifier(x_tr, tr.is_vessel.values, x_va, va.is_vessel.values, width=args.width,
+                                            epochs=args.epochs, batch=args.batch, lr=args.lr, patience=args.patience,
+                                            samples_per_epoch=args.samples_per_epoch, threads=args.threads, seed=args.seed,
+                                            log=lambda m: log(m, t0))
+        curve.to_csv(ML_DIR / "training_log.csv", index=False)
 
-    # operating threshold from validation windows (CFAR misses there count as fixed false negatives)
-    p_va = predict_proba(model, x_va, meta, tta=True)
-    lab_va = eval_labels(labels, "val")
-    thr, thr_stats = best_f1_threshold(p_va, va.is_vessel.values.astype(float), n_extra_fn=int((~lab_va.cfar_detected).sum()))
-    meta.update({"threshold": thr, "threshold_rule": "best F1 on validation windows (candidate precision, label recall)",
-                 "threshold_val_stats": thr_stats, "model_id": MODEL_ID,
-                 "train_counts": {"pos": int(len(pos)), "neg": int(len(neg)), "val": int(len(va)), "test": int(len(te))},
-                 "scenes": {"total": int(len(scenes)), "test": int((scenes.scene_split == "test").sum())},
-                 "training_data": "AI2 Skylight Sentinel-1 point labels (Apache-2.0), S1A/S1B 2020-2022; "
-                                  "Contains modified Copernicus Sentinel data 2020-2022",
-                 "trained_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
-    try:
-        meta["git_commit"] = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=REPO_ROOT, text=True).strip()
-    except Exception:
-        meta["git_commit"] = None
-    save_model(MODEL_PATH, model, meta)
-    log(f"saved {MODEL_PATH}; threshold {thr:.3f} {thr_stats}", t0)
+        # operating threshold from validation windows (CFAR misses there count as fixed false negatives)
+        p_va = predict_proba(model, x_va, meta, tta=True)
+        lab_va = eval_labels(labels, "val")
+        thr, thr_stats = best_f1_threshold(p_va, va.is_vessel.values.astype(float), n_extra_fn=int((~lab_va.cfar_detected).sum()))
+        meta.update({"threshold": thr, "threshold_rule": "best F1 on validation windows (candidate precision, label recall)",
+                     "threshold_val_stats": thr_stats, "model_id": MODEL_ID,
+                     "train_counts": {"pos": int(len(pos)), "neg": int(len(neg)), "val": int(len(va)), "test": int(len(te))},
+                     "scenes": {"total": int(len(scenes)), "test": int((scenes.scene_split == "test").sum())},
+                     "training_data": "AI2 Skylight Sentinel-1 point labels (Apache-2.0), S1A/S1B 2020-2022; "
+                                      "Contains modified Copernicus Sentinel data 2020-2022",
+                     "trained_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
+        try:
+            meta["git_commit"] = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=REPO_ROOT, text=True).strip()
+        except Exception:
+            meta["git_commit"] = None
+        save_model(MODEL_PATH, model, meta)
+        log(f"saved {MODEL_PATH}; threshold {thr:.3f} {thr_stats}", t0)
 
     # held-out scenes
     p_te = predict_proba(model, x_te, meta, tta=True)
@@ -119,6 +131,11 @@ def main():
     accept_cnn = p_te >= thr
     m_cfar = system_metrics(lab_te, te, accept_all)
     m_cnn = system_metrics(lab_te, te, accept_cnn)
+    # sensitivity: drop bright two-polarisation objects (>= 15 px) that no label claims; a visual check on
+    # 32 of them found ships and fixed structures in similar numbers, so they bound the precision figures
+    bright_unl = (te.detected_vv & te.detected_vh & (te.n_pixels >= 15) & (te.cand_class == "clutter")).values
+    m_cfar_x = system_metrics(lab_te, te[~bright_unl], accept_all[~bright_unl])
+    m_cnn_x = system_metrics(lab_te, te[~bright_unl], accept_cnn[~bright_unl])
     pr = pr_curve(lab_te, te, p_te)
     pr.to_csv(ML_DIR / "pr_curve_test.csv", index=False)
     rbl = recall_by_length(lab_te, te, accept_cnn)
@@ -140,15 +157,18 @@ def main():
         "test_candidates": int(len(te)), "test_candidate_classes": te.cand_class.value_counts().to_dict(),
         "test_candidate_ap": ap_cand,
         "cfar_only": m_cfar, "cfar_plus_cnn": m_cnn,
-        "cfar_only_loose": {"labels_detected_loose": int(lab_te.cfar_detected_loose.sum()),
-                            "recall_loose": float(lab_te.cfar_detected_loose.mean()) if len(lab_te) else None},
+        "bright_unlabelled_test_candidates": int(bright_unl.sum()),
+        "excluding_bright_unlabelled": {"cfar_only": m_cfar_x, "cfar_plus_cnn": m_cnn_x},
+        "cfar_label_recall_loose_check": float(lab_te.cfar_detected_loose.mean()) if len(lab_te) else None,
         "by_region": region, "by_campaign": campaign, "by_confidence_class": conf.reset_index().to_dict("records"),
         "recall_by_length": rbl.to_dict("records"), "label_quality_by_campaign": label_quality(cands),
         "runtime_s": round(time.time() - t0, 1),
     }
     (ML_DIR / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str))
-    log(f"CFAR only: P {m_cfar['precision']:.3f} R {m_cfar['recall']:.3f} F1 {m_cfar['f1']:.3f} | "
-        f"CFAR+CNN: P {m_cnn['precision']:.3f} R {m_cnn['recall']:.3f} F1 {m_cnn['f1']:.3f}", t0)
+    log(f"strict: CFAR only P {m_cfar['precision']:.3f} R {m_cfar['recall']:.3f} F1 {m_cfar['f1']:.3f} | "
+        f"CFAR+CNN P {m_cnn['precision']:.3f} R {m_cnn['recall']:.3f} F1 {m_cnn['f1']:.3f}", t0)
+    log(f"loose:  CFAR only P {m_cfar['precision_loose']:.3f} R {m_cfar['recall_loose']:.3f} F1 {m_cfar['f1_loose']:.3f} | "
+        f"CFAR+CNN P {m_cnn['precision_loose']:.3f} R {m_cnn['recall_loose']:.3f} F1 {m_cnn['f1_loose']:.3f}", t0)
     print(rbl.to_string())
     make_figures(pr, rbl, curve, m_cfar, m_cnn, thr)
     log("done", t0)
@@ -174,20 +194,21 @@ def make_figures(pr, rbl, curve, m_cfar, m_cnn, thr):
         fig.text(0.01, 0.01, textwrap.fill(text, width), fontsize=7, color=MUTED, va="bottom")
 
     # PR curve: one line (CFAR+CNN over thresholds) plus the two operating points
-    fig, ax = plt.subplots(figsize=(6.4, 4.6))
-    ok = pr.precision.notna()
-    ax.plot(pr.recall[ok], pr.precision[ok], color=blue, lw=2, label="CFAR + CNN, score threshold swept")
-    ax.scatter([m_cfar["recall"]], [m_cfar["precision"]], s=70, color=orange, edgecolor=SURFACE, lw=2, zorder=3,
-               label="CFAR only (every candidate accepted)")
-    ax.scatter([m_cnn["recall"]], [m_cnn["precision"]], s=70, color=blue, edgecolor=SURFACE, lw=2, zorder=3,
-               label=f"CFAR + CNN at threshold {thr:.2f}")
-    ax.annotate(f"CFAR only\nP {m_cfar['precision']:.2f}, R {m_cfar['recall']:.2f}", (m_cfar["recall"], m_cfar["precision"]),
-                xytext=(-8, -30), textcoords="offset points", fontsize=8, color=INK_2, ha="right")
-    ax.annotate(f"CFAR + CNN\nP {m_cnn['precision']:.2f}, R {m_cnn['recall']:.2f}", (m_cnn["recall"], m_cnn["precision"]),
-                xytext=(-8, 12), textcoords="offset points", fontsize=8, color=INK_2, ha="right")
+    fig, ax = plt.subplots(figsize=(6.4, 4.8))
+    for suf, color, name in (("", blue, "strict match (50 m)"), ("_loose", orange, "loose match (150 m or 0.75 x length)")):
+        ok = pr["precision" + suf].notna()
+        ax.plot(pr["recall" + suf][ok], pr["precision" + suf][ok], color=color, lw=2, label=f"CFAR + CNN, {name}")
+        ax.scatter([m_cfar["recall" + suf]], [m_cfar["precision" + suf]], s=70, facecolor=SURFACE, edgecolor=color, lw=2, zorder=3,
+                   label="CFAR only" if suf else None)
+        ax.scatter([m_cnn["recall" + suf]], [m_cnn["precision" + suf]], s=70, color=color, edgecolor=SURFACE, lw=2, zorder=3,
+                   label=f"CFAR + CNN at threshold {thr:.2f}" if suf else None)
+        ax.annotate(f"P {m_cfar['precision' + suf]:.2f}, R {m_cfar['recall' + suf]:.2f}", (m_cfar["recall" + suf], m_cfar["precision" + suf]),
+                    xytext=(-6, -14), textcoords="offset points", fontsize=7.5, color=INK_2, ha="right")
+        ax.annotate(f"P {m_cnn['precision' + suf]:.2f}, R {m_cnn['recall' + suf]:.2f}", (m_cnn["recall" + suf], m_cnn["precision" + suf]),
+                    xytext=(-6, 8), textcoords="offset points", fontsize=7.5, color=INK_2, ha="right")
     ax.set_xlim(0, 1), ax.set_ylim(0, 1.02)
-    ax.set_xlabel("Recall (labelled vessels on testable sea, 50 m match)")
-    ax.set_ylabel("Precision (accepted candidates within 50 m of a label)")
+    ax.set_xlabel("Recall (labelled vessels on testable sea)")
+    ax.set_ylabel("Precision (accepted candidates matched to a label)")
     ax.grid(True, axis="both")
     ax.set_axisbelow(True)
     for s in ("top", "right"):
@@ -203,13 +224,14 @@ def make_figures(pr, rbl, curve, m_cfar, m_cnn, thr):
     d = rbl[rbl.length_bin != "all"].reset_index(drop=True)
     fig, ax = plt.subplots(figsize=(6.8, 4.4))
     x = np.arange(len(d))
-    for off, col, lo, hi, name, color in ((-0.12, "cfar_recall", "cfar_ci_lo", "cfar_ci_hi", "CFAR only", orange),
-                                          (0.12, "cnn_recall", "cnn_ci_lo", "cnn_ci_hi", "CFAR + CNN", blue)):
+    for off, col, lo, hi, name, color in ((-0.12, "cfar_loose_recall", "cfar_loose_ci_lo", "cfar_loose_ci_hi", "CFAR only", orange),
+                                          (0.12, "cnn_loose_recall", "cnn_loose_ci_lo", "cnn_loose_ci_hi", "CFAR + CNN", blue)):
         y = d[col].values
         ax.vlines(x + off, d[lo].values, d[hi].values, color=color, lw=2, alpha=0.9)
         ax.scatter(x + off, y, s=60, color=color, edgecolor=SURFACE, lw=2, zorder=3, label=name)
     for i, r in d.iterrows():
-        ax.text(x[i] + 0.12, min(r.cnn_ci_hi + 0.03, 1.02), f"{r.cnn_recall:.2f}", ha="center", fontsize=8, color=INK_2)
+        if r.n_labels:
+            ax.text(x[i] + 0.12, min(r.cnn_loose_ci_hi + 0.03, 1.02), f"{r.cnn_loose_recall:.2f}", ha="center", fontsize=8, color=INK_2)
     ax.set_xticks(x)
     ax.set_xticklabels([f"{b}\nn = {n}" for b, n in zip(d.length_bin, d.n_labels)], fontsize=9)
     ax.set_ylim(0, 1.08)
@@ -221,7 +243,7 @@ def make_figures(pr, rbl, curve, m_cfar, m_cnn, thr):
         ax.spines[s].set_visible(False)
     ax.legend(loc="lower right", fontsize=8)
     ax.set_title("Recall by AIS length on held-out scenes (Wilson 95 % intervals)", loc="left", fontsize=11, color=INK, fontweight="bold")
-    footer(fig, f"50 m match radius; labels inside the 1 km shore buffer excluded. {src}.")
+    footer(fig, f"Loose match: candidate within 150 m or 0.75 x length of the label; labels inside the 1 km shore buffer excluded. {src}.")
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(FIG_DIR / "ml_recall_by_length.png", dpi=150)
     plt.close(fig)

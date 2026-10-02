@@ -1,0 +1,80 @@
+{
+  "scene_id": "S1D_IW_GRDH_1SDV_20260929T111023_20260929T111053_004792_008FC8_A5CA",
+  "platform": "SENTINEL-1D",
+  "acq_utc": "2026-09-29T11:10:23+00:00",
+  "model_id": "verifier_v0_356af0ca",
+  "model_path": "/home/user/Dark-Vessel-Study/data/models/verifier_v0.pt",
+  "threshold": 0.631782591342926,
+  "n_detections": 6005,
+  "n_cnn_vessel": 149,
+  "by_confidence": {
+    "fixed": {
+      "n": 349,
+      "cnn_vessel": 57,
+      "cnn_vessel_frac": 0.163,
+      "score_median": 0.231,
+      "score_q10_q90": [
+        0.007,
+        0.74
+      ]
+    },
+    "high": {
+      "n": 285,
+      "cnn_vessel": 78,
+      "cnn_vessel_frac": 0.274,
+      "score_median": 0.239,
+      "score_q10_q90": [
+        0.005,
+        0.927
+      ]
+    },
+    "low": {
+      "n": 4936,
+      "cnn_vessel": 2,
+      "cnn_vessel_frac": 0.0,
+      "score_median": 0.001,
+      "score_q10_q90": [
+        0.0,
+        0.004
+      ]
+    },
+    "medium": {
+      "n": 435,
+      "cnn_vessel": 12,
+      "cnn_vessel_frac": 0.028,
+      "score_median": 0.023,
+      "score_q10_q90": [
+        0.001,
+        0.334
+      ]
+    }
+  },
+  "by_pol_class": {
+    "VH only": {
+      "n": 434,
+      "cnn_vessel": 10,
+      "cnn_vessel_frac": 0.023
+    },
+    "VV only": {
+      "n": 4993,
+      "cnn_vessel": 4,
+      "cnn_vessel_frac": 0.001
+    },
+    "VV+VH": {
+      "n": 578,
+      "cnn_vessel": 135,
+      "cnn_vessel_frac": 0.234
+    }
+  },
+  "vessel_candidates_baseline": 720,
+  "vessel_candidates_cnn": 149,
+  "chips_with_missing_centre_px": 8,
+  "runtime_s": 155.8,
+  "caveat": "Dark = no AIS match. Not evidence of illegal activity.",
+  "baseline_classes": {
+    "low": 4936,
+    "medium": 435,
+    "fixed": 349,
+    "high": 285
+  }
+}

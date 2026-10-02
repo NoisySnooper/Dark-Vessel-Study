@@ -118,7 +118,7 @@ def main():
     summary = {
         "scenes_selected": int(len(scenes)), "scenes_done": len(done_scenes), "scenes_failed_this_run": n_err,
         "scenes_by_region": scenes.region.value_counts().to_dict(),
-        "scenes_by_split": scenes.groupby(["region", "scene_split"]).size().to_dict(),
+        "scenes_by_split": {f"{r}/{s}": int(n) for (r, s), n in scenes.groupby(["region", "scene_split"]).size().items()},
         "windows_selected": int(len(wsel)), "windows_by_use": wsel.use.value_counts().to_dict(),
         "candidates": int(len(cands)), "positives": int(cands.is_vessel.sum()) if len(cands) else 0,
         "candidates_by_use": cands.groupby("use").is_vessel.agg(["size", "sum"]).to_dict() if len(cands) else {},

@@ -98,6 +98,45 @@ clutter. A label counts as detected by CFAR when some fused object in the read w
 within 50 m of it (primary rule); the loose variant uses the ambiguous radius. Labels inside
 the 1 km shore buffer or outside the swath are excluded from every recall figure and counted.
 
+### Candidate set
+
+Built in 79 minutes with 3 worker processes (06:29 to 07:48 on 2 October 2026, reads over
+HTTPS from the AWS mirror; no scene failed). 2,853 of the 3,188 windows produced candidates
+(median 12 per window, 90th percentile 53).
+
+| | Train | Val | Test (held-out scenes) | All |
+|---|---|---|---|---|
+| Candidates | 49,355 | 5,863 | 14,056 | 69,274 |
+| of which vessel (within 50 m of a label) | 4,947 | 596 | 1,213 | 6,756 |
+| of which ambiguous (50 to 150 m or 0.75 x length) | 2,587 | 314 | 617 | 3,518 |
+| of which clutter | 41,821 | 4,953 | 12,226 | 59,000 |
+| Labels in the windows | 7,762 | 905 | 1,958 | 10,625 |
+| Labels on testable sea (evaluable) | 5,842 | 706 | 1,422 | 7,970 |
+| CFAR label recall, strict 50 m | 0.782 | 0.785 | 0.798 | 0.785 |
+| CFAR label recall, loose | 0.971 | 0.975 | 0.974 | 0.972 |
+
+2,655 labels (25 %) sit inside the 1 km shore buffer or on masked water and are excluded
+from every recall figure. Among the 69,274 candidates the baseline's heuristic classes split
+as: high (VV and VH) 4,462 vessel / 1,175 ambiguous / 3,157 clutter; medium 1,360 / 1,080 /
+7,546; low 934 / 1,263 / 48,297.
+
+Why the two rules differ by 19 points: the distance from a CFAR centroid to the expert click
+grows with ship length. For labelled vessels with an AIS length the median nearest-candidate
+distance is 28 m under 50 m length, 29 m at 50 to 100 m, 31 m at 100 to 200 m and 36 m above
+200 m, with 90th percentiles of 67, 67, 64 and 82 m; the share within 50 m is 0.83, 0.81,
+0.80 and 0.66. Per-scene median offsets are small (13.7 m median over 218 scenes with at
+least 8 matches), so this is per-label scatter, not a geolocation bias. The strict rule is
+kept because the brief asked for 50 m; the loose rule is the one to read for long ships.
+
+Label completeness: bright objects detected in both polarisations with at least 15 pixels
+and no label within 150 m number 391 against 1,516 labelled vessels of the same kind in the
+apr-2022 campaign, 378 against 1,236 in jan-march-may-2022, 773 against 1,452 in
+jun-july-aug-2022, 104 against 140 in nov-2021 and 17 against 86 in jun-2020. A visual check
+of 32 of them from the 2022 campaigns showed ships and fixed structures (cross-shaped
+sidelobe patterns of turbines or platforms, arrays of farm structures) in similar numbers.
+They are kept as clutter for training and for the primary metrics, and a sensitivity figure
+excludes them.
+
 ## Model and training
 
 `darkvessel.ml.model.VerifierCNN`: 2 input channels (VV, VH in dB, standardised with the
@@ -112,19 +151,128 @@ learning rate (peak 1e-3), batch 128, early stopping on validation average preci
 Inference averages the 8 dihedral views. The operating threshold maximises F1 on the
 validation windows with CFAR misses counted as false negatives.
 
-[[TRAINING_RESULTS]]
+Training run (width 16, 293,985 parameters): 29,682 training chips (4,947 vessels, 24,735
+clutter drawn from 41,821), 5,549 validation chips (596 vessels), 16,000 balanced draws per
+epoch, 3 CPU threads, about 90 s per epoch. Early stopping ended the run after epoch 23;
+the best validation average precision, 0.905, was reached at epoch 17 (`data/ml/training_log.csv`,
+`docs/figures/ml_training_curves.png`). Training took 40 minutes. The operating threshold
+is 0.632 (validation: candidate precision 0.79, label recall 0.73 with CFAR misses counted).
+Normalisation constants: VV mean -19.6 dB, SD 5.3 dB; VH mean -25.7 dB, SD 3.5 dB.
+Weights: `data/models/verifier_v0.pt` (gitignored), git commit fb8a641 of the working tree at
+training time.
 
 ## Held-out evaluation
 
-[[EVAL_RESULTS]]
+Held-out set: 91 scenes never seen in training (67 Southeast Asia, 24 elsewhere), 616 windows,
+14,056 CFAR candidates (1,213 vessel, 617 ambiguous, 12,226 clutter), 1,958 labels of which
+1,422 are evaluable (on testable sea); 536 sit inside the shore buffer. Wilson 95 % intervals
+in brackets. Candidate-level average precision of the CNN score: 0.893.
+
+| Rule | Stage | Accepted | Precision | Recall | F1 |
+|---|---|---|---|---|---|
+| strict (50 m) | CFAR only | 14,056 | 0.090 [0.086, 0.095] | 0.797 [0.775, 0.817] | 0.162 |
+| strict (50 m) | CFAR + CNN at 0.632 | 1,898 | 0.770 [0.748, 0.791] | 0.750 [0.727, 0.772] | 0.760 |
+| loose (150 m or 0.75 x length) | CFAR only | 14,056 | 0.130 | 0.966 | 0.229 |
+| loose (150 m or 0.75 x length) | CFAR + CNN at 0.632 | 1,898 | 0.820 | 0.918 | 0.866 |
+
+The CNN removes 11,884 of 12,226 clutter candidates (97.2 %) and keeps 1,145 of 1,213
+labelled vessels (94.4 %); the recall drop from 0.797 to 0.750 is 66 labels. Precision is
+bounded by label completeness: excluding the 334 bright two-polarisation test candidates that
+no label claims, CFAR + CNN precision is 0.896 strict and 0.921 loose (CFAR only 0.093 and
+0.133). Figure: `docs/figures/ml_pr_curve.png`.
+
+By region (strict precision / recall, then loose): Southeast Asia 999 labels, CFAR only
+0.086 / 0.792 and 0.127 / 0.971, CFAR + CNN 0.755 / 0.745 and 0.811 / 0.923; elsewhere 423
+labels, CFAR only 0.102 / 0.809 and 0.139 / 0.955, CFAR + CNN 0.806 / 0.764 and 0.842 / 0.905.
+By campaign (strict, CFAR + CNN): apr-2022 0.877 / 0.731, jan-march-may-2022 0.674 / 0.695,
+jun-july-aug-2022 0.741 / 0.813, nov-2021 0.810 / 0.754.
+
+How the CNN treats the baseline's heuristic classes on the test candidates (accepted /
+rejected at the threshold):
+
+| Baseline class | Vessel | Ambiguous | Clutter |
+|---|---|---|---|
+| high (VV and VH) | 809 / 27 | 173 / 19 | 246 / 323 |
+| medium | 182 / 28 | 119 / 74 | 66 / 1,077 |
+| low | 154 / 13 | 119 / 113 | 30 / 10,484 |
+
+So the CNN keeps 92 % of the labelled vessels that the heuristic had filed as "low" and
+rejects 99.7 % of the low-class clutter; in the high class it rejects 323 of 569 unlabelled
+bright objects, which is where unlabelled ships and fixed structures sit.
 
 ## Recall by AIS length (first look at the flagship question)
 
-[[LENGTH_RESULTS]]
+Held-out labels with a consistent AIS length: 406 (`data/ml/recall_by_length_test.csv`,
+`docs/figures/ml_recall_by_length.png`). Wilson 95 % intervals in brackets. The strict rule
+counts a vessel as detected only when a CFAR object lies within 50 m of the expert click; the
+loose rule allows 150 m or 0.75 times the AIS length. The bins below 25 m are empty or near
+empty because AI2 attributes come from AIS matches, and few small boats carry AIS: this sample
+cannot say anything about recall for boats under 25 m, which is the population the flagship
+question is about. That gap needs a different ground truth (AIS from the project's own feed
+over the Ca Mau scenes, or optical coincidences).
+
+| AIS length | n | CFAR, strict 50 m | CFAR + CNN, strict | CFAR, loose | CFAR + CNN, loose |
+|---|---|---|---|---|---|
+| 0-15 m | 0 | no data | no data | no data | no data |
+| 15-25 m | 2 | 2/2 = 1.00 [0.34, 1.00] | 1/2 = 0.50 [0.10, 0.90] | 2/2 = 1.00 [0.34, 1.00] | 2/2 = 1.00 [0.34, 1.00] |
+| 25-50 m | 16 | 15/16 = 0.94 [0.72, 0.99] | 15/16 = 0.94 [0.72, 0.99] | 16/16 = 1.00 [0.81, 1.00] | 16/16 = 1.00 [0.81, 1.00] |
+| 50-100 m | 72 | 63/72 = 0.88 [0.78, 0.93] | 63/72 = 0.88 [0.78, 0.93] | 70/72 = 0.97 [0.90, 0.99] | 70/72 = 0.97 [0.90, 0.99] |
+| 100+ m | 316 | 228/316 = 0.72 [0.67, 0.77] | 225/316 = 0.71 [0.66, 0.76] | 307/316 = 0.97 [0.95, 0.99] | 300/316 = 0.95 [0.92, 0.97] |
+| all | 406 | 308/406 = 0.76 [0.71, 0.80] | 304/406 = 0.75 [0.70, 0.79] | 395/406 = 0.97 [0.95, 0.98] | 388/406 = 0.96 [0.93, 0.97] |
+
+Reading: under the loose rule CA-CFAR at PFA 1e-6 finds 97 % of AIS-carrying vessels of
+25 m and above on open sea, and the CNN costs at most 2 points of recall. The strict column's
+fall from 0.94 at 25 to 50 m to 0.72 above 100 m is the click-offset effect described above
+(a 250 m ship's intensity centroid is often more than 50 m from where the annotator clicked),
+not a loss of detections; the loose column is the one to quote for long ships. CFAR misses
+under the loose rule are 11 of 406, consistent with the 2.8 % loose miss rate on all 7,970
+evaluable labels.
 
 ## Application to the Sentinel-1D Ca Mau scene (transfer experiment 1)
 
-[[APPLY_RESULTS]]
+Scene S1D_IW_GRDH_1SDV_20260929T111023_20260929T111053_004792_008FC8_A5CA, Sentinel-1D,
+ascending, 29 September 2026 11:10 UTC, processed by the baseline over 104.7E to 105.9E,
+8.0N to 9.2N: 6,005 CA-CFAR detections (285 high, 435 medium, 349 fixed, 4,936 low;
+720 vessel candidates = high + medium). `scripts/06_apply_verifier.py` cut a 64 px chip at
+every detection (8 chips touch the swath edge), scored it with model `verifier_v0_356af0ca`
+(sha256 prefix of the weights) at threshold 0.632, and wrote `data/detections_ml.gpkg`
+(layers `detections_verified_4326`, `detections_verified_utm48n`; all baseline columns kept,
+including `caveat`, plus `cnn_score`, `cnn_vessel`, `cnn_threshold`, `cnn_model_id`,
+`cnn_chip_valid_frac`, `cnn_training_data`). Runtime 156 s. `data/detections_baseline.gpkg`
+was not modified. Summary: `data/ml/apply_summary.json`; chips by class and verdict:
+`docs/figures/ml_1d_chips.png`.
+
+| Baseline class | n | CNN vessel | share | median score | score 10th to 90th pct |
+|---|---|---|---|---|---|
+| high (VV and VH) | 285 | 78 | 0.27 | 0.24 | 0.005 to 0.93 |
+| medium | 435 | 12 | 0.03 | 0.02 | 0.001 to 0.33 |
+| low | 4,936 | 2 | 0.000 | 0.001 | 0.000 to 0.004 |
+| fixed (persistent) | 349 | 57 | 0.16 | 0.23 | 0.007 to 0.74 |
+| all | 6,005 | 149 | 0.025 | | |
+
+By polarisation class: VV and VH 578 detections, 135 accepted; VH only 434, 10 accepted;
+VV only 4,993, 4 accepted. The CNN therefore cuts the baseline's 720 vessel candidates to
+149 and treats the 4,936 low-class objects as the clutter they look like (two accepted: an
+862 px, 780 m long, 52 dB-contrast object and an 18 px target).
+
+What the chips show (`ml_1d_chips.png`): the high-class objects the CNN rejects are mostly
+bright point targets with cross-shaped sidelobes standing in lines, the signature of fixed
+structures (offshore wind turbines and stake lines are both present along this coast;
+UNVERIFIED which ones these are), while the accepted high-class objects are compact or
+elongated single targets. Accepted objects have a median VV contrast of 15.1 dB and 19.5
+pixels against 10.0 dB and 7 pixels for the rejected ones. The CNN also accepts 57 of the
+349 persistent ("fixed") objects, which look like the same turbine-type targets; persistence
+should keep precedence over the CNN for those, since a single chip cannot tell an anchored
+ship from a platform.
+
+Domain shift measured on this scene: the chip background (median of the four 16 x 16 px
+corners) is -24.0 dB in VV and -29.0 dB in VH for 240 random 1D detections, against -20.4 dB
+and -25.3 dB for 2,000 random training clutter chips from Sentinel-1A/1B, i.e. 3.6 and
+3.7 dB darker, or 0.8 and 0.9 training standard deviations below the training mean. The
+training augmentation covered offsets of only 1 dB. Whether this is the calm evening sea
+of this scene or a lower noise floor of the 1D instrument cannot be separated from one
+scene (UNVERIFIED); the model's low acceptance of medium-class (VH-only) objects on 1D may
+be a symptom. No Sentinel-1D ground truth exists, so none of these numbers is an accuracy.
 
 ## Transfer caveats
 
@@ -134,7 +282,10 @@ validation windows with CFAR misses counted as false negatives.
   1A/1B-trained model, not how many vessels are there.
 - Calibration and noise differences between the satellites are not corrected beyond the
   standard sigma0 calibration; thermal noise is not subtracted in either stage, so the VH
-  background level of a different instrument is a plausible source of shift.
+  background level of a different instrument is a plausible source of shift. On the 1D
+  scene the chip backgrounds sit 3.6 dB (VV) and 3.7 dB (VH) below the training median
+  (see above); the next step for the letter is to repeat this measurement on several 1A
+  and 1D scenes of the same orbit and season, and to retrain with wider intensity jitter.
 - The 1D scene is a single ascending pass over one coastal region in the southwest monsoon
   season; the training set spans many regions, seasons and sea states but is weighted to
   Southeast Asia by design.
