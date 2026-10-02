@@ -179,7 +179,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 12.5px
       </div>
       <dl class="attrs" id="attrs"></dl>
       <div class="labeler">
-        <p class="eyebrow">Your label (kept in this browser only)</p>
+        <p class="eyebrow">Your label (kept in this browser only). <kbd>N</kbd> steps through a random sample per class, each with a chip.</p>
         <div class="lbl-btns" role="group" aria-label="Label this contact">
           <button type="button" data-l="vessel" id="lb-vessel">Vessel <kbd>1</kbd></button>
           <button type="button" data-l="structure" id="lb-structure">Structure <kbd>2</kbd></button>
@@ -443,14 +443,18 @@ function refreshLabelUI() {
 }
 function setLabel(l) { if (!current) return; labels[current] = l; saveLabels(); refreshLabelUI(); }
 document.querySelectorAll(".lbl-btns button").forEach((b) => b.addEventListener("click", () => setLabel(b.dataset.l)));
+// The queue is a fixed random sample per class, each with a radar chip, so labels estimate precision per class.
 function nextUnlabeled() {
-  const q = (view === "r" ? RD : XD).filter((d) => d.c !== "low").map((d) => d.id);
-  const id = q.find((i) => !labels[i] && i !== current); if (id) select(id, true);
+  const src = view === "r" ? R : X;
+  const q = src.queue || (view === "r" ? RD : XD).filter((d) => d.c !== "low").map((d) => d.id);
+  const id = q.find((i) => !labels[i] && i !== current && byId[i]);
+  if (id) select(id, true); else $("lbl-count").textContent = `${Object.keys(labels).length} labeled · queue done`;
 }
 $("lbl-next").addEventListener("click", nextUnlabeled);
 $("lbl-copy").addEventListener("click", () => {
-  const rows = ["det_id,label,confidence,lat,lon,length_est_m,scene"].concat(Object.entries(labels).map(([id, l]) => {
-    const d = byId[id] || {}; return [id, l, d.c, d.lat, d.lon, d.len, d.scene].join(",");
+  const inQ = new Set([...(R.queue || []), ...(X.queue || [])]);
+  const rows = ["det_id,label,confidence,lat,lon,length_est_m,scene,in_random_queue"].concat(Object.entries(labels).map(([id, l]) => {
+    const d = byId[id] || {}; return [id, l, d.c, d.lat, d.lon, d.len, d.scene, inQ.has(id) ? 1 : 0].join(",");
   }));
   const csv = rows.join("\n"), out = $("lbl-out");
   out.value = csv; out.hidden = false;

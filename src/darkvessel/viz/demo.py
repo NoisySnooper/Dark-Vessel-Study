@@ -179,14 +179,35 @@ def _cols_b64(dets: pd.DataFrame, lat, lon, index) -> dict:
     }
 
 
-def _chips_for(dets: pd.DataFrame, scene_of, n: int) -> dict:
-    keep = dets[dets.confidence.isin(["high", "medium", "fixed"])].copy()
-    keep["score"] = keep[["scr_vv_db", "scr_vh_db"]].max(axis=1)
-    keep = keep.sort_values("score", ascending=False).head(n)
+QUEUE_SHARE = {"high": 0.4, "medium": 0.4, "fixed": 0.2}
+
+
+def label_queue(dets: pd.DataFrame, n: int, seed: int = 20261002) -> list[str]:
+    """Labeling sample: a fixed random draw per class (40 % high, 40 % medium, 20 % fixed), shuffled.
+
+    A random draw, not the brightest contacts, so labels give unbiased per-class precision. The seed
+    and shares are recorded so the sampling weights can be recovered (class count / sample count).
+    """
+    parts = []
+    for k, share in QUEUE_SHARE.items():
+        pool = dets[dets.confidence == k]
+        parts.append(pool.sample(min(len(pool), int(round(n * share))), random_state=seed))
+    q = pd.concat(parts).sample(frac=1.0, random_state=seed)
+    return q.det_id.tolist()
+
+
+def _chips_for(dets: pd.DataFrame, scene_of, ids: list[str]) -> dict:
+    keep = dets[dets.det_id.isin(ids)]
     jobs = [(r.det_id, scene_of(r), r.row, r.col) for r in keep.itertuples()]
     with ThreadPoolExecutor(8) as ex:
         out = ex.map(lambda j: (j[0], chip_png(j[1], j[2], j[3])), jobs)
         return dict(out)
+
+
+def _top_ids(dets: pd.DataFrame, n: int = 12) -> list[str]:
+    keep = dets[dets.confidence.isin(["high", "medium"])]
+    score = keep[["scr_vv_db", "scr_vh_db"]].max(axis=1)
+    return keep.loc[score.sort_values(ascending=False).index[:n], "det_id"].tolist()
 
 
 def camau_data(max_chips: int, max_px: int = 2600) -> tuple[dict, str, dict]:
@@ -208,7 +229,8 @@ def camau_data(max_chips: int, max_px: int = 2600) -> tuple[dict, str, dict]:
     dets["px_y"] = ((dets.geometry.y - tr.f) / tr.e).round(1)
     dets["scene_id"] = summary["scene_id"]
     scene = GRDScene(_scene_path(summary["scene_id"]))
-    chips = _chips_for(dets, lambda r: scene, max_chips)
+    queue = label_queue(dets, max_chips)
+    chips = _chips_for(dets, lambda r: scene, queue + _top_ids(dets))
     scenes, index = _scene_table(dets.det_id, dets.scene_id, pd.Series([summary["acq_utc"]] * len(dets)),
                                  pd.Series([summary["scene_id"][:3]] * len(dets)))
     vessel = dets[dets.confidence != "low"].reset_index(drop=True)
@@ -221,7 +243,7 @@ def camau_data(max_chips: int, max_px: int = 2600) -> tuple[dict, str, dict]:
     data = {"summary": summary, "img": {"w": w, "h": h, "res_m": abs(tr.a), **img_meta},
             "grid": {"nx": 9, "ny": 9, "w": w, "h": h, "lon": np.round(glon, 6).tolist(), "lat": np.round(glat, 6).tolist()},
             "cols": COLS + ["x", "y"], "rows": rows, "scenes": scenes,
-            "low": low[["px_x", "px_y"]].round(1).values.tolist()}
+            "low": low[["px_x", "px_y"]].round(1).values.tolist(), "queue": queue}
     if "cnn_score" in vessel:
         data["cnn"] = [None if pd.isna(v) else round(float(v), 3) for v in vessel.cnn_score]
     return data, "data:image/jpeg;base64," + _b64_jpeg(rgb, quality=82), chips
@@ -288,7 +310,8 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
             scenes[r.scene_id] = GRDScene(_scene_path(r.scene_id))
         return scenes[r.scene_id]
 
-    chips = _chips_for(dets, scene_of, max_chips)
+    queue = label_queue(dets, max_chips)
+    chips = _chips_for(dets, scene_of, queue + _top_ids(dets))
     vessel = dets[dets.confidence != "low"].reset_index(drop=True)
     scenes_tab, index = _scene_table(dets.det_id, dets.scene_id, dets.acq_utc, dets.mission)
     colz = _cols_b64(vessel, vessel.lat.values, vessel.lon.values, index)
@@ -309,7 +332,8 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
                                               "km2": int(r.tested_km2)}) for g, r in zip(proc.geometry, proc.itertuples())]),
         "cols": COLS, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
         "n_low": int(summary["classes"].get("low", 0)),
-        "passes": pass_list, "label_check": label_check(),
+        "passes": pass_list, "label_check": label_check(), "queue": queue,
+        "queue_rule": {"seed": 20261002, "share": QUEUE_SHARE},
     }
     return data, chips
 
