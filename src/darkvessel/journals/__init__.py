@@ -15,6 +15,7 @@ Modules:
     lists     ISSN matching and screening against discontinued and hijacked lists
     openalex  OpenAlex sources snapshot access and the venue cache
     build     merge of all inputs into the output rows, status rules, docs table
+    retractions  Retraction Watch Database notices per venue (supplementary context)
 
 Importing this package does not import pandas, pyarrow or requests, so the
 matching and screening logic can be unit tested offline.
@@ -23,4 +24,4 @@ matching and screening logic can be unit tested offline.
 detection. It does not mean illegal.
 """
 
-__all__ = ["issn", "fetch", "xlsx", "scimago", "lists", "openalex", "build"]
+__all__ = ["issn", "fetch", "xlsx", "scimago", "lists", "openalex", "build", "retractions"]

@@ -61,9 +61,9 @@ def pr_curve(labels: pd.DataFrame, cands: pd.DataFrame, scores: np.ndarray, n_po
     """System precision/recall over score thresholds (CFAR misses are fixed misses)."""
     cls = cands.cand_class.values
     s = np.asarray(scores, float)
-    qs = np.unique(np.quantile(s, np.linspace(0, 1, n_points)))
-    thresholds = np.concatenate([[-np.inf], qs])
-    # label -> best score among its vessel-class candidates
+    # the lowest threshold is the minimum score, which accepts every candidate (= CFAR only)
+    thresholds = np.unique(np.quantile(s, np.linspace(0, 1, n_points))) if len(s) else np.array([0.0])
+    # label -> best score among its vessel-class candidates; undetected labels get -inf
     v = cands[cls == "vessel"]
     best = pd.Series(s[cls == "vessel"]).groupby(v.match_label_id.values).max()
     lab_best = labels.label_id.map(best).fillna(-np.inf).values

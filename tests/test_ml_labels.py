@@ -40,7 +40,8 @@ def test_product_path_has_no_zero_padding():
 
 def test_length_bins():
     b = length_bin([5, 15, 24.9, 25, 99, 100, 350, np.nan])
-    assert list(b.astype(str)) == ["0-15 m", "15-25 m", "15-25 m", "25-50 m", "50-100 m", "100+ m", "100+ m", "nan"]
+    assert list(b.astype(str)[:7]) == ["0-15 m", "15-25 m", "15-25 m", "25-50 m", "50-100 m", "100+ m", "100+ m"]
+    assert pd.isna(b.iloc[7])
 
 
 def test_candidate_class_radius_logic():
@@ -148,7 +149,9 @@ def test_recall_by_length_table():
     assert tab.loc["100+ m", "cnn_recall"] == 0.0 and tab.loc["100+ m", "cfar_recall"] == 1.0
     assert tab.loc["50-100 m", "cfar_recall"] == 0.0
     assert tab.loc["all", "n_labels"] == 4 and tab.loc["all", "cfar_detected"] == 3
-    assert (tab.cfar_ci_lo <= tab.cfar_recall).all() and (tab.cfar_recall <= tab.cfar_ci_hi).all()
+    assert tab.loc["15-25 m", "n_labels"] == 0 and np.isnan(tab.loc["15-25 m", "cfar_recall"])
+    t = tab[tab.n_labels > 0]
+    assert (t.cfar_ci_lo <= t.cfar_recall).all() and (t.cfar_recall <= t.cfar_ci_hi).all()
 
 
 def test_model_forward_and_normalisation():

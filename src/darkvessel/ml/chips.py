@@ -1,19 +1,27 @@
 """CFAR candidates and 64 px chips for labelled AI2 windows, using the baseline detector settings.
 
-Per scene: a Geocoder is built from the 210 ground control points stored in the VV COG (a
-regular 10 x 21 grid identical to the annotation geolocation grid, checked to 0.0 m on one
-scene; this avoids the 1.6 MB annotation XML). A WorldCover sea mask is built once per scene
-over the union of its windows. Per window: read sigma0 VV and VH (denoise=False) over the
-window plus a CFAR margin, mask, CA-CFAR with the baseline settings (PFA 1e-6, guard 81,
-background 161, ENL estimated, min 2 px), fuse VV/VH within 3 px, keep objects inside the
-labelled window, label each positive if within 50 m of an AI2 point, cut 64 x 64 px chips.
+Geolocation. AI2 warped each GRD to Web Mercator with plain `gdalwarp -t_srs epsg:3857`
+(src/data/warp.py in their repo), which uses GDAL's default GCP polynomial transform built
+from the 210 ground control points in the TIFF. Their label positions therefore live in
+that geometry, not in the ESA annotation grid. This module uses the same GDAL transformer
+(gdal.Transformer on the VV COG, no METHOD option) for every pixel <-> lon/lat conversion,
+so candidates and labels share one frame. Checked on one scene with 119 matched vessels:
+median candidate-to-label distance 2.8 px with GDAL's default versus 3.7 px with the
+annotation grid, with a 2 px column bias removed.
 
-Sea mask difference from the baseline: `landmask.sea_mask_on_grid` calls water 'sea' only
-when connected to a WorldCover code-0 pixel inside the read box. The 150 km baseline window
-always has such pixels; a 10 km training window often does not (near Singapore a 0.7 degree
-box is coded 80 throughout). Here water is sea if its connected component contains code 0 or
-touches the edge of a box padded by `pad_deg` around the scene's windows. The 1 km shore
-buffer is the same.
+Window geometry. A Web Mercator window is a rotated quadrilateral in radar geometry. The
+read window is its pixel bounding box plus the CFAR margin; candidates are then kept only
+if their lon/lat falls inside the window's lon/lat box, because the corner triangles of
+the bounding box are outside the labelled area (unlabelled ships there would otherwise
+become 'clutter'). Candidates are matched against every label of the scene, labels against
+every CFAR object in the read window.
+
+Sea mask. `landmask.sea_mask_on_grid` calls water 'sea' only when connected to a WorldCover
+code-0 pixel inside the read box. The 150 km baseline window always has such pixels; a
+10 km training window often does not (near Singapore a 0.7 degree box is coded 80
+throughout). Here water is sea if its connected component contains code 0 or touches the
+edge of a box padded by `pad_deg` around the scene's windows. The 1 km shore buffer, the
+8 x decimated mask grid and the CFAR settings are the baseline's.
 """
 
 from __future__ import annotations
@@ -26,7 +34,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import rasterio
+from osgeo import gdal
 from rasterio.windows import Window
 from scipy import ndimage
 from scipy.spatial import cKDTree
@@ -35,7 +43,9 @@ from darkvessel.detect.cfar import ca_cfar_tiled, estimate_enl, extract_detectio
 from darkvessel.detect.postprocess import assign_confidence
 from darkvessel.landmask import WATER_CODES, WC_RES_DEG, read_worldcover, upsample_nearest
 from darkvessel.pipeline import fuse_polarisations
-from darkvessel.s1.grd import Geocoder, GRDScene
+from darkvessel.s1.grd import GRDScene
+
+gdal.UseExceptions()
 
 CHIP_HALF = 32          # 64 x 64 px chips, 10 m pixels -> 640 m
 MATCH_RADIUS_M = 50.0   # candidate within this distance of an AI2 point = vessel
@@ -75,28 +85,40 @@ SETTINGS = CfarSettings()
 
 
 # ----------------------------------------------------------------------------- geocoding
-def geocoder_from_gcps(scene: GRDScene, pol: str = "VV") -> tuple[Geocoder, tuple[int, int]]:
-    """Geocoder from the COG's GCP grid (no incidence angle: NaN). Returns (geocoder, (H, W))."""
-    with rasterio.open(scene.href(pol)) as ds:
-        gcps, _ = ds.gcps
-        shape = (ds.height, ds.width)
-    if not gcps:
-        raise ValueError(f"{scene.product_id}: no GCPs in {pol} COG")
-    rows = np.round([g.row for g in gcps], 3)
-    cols = np.round([g.col for g in gcps], 3)
-    lines, pixels = np.unique(rows), np.unique(cols)
-    if len(lines) * len(pixels) != len(gcps):
-        raise ValueError(f"{scene.product_id}: GCP grid is not regular ({len(gcps)} points)")
-    lat = np.full((len(lines), len(pixels)), np.nan)
-    lon = np.full_like(lat, np.nan)
-    li = np.searchsorted(lines, rows)
-    pi = np.searchsorted(pixels, cols)
-    lat[li, pi] = [g.y for g in gcps]
-    lon[li, pi] = [g.x for g in gcps]
-    return Geocoder(lines, pixels, lat, lon, np.full_like(lat, np.nan)), shape
+class GcpTransformer:
+    """Pixel <-> lon/lat through GDAL's default GCP transform of the COG (AI2's geometry).
+
+    Same interface as s1.grd.Geocoder: rowcol(lon, lat) and lonlat(rows, cols), NaN on failure.
+    """
+
+    def __init__(self, href: str):
+        self.ds = gdal.Open(href)
+        if self.ds.GetGCPCount() == 0:
+            raise ValueError(f"no GCPs in {href}")
+        self.shape = (self.ds.RasterYSize, self.ds.RasterXSize)
+        self._tr = gdal.Transformer(self.ds, None, ["DST_SRS=WGS84"])
+
+    def _apply(self, to_pixel: int, x, y):
+        x = np.asarray(x, dtype=float).ravel()
+        y = np.asarray(y, dtype=float).ravel()
+        if len(x) == 0:
+            return np.zeros(0), np.zeros(0)
+        pts, ok = self._tr.TransformPoints(to_pixel, [(float(a), float(b), 0.0) for a, b in zip(x, y)])
+        out = np.array([(p[0], p[1]) for p in pts], dtype=float).reshape(-1, 2)
+        bad = ~np.array(ok, dtype=bool) | ~np.isfinite(x) | ~np.isfinite(y)
+        out[bad] = np.nan
+        return out[:, 0], out[:, 1]
+
+    def rowcol(self, lon, lat):
+        col, row = self._apply(1, lon, lat)
+        return row, col
+
+    def lonlat(self, rows, cols):
+        lon, lat = self._apply(0, cols, rows)
+        return lon, lat
 
 
-def bbox_window(geocoder: Geocoder, shape: tuple[int, int], west, south, east, north, n: int = 21) -> Window | None:
+def bbox_window(geocoder, shape: tuple[int, int], west, south, east, north, n: int = 21) -> Window | None:
     """Pixel window covering a lon/lat box, clipped to the image; None if disjoint."""
     LON, LAT = np.meshgrid(np.linspace(west, east, n), np.linspace(south, north, n))
     r, c = geocoder.rowcol(LON.ravel(), LAT.ravel())
@@ -119,6 +141,11 @@ def pad_window(win: Window, margin: int, shape: tuple[int, int]) -> Window:
     return Window(c0, r0, c1 - c0, r1 - r0)
 
 
+def in_lonlat_box(lon, lat, west, south, east, north) -> np.ndarray:
+    lon, lat = np.asarray(lon, float), np.asarray(lat, float)
+    return (lon >= west) & (lon < east) & (lat >= south) & (lat < north)
+
+
 # ----------------------------------------------------------------------------- sea mask
 class SceneSeaMask:
     """WorldCover land/sea over a lon/lat box, with open-sea connectivity and a shore buffer.
@@ -135,6 +162,7 @@ class SceneSeaMask:
             wc, self.transform, self.empty = None, None, True
         if self.empty:
             self._sea_ok = None
+            self.land_fraction = 0.0
             return
         sea = connected_sea(wc)
         lat_c = 0.5 * (self.bounds[1] + self.bounds[3])
@@ -166,7 +194,7 @@ def connected_sea(wc: np.ndarray, water_codes=WATER_CODES) -> np.ndarray:
     return np.isin(lab, ids)
 
 
-def sea_mask_for_window(mask: SceneSeaMask, geocoder: Geocoder, win: Window, factor: int = 8) -> tuple[np.ndarray, float]:
+def sea_mask_for_window(mask: SceneSeaMask, geocoder, win: Window, factor: int = 8) -> tuple[np.ndarray, float]:
     """Full-resolution sea_ok for `win` from a decimated lon/lat grid. Returns (mask, sea fraction)."""
     r0, c0, h, w = int(win.row_off), int(win.col_off), int(win.height), int(win.width)
     rd = np.arange(r0, r0 + h, factor) + factor / 2
@@ -198,21 +226,16 @@ def cfar_window(scene: GRDScene, read_win: Window, sea_ok: np.ndarray, settings:
     return fused, sigma, meta
 
 
-def inside(df: pd.DataFrame, win: Window) -> np.ndarray:
-    return ((df.row >= win.row_off) & (df.row < win.row_off + win.height)
-            & (df.col >= win.col_off) & (df.col < win.col_off + win.width)).values
-
-
 def local_metres(lon, lat, lon0, lat0):
     """Equirectangular offsets (east_m, north_m) from (lon0, lat0); fine for < 20 km."""
     k = np.cos(np.radians(lat0))
     return (np.asarray(lon) - lon0) * 111320.0 * k, (np.asarray(lat) - lat0) * 110540.0
 
 
-def match_points(cand_lon, cand_lat, lab_lon, lab_lat, radius_m: float = MATCH_RADIUS_M):
+def match_points(cand_lon, cand_lat, lab_lon, lab_lat):
     """Nearest-label distance for each candidate and nearest-candidate distance for each label (metres).
 
-    Returns (cand_dist, cand_idx, lab_dist, lab_idx); idx is -1 where the other set is empty.
+    Returns (cand_dist, cand_idx, lab_dist, lab_idx); idx is -1 and dist inf where the other set is empty.
     """
     cand_lon, cand_lat = np.asarray(cand_lon, float), np.asarray(cand_lat, float)
     lab_lon, lab_lat = np.asarray(lab_lon, float), np.asarray(lab_lat, float)
@@ -259,8 +282,9 @@ def chips_db(sigma: dict, rows, cols, row_off: int, col_off: int, half: int = CH
 
 
 # ----------------------------------------------------------------------------- per window / scene
-def process_window(scene, geocoder, shape, mask, win_rec, labels: pd.DataFrame, settings: CfarSettings = SETTINGS):
-    """One labelled window -> (candidates, misses, candidate chips, miss chips, meta). None if off-scene."""
+def process_window(scene, geocoder, shape, mask, win_rec, win_labels: pd.DataFrame, scene_labels: pd.DataFrame,
+                   settings: CfarSettings = SETTINGS):
+    """One labelled window -> (candidates, label frame, candidate chips, miss chips, meta). None if off-scene."""
     inner = bbox_window(geocoder, shape, win_rec.west, win_rec.south, win_rec.east, win_rec.north)
     if inner is None:
         return None
@@ -271,42 +295,46 @@ def process_window(scene, geocoder, shape, mask, win_rec, labels: pd.DataFrame, 
             "sea_fraction": sea_frac}
     if sea_frac == 0.0:
         meta.update({"n_candidates": 0, "skipped": "no testable sea"})
-        return pd.DataFrame(), _misses_frame(labels, geocoder, shape, sea_ok, r0, c0, None), None, None, meta
+        return pd.DataFrame(), _label_frame(win_labels, geocoder, shape, sea_ok, r0, c0, None), None, None, meta
     fused, sigma, cfar_meta = cfar_window(scene, read_win, sea_ok, settings)
     meta["cfar"] = cfar_meta
     if len(fused):
-        fused = fused[inside(fused, inner)].reset_index(drop=True)
-    if len(fused):
         lon, lat = geocoder.lonlat(fused.row.values, fused.col.values)
         fused["lon"], fused["lat"] = lon, lat
-        fused = assign_confidence(fused)
-    meta["n_candidates"] = int(len(fused))
-    # label candidates
-    cand_dist, cand_idx, lab_dist, lab_idx = match_points(
-        fused.lon.values if len(fused) else [], fused.lat.values if len(fused) else [], labels.lon.values, labels.lat.values)
+    # labels of this window against every CFAR object in the read area (ships straddling the edge)
+    _, _, lab_dist, _ = match_points(fused.lon.values if len(fused) else [], fused.lat.values if len(fused) else [],
+                                     win_labels.lon.values, win_labels.lat.values)
+    labels_out = _label_frame(win_labels, geocoder, shape, sea_ok, r0, c0, lab_dist)
+    # candidates: only inside the labelled window, matched against all labels of the scene
     if len(fused):
-        has_lab = len(labels) > 0
-        near_len = labels.length_m.values[cand_idx] if has_lab else np.full(len(fused), np.nan)
+        keep = in_lonlat_box(fused.lon, fused.lat, win_rec.west, win_rec.south, win_rec.east, win_rec.north)
+        fused = fused[keep].reset_index(drop=True)
+    meta["n_candidates"] = int(len(fused))
+    if len(fused):
+        fused = assign_confidence(fused)
+        cand_dist, cand_idx, _, _ = match_points(fused.lon.values, fused.lat.values,
+                                                 scene_labels.lon.values, scene_labels.lat.values)
+        has_lab = len(scene_labels) > 0
+        near_len = scene_labels.length_m.values[cand_idx] if has_lab else np.full(len(fused), np.nan)
         fused["match_dist_m"] = cand_dist
         fused["cand_class"] = candidate_class(cand_dist, near_len)
         fused["is_vessel"] = fused.cand_class == "vessel"
-        matched = fused.cand_class != "clutter"
-        fused["match_label_id"] = np.where(matched, labels.label_id.values[cand_idx] if has_lab else -1, -1)
+        matched = (fused.cand_class != "clutter").values
+        fused["match_label_id"] = np.where(matched, scene_labels.label_id.values[cand_idx] if has_lab else -1, -1)
         fused["label_length_m"] = np.where(matched, near_len, np.nan)
         fused["enl_vv"] = cfar_meta.get("VV", {}).get("enl")
         fused["enl_vh"] = cfar_meta.get("VH", {}).get("enl")
-    misses = _misses_frame(labels, geocoder, shape, sea_ok, r0, c0, lab_dist)
     cand_chips = chips_db(sigma, fused.row.values, fused.col.values, r0, c0) if len(fused) else None
     miss_chips = None
-    if len(misses):
-        miss_rows = misses[~misses.cfar_detected]
+    if len(labels_out):
+        miss_rows = labels_out[~labels_out.cfar_detected]
         if len(miss_rows):
             miss_chips = chips_db(sigma, miss_rows.row.values, miss_rows.col.values, r0, c0)
-    return fused, misses, cand_chips, miss_chips, meta
+    return fused, labels_out, cand_chips, miss_chips, meta
 
 
-def _misses_frame(labels, geocoder, shape, sea_ok, r0, c0, lab_dist):
-    """Every AI2 label of the window with its scene pixel, sea flag, and nearest-candidate distance."""
+def _label_frame(labels, geocoder, shape, sea_ok, r0, c0, lab_dist):
+    """Every AI2 label of the window with its scene pixel, sea flag, and nearest-object distance."""
     if len(labels) == 0:
         return pd.DataFrame()
     rr, cc = geocoder.rowcol(labels.lon.values, labels.lat.values)
@@ -338,20 +366,24 @@ def scene_done(out_dir: Path, product_id: str) -> bool:
 
 def process_scene(product_id: str, aws_path: str, windows: pd.DataFrame, labels: pd.DataFrame, out_dir: Path,
                   settings: CfarSettings = SETTINGS, log=print) -> dict:
-    """All selected windows of one scene -> chips npz + candidate/miss parquet. Resumable at scene level."""
+    """All selected windows of one scene -> chips npz + candidate/label parquet. Resumable at scene level.
+
+    `labels` must hold every dataset-1 label of the scene (not only those of the selected windows).
+    """
     t0 = time.time()
     out_dir = Path(out_dir)
     (out_dir / "index").mkdir(parents=True, exist_ok=True)
     npz_path, idx_path, miss_path = scene_outputs(out_dir, product_id)
     scene = GRDScene(aws_path)
-    geocoder, shape = geocoder_from_gcps(scene)
+    geocoder = GcpTransformer(scene.href("VV"))
+    shape = geocoder.shape
     mask = SceneSeaMask(windows.west.min(), windows.south.min(), windows.east.max(), windows.north.max(),
                         buffer_m=settings.buffer_m, factor=settings.mask_factor)
     cands, misses, chips, mchips, wmeta = [], [], [], [], []
     for rec in windows.itertuples(index=False):
         wl = labels[labels.window_id == rec.window_id]
         try:
-            res = process_window(scene, geocoder, shape, mask, rec, wl, settings)
+            res = process_window(scene, geocoder, shape, mask, rec, wl, labels, settings)
         except Exception as e:  # keep the scene going; the window is reported as failed
             wmeta.append({"window_id": int(rec.window_id), "error": f"{type(e).__name__}: {e}"})
             log(f"  window {rec.window_id} failed: {type(e).__name__}: {e}")
@@ -402,7 +434,7 @@ def process_scene(product_id: str, aws_path: str, windows: pd.DataFrame, labels:
         "product_id": product_id, "n_windows": int(len(windows)), "n_candidates": int(len(cand_df)),
         "n_positive": int(cand_df.is_vessel.sum()) if len(cand_df) else 0,
         "n_ambiguous": int((cand_df.cand_class == "ambiguous").sum()) if len(cand_df) else 0,
-        "n_labels": int(len(labels)),
+        "n_labels": int(len(miss_df)),
         "n_labels_on_sea": int(miss_df.on_testable_sea.sum()) if len(miss_df) else 0,
         "n_cfar_detected": int(miss_df.cfar_detected.sum()) if len(miss_df) else 0,
         "n_window_errors": sum("error" in m for m in wmeta), "runtime_s": round(time.time() - t0, 1),

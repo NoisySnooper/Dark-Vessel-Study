@@ -1,0 +1,8 @@
+{
+  "source": "https://gitlab.com/crossref/retraction-watch-data/-/raw/main/retraction_watch.csv",
+  "retrieved": "2026-10-02",
+  "dataset_generated": "2026-10-01",
+  "rows_scanned": 72831,
+  "retractions_since": "2023-01-01",
+  "matching": "normalised exact journal name; IGARSS by regular expression"
+}

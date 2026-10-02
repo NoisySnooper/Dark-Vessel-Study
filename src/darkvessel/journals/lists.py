@@ -90,6 +90,9 @@ def entries_from_records(records: Sequence[Mapping[str, str]], kind: str) -> lis
                 headers.append(h)
     issn_cols = [h for h in headers if "issn" in h.lower()]
     url_cols = [h for h in headers if _URL_HEADER.search(h) and "issn" not in h.lower()]
+    clone_cols = [h for h in url_cols if re.search(r"hijack|clone|fake|fraud", h, re.IGNORECASE)]
+    if kind == "hijacked" and clone_cols:  # show only the addresses of the clone, not of the genuine journal
+        url_cols = clone_cols
     title_cols = [h for h in headers if _TITLE_HEADER.search(h) and not _NOT_TITLE_HEADER.search(h)]
     if not title_cols:  # fall back to any title-like header, even one that also looks like a URL
         title_cols = [h for h in headers if re.search(r"title|journal", h, re.IGNORECASE) and "issn" not in h.lower()]

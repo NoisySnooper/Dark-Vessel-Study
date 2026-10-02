@@ -38,22 +38,21 @@ class FetchError(RuntimeError):
     def host(self) -> str:
         return urllib.parse.urlsplit(self.url).hostname or ""
 
-    def describe(self) -> str:
-        """Multi-line text for the console."""
+    def describe(self, option: str | None = None) -> str:
+        """Multi-line text for the console. option names the command line option that takes a local file."""
         lines = [f"{self.kind.upper()}: {self.message}", f"  url: {self.url}"]
         hint = HINTS.get(self.kind)
         if hint:
-            lines.append(f"  next step: {hint}")
+            lines.append("  next step: " + hint.replace("{option}", option or "the matching option for a local file"))
         return "\n".join(lines)
 
 
 HINTS = {
     "blocked": (
         "this machine cannot reach the host (an egress proxy or firewall refuses it). Run the script "
-        "where the host is reachable, or download the file in a browser and pass it with the matching "
-        "--*-csv or --*-xlsx option."
+        "where the host is reachable, or download the file in a browser and pass the local file with {option}."
     ),
-    "http": "the server answered but refused or did not find the file. Download it in a browser and pass the local path.",
+    "http": "the server answered but refused or did not find the file. Download it in a browser and pass the local file with {option}.",
     "network": "check the network connection, the proxy settings (HTTPS_PROXY) and the CA bundle (REQUESTS_CA_BUNDLE).",
     "parse": "the download worked but the content was not what the script expects (for example a login page or a changed layout).",
     "dependency": "install the missing package into the active environment.",

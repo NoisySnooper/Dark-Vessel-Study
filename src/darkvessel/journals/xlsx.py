@@ -142,3 +142,78 @@ def rows_to_records(rows: list[list[str]], header_hint: str = "issn") -> list[di
                 records.append({h: (padded[j] or "").strip() for j, h in enumerate(headers)})
             return records
     return []
+
+
+def write_xlsx(sheets: dict[str, list[list[str]]]) -> bytes:
+    """Write a minimal workbook (inline strings only). Used to build test fixtures offline."""
+    from xml.sax.saxutils import escape
+
+    def col_name(i: int) -> str:
+        name = ""
+        i += 1
+        while i:
+            i, rem = divmod(i - 1, 26)
+            name = chr(65 + rem) + name
+        return name
+
+    main = _NS["m"]
+    names = list(sheets)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        overrides = "".join(
+            f'<Override PartName="/xl/worksheets/sheet{i}.xml" '
+            'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            for i in range(1, len(names) + 1)
+        )
+        zf.writestr(
+            "[Content_Types].xml",
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/xl/workbook.xml" '
+            'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            f"{overrides}</Types>",
+        )
+        zf.writestr(
+            "_rels/.rels",
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" '
+            'Target="xl/workbook.xml"/></Relationships>',
+        )
+        sheet_tags = "".join(
+            f'<sheet name="{escape(n)}" sheetId="{i}" r:id="rId{i}"/>' for i, n in enumerate(names, start=1)
+        )
+        zf.writestr(
+            "xl/workbook.xml",
+            f'<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="{main}" xmlns:r="{_NS["r"]}">'
+            f"<sheets>{sheet_tags}</sheets></workbook>",
+        )
+        rels = "".join(
+            f'<Relationship Id="rId{i}" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+            f'Target="worksheets/sheet{i}.xml"/>'
+            for i in range(1, len(names) + 1)
+        )
+        zf.writestr(
+            "xl/_rels/workbook.xml.rels",
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">{rels}</Relationships>',
+        )
+        for i, name in enumerate(names, start=1):
+            rows_xml = []
+            for r, row in enumerate(sheets[name], start=1):
+                cells = "".join(
+                    f'<c r="{col_name(c)}{r}" t="inlineStr"><is><t xml:space="preserve">{escape(str(v))}</t></is></c>'
+                    for c, v in enumerate(row)
+                    if v != ""
+                )
+                rows_xml.append(f'<row r="{r}">{cells}</row>')
+            zf.writestr(
+                f"xl/worksheets/sheet{i}.xml",
+                f'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="{main}">'
+                f'<sheetData>{"".join(rows_xml)}</sheetData></worksheet>',
+            )
+    return buf.getvalue()

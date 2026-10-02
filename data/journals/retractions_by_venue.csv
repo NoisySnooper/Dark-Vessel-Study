@@ -1,0 +1,23 @@
+key,venue,matched_names,notices_total,retractions_total,retractions_since,expressions_of_concern,corrections,top_reasons
+rse,Remote Sensing of Environment,Remote Sensing of Environment (2),2,2,0,0,0,Duplication of/in Article (1); Date of Article and/or Notice Unknown (1); Notice - Limited or No Information (1)
+faf,Fish and Fisheries,,0,0,0,0,0,
+grsl,IEEE Geoscience and Remote Sensing Letters,,0,0,0,0,0,
+tgrs,IEEE Transactions on Geoscience and Remote Sensing,,0,0,0,0,0,
+jstars,IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing,,0,0,0,0,0,
+rs,Remote Sensing (MDPI),Remote Sensing (9),9,8,4,0,1,Investigation by Journal/Publisher (4); Plagiarism of/in Article (4); Investigation by Third Party (2)
+igarss,IGARSS proceedings (IEEE International Geoscience and Remote Sensing Symposium),,0,0,0,0,0,
+isprs,ISPRS Journal of Photogrammetry and Remote Sensing,ISPRS Journal of Photogrammetry and Remote Sensing (4),4,4,0,0,0,Plagiarism of Text (1); Notice - Limited or No Information (1); Temporary Removal (1)
+jag,International Journal of Applied Earth Observation and Geoinformation,,0,0,0,0,0,
+rsl,Remote Sensing Letters,Remote Sensing Letters (1),1,1,0,0,0,Concerns/Issues about Authorship/Affiliation (1); Error in Text (1); Lack of Approval from Author (1)
+ijrs,International Journal of Remote Sensing,International Journal of Remote Sensing (1),1,1,0,0,0,Euphemisms for Plagiarism (1); Plagiarism of/in Article (1); Plagiarism of Text (1)
+srs,Science of Remote Sensing,,0,0,0,0,0,
+marpol,Marine Policy,Marine Policy (4),4,4,0,0,0,Concerns/Issues about Results and/or Conclusions (2); Retract and Replace (2); Concerns/Issues about Authorship/Affiliation (2)
+fms,Frontiers in Marine Science,Frontiers in Marine Science (1),1,1,0,0,0,Error in Analyses (1); Error in Methods (1); Unreliable Data (1)
+icesjms,ICES Journal of Marine Science,ICES Journal of Marine Science (1),1,1,0,0,0,Copyright Claims (1); Retract and Replace (1)
+fishres,Fisheries Research,,0,0,0,0,0,
+ocm,Ocean and Coastal Management,,0,0,0,0,0,
+sciadv,Science Advances,Science Advances (15),15,10,3,4,1,Upgrade/Update of Prior Notice(s) (4); Concerns/Issues about Data (3); Unreliable Results and/or Conclusions (3)
+natcomm,Nature Communications,Nature Communications (54),54,44,19,3,7,Unreliable Results and/or Conclusions (17); Duplication of/in Image (14); Concerns/Issues about Data (12)
+access,IEEE Access,IEEE Access (31),31,31,0,0,0,Date of Article and/or Notice Unknown (30); Investigation by Journal/Publisher (24); Euphemisms for Plagiarism (18)
+sensors,Sensors,Sensors (12),12,12,3,0,0,Investigation by Journal/Publisher (5); Plagiarism of/in Article (4); Unreliable Results and/or Conclusions (3)
+jmse,Journal of Marine Science and Engineering,,0,0,0,0,0,

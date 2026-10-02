@@ -460,6 +460,7 @@ def render_table(rows: Sequence[Mapping[str, str]]) -> str:
         oa_value, _ = split_cell(r["oa_model"])
         apc_value, _ = split_cell(r["apc_usd"])
         apc = _first_number(apc_value) if re.search(r"\d", apc_value) else apc_value.split(" (")[0]
+        apc = "n/r" if apc == "NOT RETRIEVED" else apc
         oa = f"{oa_value.split(' (')[0]}, {apc}"
         letters, _ = split_cell(r["accepts_letters_or_short"])
         status = {"VERIFIED": "V", "PARTIAL": "P", "UNVERIFIED": "U"}.get(r["verification_status"], "?")
@@ -614,14 +615,14 @@ def run(opts: Options, fetcher: Fetcher | None = None, log: Callable[[str], None
     reports: list[SourceReport] = []
     fetcher = fetcher or fetch.RequestsFetcher()
 
-    def attempt(name: str, wanted_local: bool, loader: Callable[[], object], apply: Callable[[object], None], have_cache: bool) -> None:
+    def attempt(name: str, option: str, wanted_local: bool, loader: Callable[[], object], apply: Callable[[object], None], have_cache: bool) -> None:
         if opts.offline and not wanted_local:
             reports.append(SourceReport(name, "cached" if have_cache else "unavailable", "offline mode, no download attempted"))
             return
         try:
             result = loader()
         except Exception as exc:  # noqa: BLE001 - one broken source must not stop the others
-            message = exc.describe() if isinstance(exc, FetchError) else f"unexpected {type(exc).__name__}: {exc}"
+            message = exc.describe(option) if isinstance(exc, FetchError) else f"unexpected {type(exc).__name__}: {exc}"
             reports.append(SourceReport(name, "failed", message))
             if have_cache:
                 reports.append(SourceReport(name, "cached", "using the copy saved by an earlier successful run"))
@@ -639,14 +640,15 @@ def run(opts: Options, fetcher: Fetcher | None = None, log: Callable[[str], None
             setattr(ext, attr, ExternalList(meta, screen_venues(seed_rows, index, oa_by_key)))
         return inner
 
-    attempt("SCImago CSV", bool(opts.scimago_csv), lambda: _fetch_scimago(opts, fetcher), apply_scimago, ext.scimago is not None)
-    attempt("Scopus discontinued sources", bool(opts.scopus_xlsx), lambda: _fetch_scopus(opts, fetcher), apply_list("scopus"), ext.scopus is not None)
-    attempt("Hijacked Journal Checker", bool(opts.hijacked_csv), lambda: _fetch_hijacked(opts, fetcher), apply_list("hijacked"), ext.hijacked is not None)
+    attempt("SCImago CSV", "--scimago-csv PATH", bool(opts.scimago_csv), lambda: _fetch_scimago(opts, fetcher), apply_scimago, ext.scimago is not None)
+    attempt("Scopus discontinued sources", "--scopus-xlsx PATH", bool(opts.scopus_xlsx), lambda: _fetch_scopus(opts, fetcher), apply_list("scopus"), ext.scopus is not None)
+    attempt("Hijacked Journal Checker", "--hijacked-csv PATH", bool(opts.hijacked_csv), lambda: _fetch_hijacked(opts, fetcher), apply_list("hijacked"), ext.hijacked is not None)
 
     rows = build_rows(seed_rows, oa, ext)
     if not opts.dry_run:
         write_rows(opts.out_csv, rows)
-        save_external(opts.cache_json, ext)
+        if ext.scimago or ext.scopus or ext.hijacked:  # nothing to save when every list was unavailable
+            save_external(opts.cache_json, ext)
         if opts.doc_path and opts.doc_path.exists():
             text = opts.doc_path.read_text(encoding="utf-8")
             new = replace_block(text, render_table(rows))

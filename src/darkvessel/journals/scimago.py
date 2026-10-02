@@ -114,7 +114,7 @@ def _int(text: str) -> int | None:
 
 def parse_scimago_csv(text: str) -> ScimagoTable:
     """Parse the SCImago CSV text. Raises ValueError when it does not look like that file."""
-    reader = csv.reader(io.StringIO(text, newline=""), delimiter=";", quotechar='"')
+    reader = csv.reader(io.StringIO(text.lstrip("\ufeff"), newline=""), delimiter=";", quotechar='"')
     try:
         header = next(reader)
     except StopIteration:
