@@ -125,7 +125,11 @@ def weighted_pr(truth, pred, w, n_boot: int = 2000, seed: int = 20261002) -> dic
 
     p0, r0 = pr(np.arange(len(w)))
     boots = np.array([pr(rng.integers(0, len(w), len(w))) for _ in range(n_boot)])
-    ci = lambda col: [round(float(x), 3) for x in np.nanpercentile(boots[:, col], [2.5, 97.5])]  # noqa: E731
+    def ci(col):
+        v = boots[:, col]
+        v = v[np.isfinite(v)]
+        return [round(float(x), 3) for x in np.percentile(v, [2.5, 97.5])] if len(v) else None
+
     return {"precision": None if np.isnan(p0) else round(float(p0), 3), "precision_ci": ci(0),
             "recall": None if np.isnan(r0) else round(float(r0), 3), "recall_ci": ci(1)}
 
