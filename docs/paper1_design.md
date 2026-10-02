@@ -51,10 +51,9 @@ Interval half-width for a share near 0.5 (Wilson, 95 %): about 0.10 with 96 labe
 
 To detect a drop in CNN precision from 0.77 (1A/1B) to 0.67 with 80 % power at a two-sided 5 % level, about 149 labelled CNN-accepted contacts are needed (one-sample test against 0.77; n = [1.96 sqrt(0.77 x 0.23) + 0.84 sqrt(0.67 x 0.33)]^2 / 0.10^2). A drop to 0.62 needs about 68. The Ca Mau census of 149 accepted contacts meets the first case exactly, so every accepted contact should be labelled.
 
-Owner labeling budget (next task 2, about 3 h at about 30 s per contact):
-- 149 CNN-accepted Ca Mau contacts (M2);
-- about 120 more from the Ca Mau class sample (M1, M3);
-- about 100 from the regional sample, both satellites (M1).
+Owner labeling budget at about 30 s per contact:
+- week 1 (next task 2, about 3 h): the Ca Mau queue of 384 contacts, which holds all 149 CNN-accepted contacts (M2) and 273 from the class sample (M1, M3; 38 contacts are in both);
+- a later week (about 1 h): about 100 from the regional sample, both satellites (M1).
 
 A second labeler on 50 contacts would give inter-rater agreement; optional.
 
