@@ -15,7 +15,8 @@ See `docs/STATUS.md` for what is done, what is blocked, and the next tasks.
 src/darkvessel/      package: s1/ (search, read, calibrate), detect/ (CFAR, post-processing),
                      ais/ (matching), landmask.py, pipeline.py, viz/, io.py, config.py
 scripts/             01 AOI, 02 scene search, 03 Ca Mau baseline, 04-06 ML verifier,
-                     07 demo page, 08 coverage, 09 regional detection, 10 regional density
+                     07 demo page, 08 coverage, 09 regional detection, 10 regional density,
+                     11 clutter-rule check, 12 label scoring, 13 noise floor, 14 CNN on shared 1C/1D sea
 tests/               offline unit tests (pytest)
 data/                small derived outputs (GeoPackage, CSV) are committed; raw data is gitignored
 docs/                reports, figures, status
@@ -33,7 +34,10 @@ python scripts/09_run_regional.py --merge      # data/detections_regional.gpkg +
 python scripts/10_regional_density.py          # density COGs, docs/figures/regional_detections.png
 python scripts/02_search_scenes.py --aoi ca_mau && python scripts/03_run_baseline.py   # Ca Mau detail
 python scripts/07_build_demo_page.py --out demo.html   # self-contained demo page
+python scripts/12_score_labels.py              # score labels exported from the demo page (data/labels/*.csv)
+python scripts/13_nesz_compare.py              # noise floor of 1A, 1C and 1D from product annotation
 pytest                                         # offline tests
+# ML (scripts 04-06, 14) needs PyTorch: use the conda environment from environment.yml
 ```
 Imagery is read with HTTP range requests from the AWS Open Data mirror of Sentinel-1 (`sentinel-s1-l1c`); no full-scene download and no account needed. Secrets (OpenAlex, Copernicus, GFW) go in `.env` (see `.env.example`); `.env` is gitignored.
 
