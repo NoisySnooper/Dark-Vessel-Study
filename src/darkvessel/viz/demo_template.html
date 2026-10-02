@@ -225,6 +225,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 12.5px
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mgrs@2.2.0/dist/mgrs.min.js"></script>
 <script>
 const D = /*__DATA__*/null;
 const R = D.regional, X = D.detail;
@@ -237,8 +238,21 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const MON = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 const p2 = (n) => String(n).padStart(2, "0");
+const dm = (v, p, n) => { const a = Math.abs(v), d = Math.floor(a); return `${d}\u00b0${((a - d) * 60).toFixed(3).padStart(6, "0")}'${v >= 0 ? p : n}`; };
 const dtgOf = (iso) => { const t = new Date(iso); return `${p2(t.getUTCDate())}${p2(t.getUTCHours())}${p2(t.getUTCMinutes())}Z ${MON[t.getUTCMonth()]} ${String(t.getUTCFullYear()).slice(2)}`; };
 const MC = { high: css("--m-high"), medium: css("--m-medium"), fixed: css("--m-fixed"), low: css("--m-low") };
+const CLS = ["high", "medium", "fixed", "low"];
+function expand(src, view) {
+  return src.rows.map((r, i) => {
+    const o = {}; src.cols.forEach((k, j) => { o[k] = r[j]; });
+    const sc = src.scenes[o.s];
+    o.c = CLS[o.c]; o.id = sc.pfx + String(o.n).padStart(sc.w, "0"); o.scene = sc.id; o.t = sc.t; o.mis = sc.mis; o.view = view;
+    o.px_n = o.px; o.len = o.len;
+    if (src.cnn && src.cnn[i] !== null && src.cnn[i] !== undefined) o.cnn = src.cnn[i];
+    return o;
+  });
+}
+const RD = expand(R, "r"), XD = expand(X, "x");
 
 // ---- Masthead
 const RS = R.summary, cov = R.coverage;
@@ -259,7 +273,7 @@ $("caveat").innerHTML = `<strong>Dark does not mean illegal.</strong> ${esc(D.ca
 const byId = {};
 let view = "r", current = null, selRing = null;
 const groups = { r: {}, x: {} };
-const counts = { r: { high: 0, medium: 0, fixed: 0, low: R.low.length }, x: { high: 0, medium: 0, fixed: 0, low: X.low.length } };
+const counts = { r: { high: 0, medium: 0, fixed: 0, low: R.n_low }, x: { high: 0, medium: 0, fixed: 0, low: X.low.length } };
 
 // ---- Regional map (plate carree)
 const mapR = L.map("map-r", { crs: L.CRS.EPSG4326, minZoom: 2, maxZoom: 14, zoomSnap: 0.5, attributionControl: false, preferCanvas: true });
@@ -271,14 +285,28 @@ L.geoJSON(R.aoi, { interactive: false, style: { color: css("--map-aoi"), weight:
 const fpLayer = L.geoJSON(R.fps, { style: { color: "#d95926", weight: 1, fill: false, opacity: 0.9 },
   onEachFeature: (f, l) => l.bindTooltip(`${f.properties.mis} ${f.properties.t} UTC · ${fmt(f.properties.km2)} km² of sea tested`) }).addTo(mapR);
 ["low", "fixed", "medium", "high"].forEach((k) => groups.r[k] = L.layerGroup());
-R.low.forEach(([la, lo]) => L.circleMarker([la, lo], { renderer: rendR, radius: 1.6, stroke: false, fillColor: MC.low, fillOpacity: 0.8, interactive: false }).addTo(groups.r.low));
-R.dets.forEach((d) => {
+const rMarkers = [];
+RD.forEach((d) => {
   const mk = L.circleMarker([d.lat, d.lon], { renderer: rendR, radius: 5, color: MC[d.c], weight: 1.6, fillOpacity: 0.01 });
+  rMarkers.push([mk, d.c]);
   mk.bindTooltip(`${d.id.slice(-5)} · ${SHORT[d.c]} · ~${d.len} m`, { direction: "top", offset: [0, -5] });
   mk.on("click", () => select(d.id, false));
-  mk.addTo(groups.r[d.c]); d.view = "r"; byId[d.id] = d; counts.r[d.c]++;
+  mk.addTo(groups.r[d.c]); byId[d.id] = d; counts.r[d.c]++;
 });
 ["fixed", "medium", "high"].forEach((k) => groups.r[k].addTo(mapR));
+// Thousands of contacts overlap at sea-wide scale: draw small filled dots there, rings once zoomed in.
+let rBig = null;
+function styleR() {
+  const big = mapR.getZoom() >= 6;
+  if (big === rBig) return;
+  rBig = big;
+  rMarkers.forEach(([mk, c]) => {
+    mk.setStyle(big ? { stroke: true, weight: 1.6, color: MC[c], fillOpacity: 0.01 } : { stroke: false, fillColor: MC[c], fillOpacity: 0.7 });
+    mk.setRadius(big ? 5 : 1.8);
+  });
+}
+mapR.on("zoomend", styleR);
+styleR();
 L.control.scale({ imperial: false, position: "bottomleft" }).addTo(mapR);
 mapR.on("mousemove", (e) => { $("readout").textContent = `${dm(e.latlng.lat, "N", "S")}  ${dm(e.latlng.lng, "E", "W")}`; });
 
@@ -290,11 +318,11 @@ L.imageOverlay("__DETAIL_IMG__", bx).addTo(mapX);
 const rendX = L.canvas({ padding: 0.5, tolerance: 8 });
 ["low", "fixed", "medium", "high"].forEach((k) => groups.x[k] = L.layerGroup());
 X.low.forEach(([x, y]) => L.circleMarker([-y, x], { renderer: rendX, radius: 1.7, stroke: false, fillColor: MC.low, fillOpacity: 0.85, interactive: false }).addTo(groups.x.low));
-X.dets.forEach((d) => {
+XD.forEach((d) => {
   const mk = L.circleMarker([-d.y, d.x], { renderer: rendX, radius: 6, color: MC[d.c], weight: 1.8, fillOpacity: 0.01 });
   mk.bindTooltip(`${d.id.slice(-4)} · ${SHORT[d.c]} · ~${d.len} m`, { direction: "top", offset: [0, -6] });
   mk.on("click", () => select(d.id, false));
-  mk.addTo(groups.x[d.c]); d.view = "x"; byId[d.id] = d; counts.x[d.c]++;
+  mk.addTo(groups.x[d.c]); byId[d.id] = d; counts.x[d.c]++;
 });
 ["low", "fixed", "medium", "high"].forEach((k) => groups.x[k].addTo(mapX));
 const Scale = L.Control.extend({ onAdd() { this.el = L.DomUtil.create("div", "scalebar"); return this.el; } });
@@ -311,7 +339,6 @@ function lonlatAt(x, y) {
   const bi = (a) => a[j][i] * (1 - u) * (1 - v) + a[j][i + 1] * u * (1 - v) + a[j + 1][i] * (1 - u) * v + a[j + 1][i + 1] * u * v;
   return [bi(g.lon), bi(g.lat)];
 }
-const dm = (v, p, n) => { const a = Math.abs(v), d = Math.floor(a); return `${d}°${((a - d) * 60).toFixed(3).padStart(6, "0")}'${v >= 0 ? p : n}`; };
 mapX.on("mousemove", (e) => {
   const x = e.latlng.lng, y = -e.latlng.lat;
   if (x < 0 || y < 0 || x > W || y > H) return;
@@ -322,12 +349,14 @@ mapX.on("mousemove", (e) => {
 // ---- Toggles and coverage key (per view)
 function buildToggles() {
   const c = counts[view];
-  let html = ["high", "medium", "fixed", "low"].map((k) =>
-    `<label class="toggle"><input type="checkbox" id="tg-${k}" ${(groups[view][k] && (view === "x" || k !== "low") ? "checked" : "")}><i class="swatch" style="color:var(--c-${k})"></i>${LABEL[k]} <span class="n">${fmt(c[k])}</span></label>`).join("");
+  const keys = view === "r" ? ["high", "medium", "fixed"] : ["high", "medium", "fixed", "low"];
+  let html = keys.map((k) =>
+    `<label class="toggle"><input type="checkbox" id="tg-${k}"><i class="swatch" style="color:var(--c-${k})"></i>${LABEL[k]} <span class="n">${fmt(c[k])}</span></label>`).join("");
+  if (view === "r") html += `<span class="toggle" title="Not drawn at regional scale"><i class="swatch" style="color:var(--c-low)"></i>${LABEL.low} <span class="n">${fmt(c.low)}</span></span>`;
   if (view === "r") html += `<label class="toggle"><input type="checkbox" id="tg-cov" ${mapR.hasLayer(covLayer) ? "checked" : ""}>Coverage</label><label class="toggle"><input type="checkbox" id="tg-fp" ${mapR.hasLayer(fpLayer) ? "checked" : ""}>Scenes processed</label>`;
   $("toggles").innerHTML = html;
   const m = view === "r" ? mapR : mapX;
-  ["high", "medium", "fixed", "low"].forEach((k) => {
+  keys.forEach((k) => {
     const el = $("tg-" + k); el.checked = m.hasLayer(groups[view][k]);
     el.addEventListener("change", (e) => e.target.checked ? groups[view][k].addTo(m) : m.removeLayer(groups[view][k]));
   });
@@ -359,8 +388,9 @@ function select(id, pan) {
   if (d.view !== view) setView(d.view);
   current = id;
   $("sel-title").innerHTML = `<span class="cls"><i class="swatch" style="color:var(--c-${d.c})"></i>${LABEL[d.c]}</span>`;
-  $("chip").src = D.chips[id] ? "data:image/png;base64," + D.chips[id] : "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-  let html = row("Contact", esc(d.id)) + row("Acquired (UTC)", esc(d.t.replace("T", " "))) + row("Position", d.dms) + row("MGRS", d.mgrs) +
+  $("chip").src = D.chips[id] ? "data:image/jpeg;base64," + D.chips[id] : "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+  let mg = "n/a"; try { if (window.mgrs) mg = window.mgrs.forward([d.lon, d.lat], 4); } catch (e) { mg = "n/a"; }
+  let html = row("Contact", esc(d.id)) + row("Acquired (UTC)", esc(d.t.replace("T", " "))) + row("Position", `${dm(d.lat, "N", "S")} ${dm(d.lon, "E", "W")}`) + row("MGRS", mg) +
     row("Length (est.)", `${d.len} m <span style="color:var(--muted)">(${d.px_n} px)</span>`) +
     row("Peak σ⁰ VV / VH", `${db(d.vv)} / ${db(d.vh)}`) + row("Contrast VV / VH", `${db(d.svv)} / ${db(d.svh)}`) +
     row("Incidence", d.inc === null ? "n/a" : `${d.inc.toFixed(1)}°`) + row("Seen on earlier passes", `${d.per} of ${d.perN}`);
@@ -375,7 +405,7 @@ function select(id, pan) {
   refreshLabelUI();
 }
 const best = (d) => Math.max(d.svv ?? -99, d.svh ?? -99);
-const topList = () => (view === "r" ? R.dets : X.dets).filter((d) => d.c === "high" || d.c === "medium").sort((a, b) => best(b) - best(a)).slice(0, 12);
+const topList = () => (view === "r" ? RD : XD).filter((d) => d.c === "high" || d.c === "medium").sort((a, b) => best(b) - best(a)).slice(0, 12);
 function buildTop() {
   document.querySelector("#top tbody").innerHTML = topList().map((d) =>
     `<tr data-id="${esc(d.id)}"><td><button type="button" data-id="${esc(d.id)}">${esc(d.id.slice(-5))}</button></td><td>${SHORT[d.c]}</td><td class="num">${d.len} m</td><td class="num">${best(d).toFixed(1)} dB</td></tr>`).join("");
@@ -394,7 +424,7 @@ function refreshLabelUI() {
 function setLabel(l) { if (!current) return; labels[current] = l; saveLabels(); refreshLabelUI(); }
 document.querySelectorAll(".lbl-btns button").forEach((b) => b.addEventListener("click", () => setLabel(b.dataset.l)));
 function nextUnlabeled() {
-  const q = (view === "r" ? R.dets : X.dets).filter((d) => d.c !== "low").map((d) => d.id);
+  const q = (view === "r" ? RD : XD).filter((d) => d.c !== "low").map((d) => d.id);
   const id = q.find((i) => !labels[i] && i !== current); if (id) select(id, true);
 }
 $("lbl-next").addEventListener("click", nextUnlabeled);

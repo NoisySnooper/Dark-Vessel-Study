@@ -91,14 +91,24 @@ def render_map_image(cog_path: Path, buffer_m: float = 1000.0):
 
 
 def chip_png(scene: GRDScene, row: float, col: float, half: int = 24) -> str:
-    win = Window(int(col) - half, int(row) - half, 2 * half, 2 * half)
+    """VV | VH chip (2*half px square) around a pixel; parts outside the image are left dark."""
+    H, W = scene.shape
+    r0, c0 = int(row) - half, int(col) - half
+    rr0, cc0 = max(r0, 0), max(c0, 0)
+    rr1, cc1 = min(r0 + 2 * half, H), min(c0 + 2 * half, W)
+    win = Window(cc0, rr0, cc1 - cc0, rr1 - rr0)
     pair = []
     for pol in ("VV", "VH"):
-        db = 10 * np.log10(scene.read_sigma0(pol, win, denoise=False))
+        full = np.full((2 * half, 2 * half), np.nan, np.float32)
+        full[rr0 - r0:rr1 - r0, cc0 - c0:cc1 - c0] = scene.read_sigma0(pol, win, denoise=False)
+        db = 10 * np.log10(full)
         lo, hi = np.nanpercentile(db, 2), np.nanmax(db)
-        pair.append(np.clip((db - lo) / max(hi - lo, 1e-3), 0, 1))
+        pair.append(np.nan_to_num(np.clip((db - lo) / max(hi - lo, 1e-3), 0, 1)))
     gap = np.ones((2 * half, 2))
-    return _b64_png((np.hstack([pair[0], gap, pair[1]]) * 255).astype(np.uint8))
+    img = (np.hstack([pair[0], gap, pair[1]]) * 255).astype(np.uint8)
+    buf = io.BytesIO()
+    Image.fromarray(img).save(buf, format="JPEG", quality=88)
+    return base64.b64encode(buf.getvalue()).decode()
 
 
 def _scene_path(product_id: str) -> str:
@@ -109,20 +119,32 @@ def _scene_path(product_id: str) -> str:
     return f"GRD/{t.year}/{t.month}/{t.day}/{p['mode']}/{p['pol']}/{product_id}"
 
 
-def _record(r, lat, lon, m, extra=None):
-    d = {
-        "id": r.det_id, "c": r.confidence, "lat": round(float(lat), 5), "lon": round(float(lon), 5),
-        "dms": f"{_dms(lat, 'N', 'S')} {_dms(lon, 'E', 'W')}",
-        "mgrs": m.toMGRS(float(lat), float(lon), MGRSPrecision=4),
-        "len": int(round(float(r.length_est_m))), "px_n": int(r.n_pixels),
-        "vv": _num(r.peak_vv_db), "vh": _num(r.peak_vh_db), "svv": _num(r.scr_vv_db), "svh": _num(r.scr_vh_db),
-        "inc": _num(r.inc_angle_deg), "per": int(r.persist_dates), "perN": int(r.persist_dates_checked),
-    }
-    if "cnn_score" in r._fields and not pd.isna(r.cnn_score):
-        d["cnn"] = round(float(r.cnn_score), 3)
-    if extra:
-        d.update(extra)
-    return d
+CLASS_CODE = {"high": 0, "medium": 1, "fixed": 2, "low": 3}
+COLS = ["lat", "lon", "c", "len", "px", "svv", "svh", "vv", "vh", "inc", "per", "perN", "s", "n"]
+
+
+def _scene_table(det_ids: pd.Series, scene_ids: pd.Series, times: pd.Series, missions: pd.Series):
+    """Per-scene id prefix so each record only carries its numeric suffix."""
+    scenes, index = [], {}
+    for did, sid, t, mis in zip(det_ids, scene_ids, times, missions):
+        if sid in index:
+            continue
+        pfx, num = did.rsplit("_", 1)
+        index[sid] = len(scenes)
+        scenes.append({"id": sid, "pfx": pfx + "_", "w": len(num), "t": str(t)[:16], "mis": mis})
+    return scenes, index
+
+
+def _rows(dets: pd.DataFrame, lat, lon, index, extra_cols=()):
+    out = []
+    for i, r in enumerate(dets.itertuples()):
+        row = [round(float(lat[i]), 5), round(float(lon[i]), 5), CLASS_CODE[r.confidence],
+               int(round(float(r.length_est_m))), int(r.n_pixels), _num(r.scr_vv_db), _num(r.scr_vh_db),
+               _num(r.peak_vv_db), _num(r.peak_vh_db), _num(r.inc_angle_deg), int(r.persist_dates),
+               int(r.persist_dates_checked), index[r.scene_id], int(r.det_id.rsplit("_", 1)[1])]
+        row += [getattr(r, c) for c in extra_cols]
+        out.append(row)
+    return out
 
 
 def _chips_for(dets: pd.DataFrame, scene_of, n: int) -> dict:
@@ -135,7 +157,7 @@ def _chips_for(dets: pd.DataFrame, scene_of, n: int) -> dict:
         return dict(out)
 
 
-def camau_data(m, max_chips: int) -> tuple[dict, str, dict]:
+def camau_data(max_chips: int, max_px: int = 2600) -> tuple[dict, str, dict]:
     summary = json.loads((DATA_DIR / "baseline_run_summary.json").read_text())
     dets = gpd.read_file(DATA_DIR / "detections_baseline.gpkg", layer="detections_baseline_utm48n")
     ml_path = DATA_DIR / "detections_ml.gpkg"
@@ -143,26 +165,34 @@ def camau_data(m, max_chips: int) -> tuple[dict, str, dict]:
         ml = gpd.read_file(ml_path, layer="detections_verified_utm48n")[["det_id", "cnn_score"]]
         dets = dets.merge(ml, on="det_id", how="left")
     rgb, tr, img_meta = render_map_image(DATA_DIR / "outputs" / "small" / "sigma0_vv_db_utm48n_40m_u8.tif")
+    k = max(1.0, max(rgb.shape[:2]) / max_px)
+    if k > 1:
+        rgb = np.asarray(Image.fromarray(rgb).resize((int(rgb.shape[1] / k), int(rgb.shape[0] / k)), Image.LANCZOS))
+        tr = tr * tr.scale(k, k)
     h, w = rgb.shape[:2]
     to_ll = Transformer.from_crs(CRS_UTM, "EPSG:4326", always_xy=True)
     lon, lat = to_ll.transform(dets.geometry.x.values, dets.geometry.y.values)
-    px = (dets.geometry.x - tr.c) / tr.a
-    py = (dets.geometry.y - tr.f) / tr.e
+    dets["px_x"] = ((dets.geometry.x - tr.c) / tr.a).round(1)
+    dets["px_y"] = ((dets.geometry.y - tr.f) / tr.e).round(1)
+    dets["scene_id"] = summary["scene_id"]
     scene = GRDScene(_scene_path(summary["scene_id"]))
     chips = _chips_for(dets, lambda r: scene, max_chips)
-    full, low = [], []
-    for i, r in enumerate(dets.itertuples()):
-        if r.confidence == "low":
-            low.append([round(px.iloc[i], 1), round(py.iloc[i], 1)])
-        else:
-            full.append(_record(r, lat[i], lon[i], m, {"x": round(px.iloc[i], 1), "y": round(py.iloc[i], 1),
-                                                       "scene": summary["scene_id"], "t": summary["acq_utc"][:16]}))
+    scenes, index = _scene_table(dets.det_id, dets.scene_id, pd.Series([summary["acq_utc"]] * len(dets)),
+                                 pd.Series([summary["scene_id"][:3]] * len(dets)))
+    vessel = dets[dets.confidence != "low"].reset_index(drop=True)
+    vl = np.asarray(lat)[dets.confidence.values != "low"]
+    vo = np.asarray(lon)[dets.confidence.values != "low"]
+    rows = _rows(vessel, vl, vo, index, extra_cols=("px_x", "px_y"))
+    low = dets[dets.confidence == "low"]
     gx, gy = np.meshgrid(np.linspace(0, w, 9), np.linspace(0, h, 9))
     glon, glat = to_ll.transform(tr.c + gx * tr.a, tr.f + gy * tr.e)
     data = {"summary": summary, "img": {"w": w, "h": h, "res_m": abs(tr.a), **img_meta},
             "grid": {"nx": 9, "ny": 9, "w": w, "h": h, "lon": np.round(glon, 6).tolist(), "lat": np.round(glat, 6).tolist()},
-            "dets": full, "low": low}
-    return data, "data:image/jpeg;base64," + _b64_jpeg(rgb), chips
+            "cols": COLS + ["x", "y"], "rows": rows, "scenes": scenes,
+            "low": low[["px_x", "px_y"]].round(1).values.tolist()}
+    if "cnn_score" in vessel:
+        data["cnn"] = [None if pd.isna(v) else round(float(v), 3) for v in vessel.cnn_score]
+    return data, "data:image/jpeg;base64," + _b64_jpeg(rgb, quality=82), chips
 
 
 def coverage_overlay() -> tuple[str, list]:
@@ -187,7 +217,7 @@ def _geojson(geoms_props, nd=3):
     return {"type": "FeatureCollection", "features": feats}
 
 
-def regional_data(m, max_chips: int) -> tuple[dict, dict]:
+def regional_data(max_chips: int) -> tuple[dict, dict]:
     summary = json.loads((DATA_DIR / "regional_summary.json").read_text())
     cov = json.loads((DATA_DIR / "s1_coverage.json").read_text())
     search = json.loads((DATA_DIR / "s1_search_summary.json").read_text())
@@ -207,13 +237,9 @@ def regional_data(m, max_chips: int) -> tuple[dict, dict]:
         return scenes[r.scene_id]
 
     chips = _chips_for(dets, scene_of, max_chips)
-    full, low = [], []
-    for r in dets.itertuples():
-        if r.confidence == "low":
-            low.append([round(r.lat, 4), round(r.lon, 4)])
-        else:
-            full.append(_record(r, r.lat, r.lon, m, {"scene": r.scene_id, "t": str(r.acq_utc)[:16],
-                                                     "mis": r.mission}))
+    vessel = dets[dets.confidence != "low"].reset_index(drop=True)
+    scenes_tab, index = _scene_table(dets.det_id, dets.scene_id, dets.acq_utc, dets.mission)
+    rows = _rows(vessel, vessel.lat.values, vessel.lon.values, index)
     fp_all = gpd.read_file(DATA_DIR / "s1_footprints.gpkg", layer="s1_footprints_4326")
     passes = merge_passes(fp_all)
     aoi_ea = gpd.GeoSeries([aoi], crs="EPSG:4326").to_crs("EPSG:6933").iloc[0]
@@ -229,19 +255,17 @@ def regional_data(m, max_chips: int) -> tuple[dict, dict]:
         "land": _geojson(land_geoms), "aoi": _geojson([(aoi.simplify(0.02), {})]),
         "fps": _geojson([(g.simplify(0.01), {"id": r.product_id, "t": str(r.start_utc)[:16], "mis": r.mission,
                                               "km2": int(r.tested_km2)}) for g, r in zip(proc.geometry, proc.itertuples())]),
-        "dets": full, "low": low, "passes": pass_list,
+        "cols": COLS, "rows": rows, "scenes": scenes_tab, "n_low": int((dets.confidence == "low").sum()),
+        "passes": pass_list,
     }
     return data, chips
 
 
-def build_demo(out_html: Path, max_chips_regional: int = 500, max_chips_detail: int = 600) -> Path:
-    import mgrs
-
-    m = mgrs.MGRS()
-    reg, chips_r = regional_data(m, max_chips_regional)
-    det, det_img, chips_d = camau_data(m, max_chips_detail)
+def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: int = 400) -> Path:
+    reg, chips_r = regional_data(max_chips_regional)
+    det, det_img, chips_d = camau_data(max_chips_detail)
     data = {"regional": reg, "detail": det, "chips": {**chips_r, **chips_d}, "caveat": DARK_CAVEAT,
-            "has_ml": any("cnn" in d for d in det["dets"])}
+            "has_ml": "cnn" in det}
     html = TEMPLATE.read_text()
     leaflet_css = Path(__file__).with_name("leaflet-1.9.4.css").read_text()
     html = (html.replace("/*__LEAFLET_CSS__*/", leaflet_css)
