@@ -16,16 +16,14 @@ Counting rules
 
 from __future__ import annotations
 
-import gzip
 import hashlib
 import io
 import json
 import re
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq

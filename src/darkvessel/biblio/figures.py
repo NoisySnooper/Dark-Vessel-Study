@@ -335,7 +335,6 @@ def fig_sea_vietnam(sea: pd.DataFrame, out: Path, snapshot: str, n: int, note: s
 
     sea_on, sea_off = per_year(on_flag), per_year(~on_flag)
     vn_on, vn_off = per_year(on_flag & vn_flag), per_year(~on_flag & vn_flag)
-    n_sea, n_vn = len(sea), int(vn_flag.sum())
     h_sea, h_vn, gap_in = 3.0, 1.55, 1.1
     top_in, bottom_in = 1.9, 0.95
     fig_h = top_in + h_sea + gap_in + h_vn + bottom_in

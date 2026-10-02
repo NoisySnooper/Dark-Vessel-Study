@@ -33,7 +33,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from . import themes as T
-from .snapshot import WORKS_MANIFEST_URL, RangeClient, RemoteParquet, https_url
+from .snapshot import WORKS_MANIFEST_URL, RangeClient, RemoteParquet
 
 # ---------------------------------------------------------------------------
 # columns

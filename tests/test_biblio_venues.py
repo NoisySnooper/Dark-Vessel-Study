@@ -217,12 +217,13 @@ def test_anchor_table_uses_the_actual_merge_reason_and_summary_by_id():
 def test_csv_output_has_no_em_dash(tmp_path):
     import pandas as pd
 
-    df = pd.DataFrame({"title": ["A study — of ships", None], "n": [1, 2]})
+    em = chr(0x2014)  # written as a code point so this file has no em dash
+    df = pd.DataFrame({"title": [f"A study {em} of ships", None], "n": [1, 2]})
     path = tmp_path / "t.csv"
     corpus._to_csv(df, path)
     text = path.read_text(encoding="utf-8")
-    assert "—" not in text and "A study - of ships" in text
-    assert df.loc[0, "title"].count("—") == 1  # the caller's frame is not modified
+    assert em not in text and "A study - of ships" in text
+    assert df.loc[0, "title"].count(em) == 1  # the caller's frame is not modified
 
 
 def test_rankings_break_ties_by_key_not_by_hash_order():
