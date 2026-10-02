@@ -338,11 +338,19 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
     return data, chips
 
 
-def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: int = 400) -> Path:
-    reg, chips_r = regional_data(max_chips_regional)
-    det, det_img, chips_d = camau_data(max_chips_detail)
-    data = {"regional": reg, "detail": det, "chips": {**chips_r, **chips_d}, "caveat": DARK_CAVEAT,
-            "has_ml": "cnn" in det}
+def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: int = 400, reuse: bool = False) -> Path:
+    """Write the page. reuse=True takes the data saved by the previous build (template-only changes)."""
+    cache = Path(out_html).with_suffix(".data.json")
+    if reuse and cache.exists():
+        saved = json.loads(cache.read_text())
+        data, det_img = saved["data"], saved["det_img"]
+    else:
+        reg, chips_r = regional_data(max_chips_regional)
+        det, det_img, chips_d = camau_data(max_chips_detail)
+        data = {"regional": reg, "detail": det, "chips": {**chips_r, **chips_d}, "caveat": DARK_CAVEAT,
+                "has_ml": "cnn" in det}
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps({"data": data, "det_img": det_img}, separators=(",", ":")))
     html = TEMPLATE.read_text()
     leaflet_css = Path(__file__).with_name("leaflet-1.9.4.css").read_text()
     html = (html.replace("/*__LEAFLET_CSS__*/", leaflet_css)

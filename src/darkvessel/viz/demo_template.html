@@ -298,7 +298,7 @@ const rendR = L.canvas({ padding: 0.5, tolerance: 8 });
 L.geoJSON(R.land, { interactive: false, style: { stroke: false, fillColor: css("--map-land"), fillOpacity: 1 } }).addTo(mapR);
 const covLayer = L.imageOverlay(R.cov_img, R.cov_bounds, { opacity: 0.85, interactive: false }).addTo(mapR);
 L.geoJSON(R.aoi, { interactive: false, style: { color: css("--map-aoi"), weight: 1, fill: false } }).addTo(mapR);
-const fpLayer = L.geoJSON(R.fps, { style: { color: "#d95926", weight: 1, fill: false, opacity: 0.9 },
+const fpLayer = L.geoJSON(R.fps, { style: { color: css("--ink-2"), weight: 1, dashArray: "3 3", fill: false, opacity: 0.8 },
   onEachFeature: (f, l) => l.bindTooltip(`${f.properties.mis} ${f.properties.t} UTC · ${fmt(f.properties.km2)} km² of sea tested`) }).addTo(mapR);
 // One tooltip and one click handler per class group (not per marker): tens of thousands of contacts.
 ["low", "fixed", "medium", "high"].forEach((k) => {
@@ -502,6 +502,7 @@ const steps = [
   ["Detect", "Cell-averaging CFAR on calibrated VV and VH, false-alarm rate 1e-6, gamma clutter with one ENL per scene."],
   ["Fuse and grade", "VV and VH objects within 30 m merged. Both channels = higher confidence; weak VV-only or longer than 450 m = low."],
   ["Persistence", "Each candidate checked on up to two earlier passes of the same orbit (20 m overview). A return there every time = fixed structure."],
+  ["Clutter zones", `A candidate among 5 or more weak returns within 1 km (rain cells, wind fronts, aquaculture rafts) moves to the low class: ${fmt(RS.clutter_zone_downgraded || 0)} in this run.`],
 ];
 const next = [
   ["CNN verifier (in training)", "A small network trained on AI2 Skylight expert labels from Sentinel-1A/1B re-scores candidates. Applying it here is the 1A to 1C/1D transfer test."],
@@ -512,7 +513,7 @@ $("limits").innerHTML = [
   ["Half the sea is not watched.", "Free wide-swath SAR skipped the central South China Sea for the whole 90 days. Counts here cover only the imaged ring."],
   ["No AIS yet.", "The matcher is built and tested on synthetic data; the AIS source is pending, so nothing here is called dark."],
   ["AIS is the wrong yardstick for small Vietnamese boats.", "Most small fishing boats need not carry AIS. Vietnam's compliance stream for fishing vessels of 15 m and longer is VMS, which is not open data. A sovereign deployment would match radar contacts against VMS as well as AIS, and report \"no AIS match\" and \"no VMS match\" separately."],
-  ["Baseline detector.", "CA-CFAR fires on wind streaks and slick edges in VV; those land in the low class (hidden by default) until the CNN verifier is in place."],
+  ["Baseline detector.", "CA-CFAR fires on rain cells, wind fronts, slick edges and aquaculture rafts. Weak VV-only returns and clutter zones go to the low class (hidden by default). On labelled scenes the clutter rule loses about 2 % of real vessels, and it can hide a very dense fleet of small boats."],
   ...(R.label_check ? [["One-channel contacts are mostly leads, not boats.", (() => { const L = R.label_check, pc = (v) => Math.round(v * 100);
     return `Same detector on ${fmt(L.scenes)} Sentinel-1A/1B scenes in Southeast Asia with AI2 expert labels: ${pc(L.high.vessel)} % of both-channel candidates and ${pc(L.medium.vessel)} % of one-channel candidates lay within 50 m of a labelled vessel (${pc(L.high.vessel + L.high.ambiguous)} % and ${pc(L.medium.vessel + L.medium.ambiguous)} % within 150 m). The labels miss some real ships, so these are lower bounds, and 1C/1D may differ.`; })()]] : []),
   ["Lengths are rough.", "Pixel extent at 10 m spacing: anything under about 20 m reads as 20 m, and bright hulls bloom."],
