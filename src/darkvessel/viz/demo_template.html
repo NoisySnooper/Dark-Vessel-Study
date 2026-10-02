@@ -14,6 +14,7 @@
   --caveat-bg: #fbf1d3; --caveat-ink: #523c00; --caveat-rule: #e3cd86;
   --c-high: #2a78d6; --c-medium: #eb6834; --c-fixed: #1baf7a; --c-low: #898781;
   --m-high: #3987e5; --m-medium: #d95926; --m-fixed: #199e70; --m-low: #a3a199;
+  --c-light: #eda100; --m-light: #c98500; --light-edge: #121715;
   --f-display: "Archivo Narrow", "Arial Narrow", system-ui, sans-serif;
   --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-data: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -24,7 +25,7 @@
     --accent: #62b3dc; --accent-soft: #14262f;
     --map-sea: #121817; --map-land: #2c3230; --map-aoi: #e7ebe8;
     --caveat-bg: #2a2412; --caveat-ink: #f0d48a; --caveat-rule: #4a3f1c;
-    --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781;
+    --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781; --c-light: #c98500;
     color-scheme: dark;
   }
 }
@@ -33,7 +34,7 @@
   --accent: #62b3dc; --accent-soft: #14262f;
   --map-sea: #121817; --map-land: #2c3230; --map-aoi: #e7ebe8;
   --caveat-bg: #2a2412; --caveat-ink: #f0d48a; --caveat-rule: #4a3f1c;
-  --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781;
+  --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781; --c-light: #c98500;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -76,11 +77,15 @@ p { margin: 0; }
 .readout { font-family: var(--f-data); font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .covkey { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12px; color: var(--ink-2); }
 .covkey i { width: 14px; height: 10px; display: inline-block; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.covkey .vkey { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.covkey i.vdot { width: 9px; height: 9px; border-radius: 50%; background: var(--m-light); border: 1px solid var(--light-edge); }
+.covkey i.vring { width: 11px; height: 11px; border-radius: 50%; border: 1.6px dashed var(--m-light); background: none; }
 .scalebar { background: rgba(11, 14, 16, 0.72); color: #e8ece9; font: 11px var(--f-data); padding: 4px 8px 5px; border-radius: 4px; }
 .scalebar i { display: block; height: 4px; border: 1px solid #e8ece9; border-top: 0; margin-top: 3px; }
 .leaflet-tooltip { font: 12px var(--f-data); }
 .inspector { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
 .chipbox { display: grid; gap: 6px; }
+.chipbox[hidden] { display: none; }
 .chipbox img { width: 100%; max-width: 340px; image-rendering: pixelated; border-radius: 4px; background: var(--well); }
 .chiplbl { display: grid; grid-template-columns: 1fr 1fr; max-width: 340px; font: 12px var(--f-data); color: var(--muted); }
 .chiplbl span:last-child { text-align: right; }
@@ -106,6 +111,7 @@ tr.sel td { background: var(--accent-soft); }
 .labeler kbd { font: 11px var(--f-data); color: inherit; opacity: 0.7; }
 .lbl-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .lbl-count { font: 12px var(--f-data); color: var(--ink-2); }
+.labeler.off .lbl-btns { opacity: 0.45; pointer-events: none; }
 .labeler textarea { width: 100%; font: 11px var(--f-data); background: var(--bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; }
 section.block { display: grid; gap: 14px; border-top: 1px solid var(--rule); padding-top: 22px; }
 .lede { color: var(--ink-2); max-width: 72ch; }
@@ -173,7 +179,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 12.5px
         <p class="eyebrow">Selected contact</p>
         <h2 id="sel-title">&nbsp;</h2>
       </div>
-      <div class="chipbox">
+      <div class="chipbox" id="chipbox">
         <img id="chip" alt="Radar chip of the selected contact, VV left, VH right" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
         <div class="chiplbl"><span>VV &middot; 480 m</span><span>VH &middot; 480 m</span></div>
       </div>
@@ -327,6 +333,26 @@ function styleR() {
 }
 mapR.on("zoomend", styleR);
 styleR();
+// ---- Night lights (VIIRS): regional view only, off by default. Yellow is the fourth hue, so shape carries
+// the class: filled dots with a dark edge for one night's lights, dashed rings for lights that recur.
+const V = R.viirs || null;
+const viirsLayer = L.layerGroup();
+const hhmm = (m) => `${p2(Math.floor(m / 60) % 24)}:${p2(Math.round(m) % 60)}`;
+let VO = [], VP = [];
+if (V) {
+  const rowsOf = (src, kind) => { decodeCols(src); return src.rows.map((r) => { const o = { kind }; src.cols.forEach((k, j) => { o[k] = r[j]; }); return o; }); };
+  VO = rowsOf(V.one, "one"); VP = rowsOf(V.persistent, "persistent");
+  const yel = css("--m-light"), edge = css("--light-edge"), vMarkers = [];
+  const gP = L.featureGroup(), gO = L.featureGroup();
+  gP.bindTooltip((l) => { const d = VP[l.options.i]; return `Recurring light · ${d.ns} of ${V.nights} nights`; }, { direction: "top", offset: [0, -5] });
+  gO.bindTooltip((l) => { const d = VO[l.options.i]; return `Light at sea · ${V.sats[d.sat] || "?"} ${hhmm(d.min)} UTC · ${fmt(d.rad)} nW`; }, { direction: "top", offset: [0, -5] });
+  gP.on("click", (e) => selectLight(VP[e.layer.options.i]));
+  gO.on("click", (e) => selectLight(VO[e.layer.options.i]));
+  VP.forEach((d, i) => { const mk = L.circleMarker([d.lat, d.lon], { renderer: rendR, radius: 4, color: yel, weight: 1.5, dashArray: "2 2", fill: false, i }); vMarkers.push([mk, 1]); mk.addTo(gP); });
+  VO.forEach((d, i) => { const mk = L.circleMarker([d.lat, d.lon], { renderer: rendR, radius: 2.4, color: edge, weight: 0.7, fillColor: yel, fillOpacity: 1, i }); vMarkers.push([mk, 0]); mk.addTo(gO); });
+  gP.addTo(viirsLayer); gO.addTo(viirsLayer);
+  mapR.on("zoomend", () => { const big = mapR.getZoom() >= 6; vMarkers.forEach(([mk, ring]) => mk.setRadius(ring ? (big ? 7 : 4) : (big ? 3.6 : 2.4))); });
+}
 L.control.scale({ imperial: false, position: "bottomleft" }).addTo(mapR);
 mapR.on("mousemove", (e) => { $("readout").textContent = `${dm(e.latlng.lat, "N", "S")}  ${dm(e.latlng.lng, "E", "W")}`; });
 
@@ -374,6 +400,7 @@ function buildToggles() {
     `<label class="toggle"><input type="checkbox" id="tg-${k}"><i class="swatch" style="color:var(--c-${k})"></i>${LABEL[k]} <span class="n">${fmt(c[k])}</span></label>`).join("");
   if (view === "r") html += `<span class="toggle" title="Not drawn at regional scale"><i class="swatch" style="color:var(--c-low)"></i>${LABEL.low} <span class="n">${fmt(c.low)}</span></span>`;
   if (view === "r") html += `<label class="toggle"><input type="checkbox" id="tg-cov" ${mapR.hasLayer(covLayer) ? "checked" : ""}>Coverage</label><label class="toggle"><input type="checkbox" id="tg-fp" ${mapR.hasLayer(fpLayer) ? "checked" : ""}>Scenes processed</label>`;
+  if (view === "r" && V) html += `<label class="toggle"><input type="checkbox" id="tg-viirs" ${mapR.hasLayer(viirsLayer) ? "checked" : ""}><i class="swatch" style="color:var(--m-light)"></i>Night lights (VIIRS) <span class="n">${fmt(VO.length)}</span></label>`;
   $("toggles").innerHTML = html;
   const m = view === "r" ? mapR : mapX;
   keys.forEach((k) => {
@@ -383,10 +410,17 @@ function buildToggles() {
   if (view === "r") {
     $("tg-cov").addEventListener("change", (e) => e.target.checked ? covLayer.addTo(mapR) : mapR.removeLayer(covLayer));
     $("tg-fp").addEventListener("change", (e) => e.target.checked ? fpLayer.addTo(mapR) : mapR.removeLayer(fpLayer));
-    $("covkey").innerHTML = `<span>Passes in 90 days:</span>` + R.cov_legend.map((l) => `<span><i style="background:${l.color}"></i>${l.label}</span>`).join("");
+    if (V) $("tg-viirs").addEventListener("change", (e) => { e.target.checked ? viirsLayer.addTo(mapR) : mapR.removeLayer(viirsLayer); keyR(); });
+    keyR();
   } else {
     $("covkey").innerHTML = `<span>Radar backdrop: Sentinel-1D VV, ${esc(X.summary.acq_local_ict.slice(0, 16).replace("T", " "))} local time. Land dark, 1 km shore buffer dimmed.</span>`;
   }
+}
+function keyR() {
+  let h = `<span>Passes in 90 days:</span>` + R.cov_legend.map((l) => `<span><i style="background:${l.color}"></i>${l.label}</span>`).join("");
+  if (V && mapR.hasLayer(viirsLayer)) h += `<span class="vkey"><span><i class="vdot"></i>Light at sea, night of ${V.night}, ${hhmm(V.window_utc_min[0] + 420)} to ${hhmm(V.window_utc_min[1] + 420)} UTC+7, moon ${Math.round(V.moon_pct)} % lit</span>` +
+    `<span><i class="vring"></i>Recurring light: same spot on ${V.rule} or more of ${V.nights} nights</span><span>Lights are hours away from any radar pass and are not matched to radar contacts.</span></span>`;
+  $("covkey").innerHTML = h;
 }
 function setView(v) {
   view = v;
@@ -407,6 +441,7 @@ function select(id, pan) {
   const d = byId[id]; if (!d) return;
   if (d.view !== view) setView(d.view);
   current = id;
+  $("chipbox").hidden = false;
   $("sel-title").innerHTML = `<span class="cls"><i class="swatch" style="color:var(--c-${d.c})"></i>${LABEL[d.c]}</span>`;
   $("chip").src = D.chips[id] ? "data:image/jpeg;base64," + D.chips[id] : "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
   let mg = "n/a"; try { if (window.mgrs) mg = window.mgrs.forward([d.lon, d.lat], 4); } catch (e) { mg = "n/a"; }
@@ -415,6 +450,8 @@ function select(id, pan) {
     row("Peak σ⁰ VV / VH", `${db(d.vv)} / ${db(d.vh)}`) + row("Contrast VV / VH", `${db(d.svv)} / ${db(d.svh)}`) +
     row("Incidence", d.inc === null ? "n/a" : `${d.inc.toFixed(1)}°`) + row("Seen on earlier passes", `${d.per} of ${d.perN}`);
   if (d.cnn !== undefined) html += row("CNN vessel score", d.cnn.toFixed(2));
+  if (d.wnd !== undefined) html += row("Wind (GFS, nearest hour)", d.wnd === null ? "n/a" : `${d.wnd.toFixed(1)} m/s`);
+  if (d.ctt !== undefined) html += row("Cloud top (Himawari-9)", d.ctt === null ? "no cloud" : `${Math.round(d.ctt)} K${d.ctt < 220 ? " · deep convection" : ""}`);
   html += row("AIS", "not checked (no AIS source connected)");
   $("attrs").innerHTML = html;
   const m = d.view === "r" ? mapR : mapX, ll = d.view === "r" ? [d.lat, d.lon] : [-d.y, d.x];
@@ -422,6 +459,30 @@ function select(id, pan) {
   selRing = L.circleMarker(ll, { radius: 11, color: "#ffffff", weight: 2, fill: false, interactive: false }).addTo(m);
   if (pan) m.flyTo(ll, Math.max(m.getZoom(), d.view === "r" ? 9 : 1), { duration: 0.6 });
   document.querySelectorAll("#top tbody tr").forEach((tr) => tr.classList.toggle("sel", tr.dataset.id === id));
+  refreshLabelUI();
+}
+function selectLight(d) {
+  current = null;
+  const one = d.kind === "one";
+  $("sel-title").innerHTML = `<span class="cls"><i class="swatch" style="color:var(--m-light)"></i>${one ? "Light at sea (VIIRS)" : "Recurring light (VIIRS)"}</span>`;
+  $("chipbox").hidden = true;
+  let mg = "n/a"; try { if (window.mgrs) mg = window.mgrs.forward([d.lon, d.lat], 4); } catch (e) { mg = "n/a"; }
+  let html = row("Position", `${dm(d.lat, "N", "S")} ${dm(d.lon, "E", "W")}`) + row("MGRS", mg);
+  if (one) {
+    html += row("Seen", `${V.night} ${hhmm(d.min)} UTC (${hhmm(d.min + 420)} UTC+7)`) + row("Satellite", esc(V.sats[d.sat] || "n/a")) +
+      row("Radiance", `${fmt(d.rad)} nW cm⁻² sr⁻¹`) + row("Sky", d.q ? "cloud (kept: bright and isolated)" : "clear") +
+      row("Moon", `${Math.round(V.moon_pct)} % lit`) + row("Nights with a light within 500 m", `${d.ns} of ${V.nights}`);
+  } else {
+    const km = d.infra;
+    html += row("Nights with a light within 500 m", `${d.ns} of ${V.nights}`) + row("Radiance, one night", `${fmt(d.rad)} nW cm⁻² sr⁻¹`) +
+      row("Nearest Satlas platform or turbine", km === null ? "n/a" : km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`) +
+      row("Likely", km !== null && km <= 1 ? "platform or turbine" : "platform, flare, island or navigation light, or an anchorage");
+  }
+  html += row("Radar", "hours from any radar pass; not matched") + row("AIS", "not checked (no AIS source connected)");
+  $("attrs").innerHTML = html;
+  if (selRing) selRing.remove();
+  selRing = L.circleMarker([d.lat, d.lon], { radius: 11, color: "#ffffff", weight: 2, fill: false, interactive: false }).addTo(mapR);
+  document.querySelectorAll("#top tbody tr").forEach((tr) => tr.classList.remove("sel"));
   refreshLabelUI();
 }
 const best = (d) => Math.max(d.svv ?? -99, d.svh ?? -99);
@@ -438,6 +499,7 @@ let labels = {};
 try { labels = JSON.parse(localStorage.getItem(LKEY) || "{}") || {}; } catch (e) { labels = {}; }
 function saveLabels() { try { localStorage.setItem(LKEY, JSON.stringify(labels)); } catch (e) { /* storage blocked */ } }
 function refreshLabelUI() {
+  document.querySelector(".labeler").classList.toggle("off", !current);
   ["vessel", "structure", "clutter", "unsure"].forEach((l) => $("lb-" + l).setAttribute("aria-pressed", String(!!current && labels[current] === l)));
   $("lbl-count").textContent = `${Object.keys(labels).length} labeled`;
 }
@@ -504,6 +566,8 @@ const steps = [
   ["Persistence", "Each candidate checked on up to two earlier passes of the same orbit (20 m overview). A return there every time = fixed structure."],
   ["Clutter zones", `A candidate among 5 or more weak returns within 1 km (rain cells, wind fronts, aquaculture rafts) moves to the low class: ${fmt(RS.clutter_zone_downgraded || 0)} in this run.`],
 ];
+if (R.weather) steps.push(["Weather context", `GFS 10 m wind of the nearest hour and Himawari-9 cloud-top temperature of the nearest 10 minutes at every contact (shown in the inspector). Clutter-flagged objects lie under deep convection (cloud tops below 220 K) ${Math.round(R.weather.clutter * 100)} % of the time, both-channel candidates ${Math.round(R.weather.high * 100)} %.`]);
+if (V) steps.push(["Night lights", `VIIRS Day/Night Band night passes of ${V.sats.join(", ")} on ${V.nights} nights, ${V.night_range[0]} to ${V.night_range[1]}. Point lights over open sea are found as spikes above the local background (after Elvidge et al. 2015), screened with the VIIRS cloud mask, and called recurring when a light returns to the same spot on ${V.rule} or more nights.`]);
 const next = [
   ["CNN verifier (trained, under test on 1D)", "A small network trained on AI2 Skylight expert labels from Sentinel-1A/1B. On held-out 1A/1B scenes it lifts precision from 9 % to 77 % for a recall drop from 80 % to 75 %. On the Ca Mau 1D scene it keeps 149 of 720 candidates and nothing under 25 m, because its labels are mostly large ships. Scores show in the Ca Mau inspector; your labels decide whether it transfers."],
   ["AIS correlation (built, no data yet)", "Matcher interpolates AIS to the radar time and assigns contacts one to one. Unmatched candidates become dark candidates."],
@@ -519,8 +583,9 @@ $("limits").innerHTML = [
   ["Lengths are rough.", "Pixel extent at 10 m spacing: anything under about 20 m reads as 20 m, and bright hulls bloom."],
   ["Fixed versus moored.", "The persistence test also flags a boat moored in the same spot on every pass checked."],
   ["Snapshots, not tracks.", "Each scene is a 25-second look. Different passes are not linked into tracks."],
+  ...(V ? [["A light at sea is not proof of a vessel.", `VIIRS sees lights at about ${hhmm(V.window_utc_min[0] + 420)} to ${hhmm(V.window_utc_min[1] + 420)} UTC+7, hours from any radar pass, so lights and radar contacts are not matched. Platforms, flares and island lights recur and are ringed, but a new platform or a moored lit boat can look like a one-night light. Thick cloud and a bright moon hide lights, and boats with dim or no lights are not seen. A lit boat may or may not carry AIS; with no AIS connected, no light here is called dark.`]] : []),
 ].map(([b, t]) => `<li><b>${b}</b> ${t}</li>`).join("");
-$("foot").innerHTML = `<p>Contains modified Copernicus Sentinel data 2026, read from the AWS Open Data mirror of Sentinel-1 GRD. Land mask: ESA WorldCover 2021 v200, CC BY 4.0. AOI and coastline: Natural Earth (public domain); no maritime boundaries or claims are drawn. Map viewer: Leaflet (BSD-2-Clause).</p><p>${esc(D.caveat)}</p>`;
+$("foot").innerHTML = `<p>Contains modified Copernicus Sentinel data 2026, read from the AWS Open Data mirror of Sentinel-1 GRD. Land mask: ESA WorldCover 2021 v200, CC BY 4.0. AOI and coastline: Natural Earth (public domain); no maritime boundaries or claims are drawn. Map viewer: Leaflet (BSD-2-Clause).</p>${V ? `<p>Night lights: VIIRS Day/Night Band SDR, geolocation and JRR cloud mask from NOAA JPSS (S-NPP, NOAA-20, NOAA-21) on the AWS Open Data Registry; detector after Elvidge et al. 2015, Remote Sensing 7(3), doi:10.3390/rs70303020. Offshore platforms and turbines: Satlas marine infrastructure (AI2), ODC-BY.</p>` : ""}${R.weather ? `<p>Wind: NOAA GFS 0.25 degree. Cloud tops: NOAA Himawari-9 AHI Level 2 cloud height. Both from the NOAA Open Data Dissemination buckets on AWS.</p>` : ""}<p>${esc(D.caveat)}</p>`;
 
 // ---- Start
 setView("r");

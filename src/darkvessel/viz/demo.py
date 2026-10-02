@@ -21,6 +21,7 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import pyogrio
 import rasterio
 from PIL import Image
 from pyproj import Transformer
@@ -316,6 +317,69 @@ def label_check() -> dict | None:
     return out
 
 
+VIIRS_SATS = ["S-NPP", "NOAA-20", "NOAA-21"]
+
+
+def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
+    """VIIRS lights at sea for the page: every light of one dark night, plus the recurring lights.
+
+    The night shown is the one with the most clear-sky lights among nights with the moon at most
+    `max_moon_pct` illuminated (lit fishing and detection both suffer under a bright moon); recurring
+    lights are thinned to one point per 0.005 degree. Source: data/viirs_lights.gpkg (scripts/15).
+    """
+    path = DATA_DIR / "viirs_lights.gpkg"
+    if not path.exists():
+        return None
+    d = pyogrio.read_dataframe(path, layer="viirs_lights_4326", read_geometry=False,
+                               columns=["light_id", "satellite", "time_utc", "night", "lat", "lon", "radiance_nw",
+                                        "quality", "class", "nights_seen_500m", "moon_illum_pct", "satlas_infra_m"])
+    per = d[d.quality == "clear"].groupby("night").agg(n=("light_id", "size"), moon=("moon_illum_pct", "median"))
+    dark = per[per.moon <= max_moon_pct]
+    night = (dark if len(dark) else per).n.idxmax()
+    one = d[(d.night == night) & (d["class"] == "lit_vessel_candidate")].reset_index(drop=True)
+    pers = d[d["class"] == "persistent_light"].copy()
+    pers["k"] = (pers.lat / 0.005).round().astype(int).astype(str) + "_" + (pers.lon / 0.005).round().astype(int).astype(str)
+    pers = pers.sort_values("nights_seen_500m", ascending=False).drop_duplicates("k").reset_index(drop=True)
+    t = pd.to_datetime(one.time_utc, utc=True)
+
+    def pack(df, extra):
+        out = {"lat": _b64col(np.round(df.lat.to_numpy(float) * 1e5).astype("<i4"), "i32", 1e5),
+               "lon": _b64col(np.round(df.lon.to_numpy(float) * 1e5).astype("<i4"), "i32", 1e5),
+               "rad": _b64col(np.clip(np.round(df.radiance_nw.to_numpy(float)), 0, 65535).astype("<u2"), "u16"),
+               "ns": _b64col(np.clip(df.nights_seen_500m.to_numpy(int), 0, 255).astype("<u1"), "u8")}
+        out.update(extra)
+        return out
+
+    sats = one.satellite.map({s: i for i, s in enumerate(VIIRS_SATS)}).fillna(255).to_numpy("<u1")
+    mins = ((t - t.dt.normalize()).dt.total_seconds() // 60).to_numpy("<u2")
+    nights = sorted(d.night.unique())
+    summary = DATA_DIR / "viirs_summary.json"
+    rule = json.loads(summary.read_text())["persistent_rule_nights"] if summary.exists() else max(3, int(np.ceil(0.3 * len(nights))))
+    # distance to the nearest Satlas point in units of 10 m (decodes to km); 65535 = not available
+    infra = pers.satlas_infra_m.to_numpy(float) / 10
+    infra = np.where(np.isfinite(infra), np.clip(np.round(infra), 0, 65534), 65535).astype("<u2")
+    return {
+        "night": str(night), "moon_pct": float(per.loc[night, "moon"]), "nights": len(nights),
+        "night_range": [str(nights[0]), str(nights[-1])], "sats": VIIRS_SATS, "rule": int(rule),
+        "window_utc_min": [int(mins.min()), int(mins.max())] if len(one) else [0, 0],
+        "one": {"n": int(len(one)), "cols": ["lat", "lon", "rad", "ns", "q", "sat", "min"],
+                "colz": pack(one, {"q": _b64col((one.quality != "clear").to_numpy("<u1"), "u8"),
+                                   "sat": _b64col(sats, "u8"), "min": _b64col(mins, "u16")})},
+        "persistent": {"n": int(len(pers)), "cols": ["lat", "lon", "rad", "ns", "infra"],
+                       "colz": pack(pers, {"infra": _b64col(infra, "u16", 100, 65535)})},
+        "lights_total": int(len(d)), "persistent_total": int((d["class"] == "persistent_light").sum()),
+    }
+
+
+def weather_shares() -> dict | None:
+    """Share of objects under deep convection by group, from data/weather_context.json (scripts/16)."""
+    path = DATA_DIR / "weather_context.json"
+    if not path.exists():
+        return None
+    by = {g["group"]: g["deep_convection_share"] for g in json.loads(path.read_text())["by_group"]}
+    return {"clutter": by.get("clutter_zone"), "high": by.get("high"), "medium": by.get("medium"), "fixed": by.get("fixed")}
+
+
 def regional_data(max_chips: int) -> tuple[dict, dict]:
     summary = json.loads((DATA_DIR / "regional_summary.json").read_text())
     cov = json.loads((DATA_DIR / "s1_coverage.json").read_text())
@@ -341,6 +405,14 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
     vessel = dets[dets.confidence != "low"].reset_index(drop=True)
     scenes_tab, index = _scene_table(dets.det_id, dets.scene_id, dets.acq_utc, dets.mission)
     colz = _cols_b64(vessel, vessel.lat.values, vessel.lon.values, index)
+    cols = list(COLS)
+    wx_path = DATA_DIR / "weather_context.parquet"
+    if wx_path.exists():  # wind and cloud-top temperature at each contact (scripts/16_weather_context.py)
+        wx = vessel[["det_id"]].merge(pd.read_parquet(wx_path, columns=["det_id", "wind_ms", "ctt_k"]), on="det_id", how="left")
+        q = lambda v: np.where(np.isfinite(v), np.round(v * 10), -32768).astype("<i2")  # noqa: E731
+        colz["wnd"] = _b64col(q(wx.wind_ms.to_numpy(float)), "i16", 10, -32768)
+        colz["ctt"] = _b64col(q(wx.ctt_k.to_numpy(float)), "i16", 10, -32768)
+        cols += ["wnd", "ctt"]
     fp_all = gpd.read_file(DATA_DIR / "s1_footprints.gpkg", layer="s1_footprints_4326")
     passes = merge_passes(fp_all)
     aoi_ea = gpd.GeoSeries([aoi], crs="EPSG:4326").to_crs("EPSG:6933").iloc[0]
@@ -356,9 +428,9 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
         "land": _geojson(land_geoms), "aoi": _geojson([(aoi.simplify(0.02), {})]),
         "fps": _geojson([(g.simplify(0.01), {"id": r.product_id, "t": str(r.start_utc)[:16], "mis": r.mission,
                                               "km2": int(r.tested_km2)}) for g, r in zip(proc.geometry, proc.itertuples())]),
-        "cols": COLS, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
+        "cols": cols, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
         "n_low": int(summary["classes"].get("low", 0)),
-        "passes": pass_list, "label_check": label_check(), "queue": queue,
+        "passes": pass_list, "label_check": label_check(), "queue": queue, "viirs": viirs_data(), "weather": weather_shares(),
         "queue_rule": {"hash": "sha1(det_id)[:8] / 2^32 < rate", "rates": QUEUE_RATES},
     }
     return data, chips

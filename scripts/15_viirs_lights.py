@@ -10,6 +10,10 @@ in data/cache/viirs/. --merge separates recurring lights from the rest and write
                                     mean lights per night per 1,000 km2 (persistent lights excluded), 0.25 degree
   data/viirs_summary.json, docs/figures/viirs_lights.png
 
+Two checks against the radar products: the share of lights where Sentinel-1 took no image in 90 days
+(column s1_passes_90d, from data/outputs/small/s1_passes_4326.tif), and the rank correlation of the
+light density with the radar vessel density on the same 0.25 degree grid (scripts/10_regional_density.py).
+
 Classes:
   lit_vessel_candidate  a light that does not recur at the same spot
   persistent_light      lights within 500 m on at least max(3, 30 %) of the nights processed:
@@ -18,12 +22,14 @@ A light at sea is not proof of a vessel, and a lit vessel is not a dark vessel: 
 evidence that something lit was there at about 01:30 local time.
 
 Usage: python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01 --workers 3   then   --merge
+       python scripts/15_viirs_lights.py --retry   (rerun granules that failed, then --merge)
 """
 
 import argparse
 import datetime as dt
 import json
 import time
+from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 
 import geopandas as gpd
@@ -35,6 +41,8 @@ from shapely.geometry import Polygon
 
 from darkvessel.aoi import aoi_gdf, natural_earth_land
 from darkvessel.config import CRS_UTM_REGIONAL, DARK_CAVEAT, DARK_CAVEAT_SHORT, DATA_DIR, DEFAULT_AOI
+
+FIG_DIR = Path(__file__).resolve().parents[1] / "docs" / "figures"
 
 CACHE = DATA_DIR / "cache" / "viirs"
 SATS = ("S-NPP", "NOAA-20", "NOAA-21")
@@ -124,6 +132,23 @@ def run(start: dt.date, end: dt.date, workers: int):
                 print(f"[{time.time() - t0:6.0f}s] {i}/{len(jobs)} {gid} {n} lights {err or ''}", flush=True)
 
 
+def retry(workers: int):
+    """Rerun granules that left an .error file (transient network failures), keep the rest."""
+    errs = sorted(CACHE.glob("*.error"))
+    keys = {}
+    for p in sorted((CACHE / "index").glob("*.json")):
+        sat = p.stem.split("_", 1)[1]
+        for k in json.loads(p.read_text()):
+            keys[k.rsplit("/", 1)[-1][:40]] = (sat, k)
+    jobs = [keys[e.stem] for e in errs if e.stem in keys]
+    print(f"{len(errs)} failed granules, {len(jobs)} found in the index", flush=True)
+    for e in errs:
+        e.unlink()
+    with ProcessPoolExecutor(workers) as ex:
+        for gid, n, err in ex.map(_work, jobs):
+            print(f"{gid} {n} lights {err or ''}", flush=True)
+
+
 def night_of(t: pd.Series) -> pd.Series:
     """Local calendar night: the UTC date of a pass near 18:00 UTC is the evening date in Vietnam (UTC+7)."""
     return (t + pd.Timedelta(hours=7) - pd.Timedelta(hours=12)).dt.date
@@ -162,6 +187,17 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
     except Exception as e:  # noqa: BLE001
         print("Satlas points not read:", repr(e)[:120], flush=True)
         det["satlas_infra_m"] = np.nan
+    # Sentinel-1 passes in 90 days at each light (0 = the radar never imaged that spot; -1 = outside the AOI grid)
+    import rasterio
+
+    with rasterio.open(DATA_DIR / "outputs" / "small" / "s1_passes_4326.tif") as ds:
+        passes, ptr = ds.read(1), ds.transform
+    pr = np.floor((det.lat.to_numpy() - ptr.f) / ptr.e).astype(int)
+    pc = np.floor((det.lon.to_numpy() - ptr.c) / ptr.a).astype(int)
+    inside = (pr >= 0) & (pr < passes.shape[0]) & (pc >= 0) & (pc < passes.shape[1])
+    s1 = np.full(len(det), -1, int)
+    s1[inside] = passes[pr[inside], pc[inside]]
+    det["s1_passes_90d"] = np.where(s1 == 65535, -1, s1)
     det["caveat"] = DARK_CAVEAT_SHORT + " A light at sea is not proof of a vessel."
     det = det.drop(columns=["row", "col"]).sort_values("time_utc").reset_index(drop=True)
     det.insert(0, "light_id", [f"{s[:1]}{s[-2:]}_{t:%Y%m%dT%H%M%S}_{i:06d}" for i, (s, t) in enumerate(zip(det.satellite, det.time_utc))])
@@ -225,10 +261,115 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
                "persistent_rule_nights": need, "sharp_single_pixel": int(det.sharp.sum()),
                "near_satlas_1km": int((det.satlas_infra_m <= 1000).sum()) if det.satlas_infra_m.notna().any() else None,
                "persistent_near_satlas_1km_share": round(float((det[det["class"] == "persistent_light"].satlas_infra_m <= 1000).mean()), 3)
-               if det.satlas_infra_m.notna().any() else None,
+               if det.satlas_infra_m.notna().any() and (det["class"] == "persistent_light").any() else None,
                "per_night": per_night.to_dict(orient="records")}
+    from scipy.stats import spearmanr
+
+    clear_lit = det[(det["class"] == "lit_vessel_candidate") & (det.quality == "clear")]
+    in_grid = clear_lit[clear_lit.s1_passes_90d >= 0]
+    summary["clear_lit_candidates"] = int(len(clear_lit))
+    summary["clear_lit_share_where_s1_never_imaged_90d"] = round(float((in_grid.s1_passes_90d == 0).mean()), 3) if len(in_grid) else None
+    sar_path = small / "vessel_density_regional_4326.tif"
+    if sar_path.exists():
+        with rasterio.open(sar_path) as ds:
+            sar, sar_tr = ds.read(1), ds.transform
+        if sar.shape == dens.shape and np.allclose(tuple(sar_tr)[:6], tuple(tr)[:6]):
+            both = (sar >= 0) & (dens >= 0)
+            rho = spearmanr(sar[both], dens[both])[0] if both.sum() > 10 else np.nan
+            summary["density_rank_correlation_viirs_vs_sar"] = {"spearman_rho": round(float(rho), 3), "cells": int(both.sum()),
+                                                               "note": "0.25 degree cells observed by both; different hours and targets"}
+    if len(nights) >= 5:
+        pn = per_night.copy()
+        pn["clear_lit"] = [int(((g["class"] == "lit_vessel_candidate") & (g.quality == "clear")).sum())
+                           for _, g in det.groupby(["night", "satellite"])]
+        summary["moon_vs_clear_lit_spearman"] = {s: round(float(spearmanr(g.moon, g.clear_lit)[0]), 3)
+                                                 for s, g in pn.groupby("satellite") if len(g) >= 5}
     (DATA_DIR / "viirs_summary.json").write_text(json.dumps(summary, indent=1, default=str))
     print(json.dumps({k: v for k, v in summary.items() if k != "per_night"}, indent=1, default=str))
+    figure(det, dens, tr, aoi, need, nights)
+
+
+def figure(det, dens, tr, aoi, need, nights):
+    """Map of mean lit-vessel density per pass with recurring lights, and lights per night against the moon."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import BoundaryNorm, ListedColormap
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+
+    from darkvessel.viz.style import INK, INK_2, MUTED, SERIES_EXTENDED, SERIES_LIGHT, apply_matplotlib_style
+
+    apply_matplotlib_style()
+    west, south, east, north = aoi.bounds
+    land = natural_earth_land(bbox=(west - 1, south - 1, east + 1, north + 1))
+    bins = [0, 1e-9, 0.5, 1, 2, 4, 8, 1e9]
+    labels = ["0", "under 0.5", "0.5-1", "1-2", "2-4", "4-8", "8+"]
+    colors = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
+    cmap, norm = ListedColormap(colors), BoundaryNorm(bins, len(colors))
+    fig = plt.figure(figsize=(10, 13.2))
+    ax = fig.add_axes([0.08, 0.34, 0.89, 0.55])
+    h, w = dens.shape
+    extent = (tr.c, tr.c + w * tr.a, tr.f + h * tr.e, tr.f)
+    gpd.GeoSeries([aoi], crs="EPSG:4326").plot(ax=ax, color="#e4e2dc", edgecolor="none", zorder=0.5)
+    ax.imshow(np.ma.masked_where(dens < 0, dens), cmap=cmap, norm=norm, extent=extent, interpolation="nearest", zorder=1)
+    land.plot(ax=ax, color="#c9c6bd", edgecolor="none", zorder=2)
+    gpd.GeoSeries([aoi], crs="EPSG:4326").boundary.plot(ax=ax, color=INK, linewidth=0.6, zorder=3)
+    pers = det[det["class"] == "persistent_light"]
+    pers = pers.assign(k=(pers.lat / 0.01).round().astype(int).astype(str) + "_" + (pers.lon / 0.01).round().astype(int).astype(str)).drop_duplicates("k")
+    ax.scatter(pers.lon, pers.lat, s=10, marker="o", facecolor=SERIES_EXTENDED[3], edgecolor=INK, linewidth=0.4, zorder=4)
+    pad = 0.6
+    ax.set_xlim(west - pad, east + pad)
+    ax.set_ylim(south - pad, north + pad)
+    ax.set_aspect(1 / np.cos(np.radians((south + north) / 2)))
+    ax.set_xlabel("Longitude (degrees E)", fontsize=9)
+    ax.set_ylabel("Latitude (degrees N)", fontsize=9)
+    ax.grid(True, zorder=0)
+    handles = [Patch(facecolor=c, edgecolor="none", label=l) for c, l in zip(colors, labels)]
+    handles.append(Line2D([], [], linestyle="none", marker="o", markersize=5, markerfacecolor=SERIES_EXTENDED[3], markeredgecolor=INK,
+                          markeredgewidth=0.5, label=f"recurring light ({need}+ of {len(nights)} nights)"))
+    ax.legend(handles=handles, title="Lit vessel candidates per\n1,000 km2 per satellite pass", loc="lower right", fontsize=9,
+              title_fontsize=9, frameon=True, facecolor="#fcfcfb", edgecolor="#e1e0d9")
+
+    # Lights per night by satellite, with the moon above
+    sats = [s for s in SATS if s in set(det.satellite)]
+    clear = det[(det["class"] == "lit_vessel_candidate") & (det.quality == "clear")]
+    ns = [str(n) for n in nights]
+    per = clear.groupby(["night", "satellite"]).size().unstack("satellite").reindex(ns)
+    moon = det.groupby("night").moon_illum_pct.median().reindex(ns)
+    x = pd.to_datetime(pd.Series(ns))
+    axm = fig.add_axes([0.08, 0.215, 0.89, 0.055])
+    axm.bar(x, moon.to_numpy(), width=0.8, color="#c3c2b7", zorder=2)
+    axm.set_ylim(0, 100)
+    axm.set_yticks([0, 50, 100])
+    axm.set_ylabel("Moon\n% lit", fontsize=8)
+    axm.tick_params(labelbottom=False, labelsize=8)
+    axm.grid(True, axis="y", zorder=0)
+    axn = fig.add_axes([0.08, 0.075, 0.89, 0.13], sharex=axm)
+    for s, c in zip(sats, SERIES_LIGHT):
+        if s in per:
+            axn.plot(x, per[s].to_numpy(), color=c, marker="o", markersize=3.5, linewidth=1.4, label=s, zorder=3)
+    axn.set_ylabel("Clear-sky lit\ncandidates", fontsize=8)
+    axn.tick_params(labelsize=8)
+    axn.grid(True, axis="y", zorder=0)
+    axn.set_ylim(bottom=0)
+    axn.legend(loc="upper left", fontsize=8, ncol=3)
+    axn.xaxis.set_major_locator(mdates.DayLocator(interval=3))
+    axn.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
+    fig.text(0.08, 0.975, "Lights at sea at night: South China Sea", fontsize=15, color=INK, fontweight="bold", va="top")
+    fig.text(0.08, 0.948, f"VIIRS Day/Night Band, {len(nights)} night{'s' if len(nights) != 1 else ''} ({nights[0]} to {nights[-1]}), about 00:00 to 03:00 UTC+7. "
+             f"Map: clear-sky lights that do not recur,\nper 1,000 km2 per satellite pass, 0.25 degree cells. Recurring lights are "
+             f"platforms, flares, island lights and anchorages.\nA light at sea is not proof of a vessel. {DARK_CAVEAT_SHORT}",
+             fontsize=9.5, color=INK_2, va="top")
+    fig.text(0.08, 0.012, "VIIRS DNB SDR, GEO and JRR cloud mask: NOAA JPSS on the AWS Open Data Registry. Detector after Elvidge "
+             "et al. 2015 (doi:10.3390/rs70303020).\nAOI and land: Natural Earth (public domain). No maritime boundaries or "
+             "claims are drawn. Night counts depend on swath geometry (one or two passes).", fontsize=7.5, color=MUTED, va="bottom")
+    FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(FIG_DIR / "viirs_lights.png", dpi=150)
+    plt.close(fig)
+    print("wrote", FIG_DIR / "viirs_lights.png", flush=True)
 
 
 if __name__ == "__main__":
@@ -237,8 +378,11 @@ if __name__ == "__main__":
     ap.add_argument("--end", type=dt.date.fromisoformat, default=dt.date(2026, 10, 1))
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--merge", action="store_true")
+    ap.add_argument("--retry", action="store_true")
     a = ap.parse_args()
     if a.merge:
         merge()
+    elif a.retry:
+        retry(a.workers)
     else:
         run(a.start, a.end, a.workers)
