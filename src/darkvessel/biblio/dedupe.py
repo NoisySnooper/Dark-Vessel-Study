@@ -13,12 +13,17 @@ Order of operations (see dedupe()):
    held by a repository (OpenAlex source type "repository") or a record with
    neither DOI nor venue. Primary means everything else. The published paper
    usually appears the year after the preprint;
+   When both records name a first author and the two share a name token, the year
+   window widens to three years, because preprints are often posted long before or
+   after the published version;
 6. merge a record that has neither DOI nor venue into any record whose normalised
-   title contains it or is contained by it (typical cause: "Article " or
-   "ORIGINAL ARTICLE " glued to the front of the title), years within one.
+   title contains it or is contained by it, years within one;
+7. merge two records with the same normalised title and the same normalised venue
+   name, years within one (online-first and print years of the same paper).
 
-Steps 5 and 6 also require the first authors to share a name token when both
-records have one. Within each merged group the published version is kept over the
+Labels such as "Article " or "ORIGINAL ARTICLE " glued to the front of a harvested
+title are removed by normalize_title. Steps 5 to 7 also require the first authors to
+share a name token when both records have one. Within each merged group the published version is kept over the
 preprint and repository copy. The kept record gets the union of the themes and a
 note listing what was merged in. Titles shorter than min_title_len characters are
 never merged on title alone, because generic titles ("Introduction") would collide.
@@ -31,6 +36,11 @@ import unicodedata
 from collections import defaultdict
 
 _TAGS = re.compile(r"<[^>]+>")
+# labels that MDPI and some repositories glue to the front of a harvested title
+_TITLE_LABELS = re.compile(
+    r"^(?:original\s+article|original\s+research|research\s+article|short\s+communication|technical\s+note|"
+    r"brief\s+report|article|review|letter|communication)\s+"
+)
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 _DOI_PREFIXES = ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "http://dx.doi.org/", "doi:")
 _PREPRINT_DOI_PREFIXES = (
@@ -75,7 +85,8 @@ def normalize_title(title: str | None) -> str:
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.lower()
-    return _NON_ALNUM.sub(" ", text).strip()
+    text = _NON_ALNUM.sub(" ", text).strip()
+    return _TITLE_LABELS.sub("", text, count=1)
 
 
 def is_preprint(rec: dict) -> bool:
@@ -103,6 +114,12 @@ def is_weak(rec: dict) -> bool:
 def _name_tokens(name: str | None) -> set[str]:
     folded = normalize_title(name)
     return {t for t in folded.split() if len(t) >= 3}
+
+
+def authors_agree(a: dict, b: dict) -> bool:
+    """True only when both records name a first author and the two share a name token."""
+    ta, tb = _name_tokens(a.get("first_author")), _name_tokens(b.get("first_author"))
+    return bool(ta and tb and ta & tb)
 
 
 def same_first_author(a: dict, b: dict) -> bool:
@@ -144,6 +161,7 @@ def dedupe(
     deleted_ids: set[str] | frozenset[str] = frozenset(),
     min_title_len: int = 25,
     preprint_year_gap: int = 1,
+    author_checked_year_gap: int = 3,
 ) -> tuple[list[dict], list[dict]]:
     """Remove duplicates. Returns (kept records, merge log).
 
@@ -212,7 +230,12 @@ def dedupe(
         for p in secondary:
             for q in primary:
                 yp, yq = live[p].get("year"), live[q].get("year")
-                if yp and yq and abs(yp - yq) <= preprint_year_gap and same_first_author(live[p], live[q]):
+                if not (yp and yq):
+                    continue
+                gap = abs(yp - yq)
+                near = gap <= preprint_year_gap and same_first_author(live[p], live[q])
+                far = gap <= author_checked_year_gap and authors_agree(live[p], live[q])
+                if near or far:
                     merge(p, q, "preprint_published_pair" if is_preprint(live[p]) else "repository_or_weak_pair")
 
     titles = [normalize_title(r.get("title")) for r in live]
@@ -228,6 +251,19 @@ def dedupe(
             yi, yj = rec.get("year"), other.get("year")
             if yi and yj and abs(yi - yj) <= preprint_year_gap and same_first_author(rec, other):
                 merge(i, j, "weak_record_title_variant")
+
+    def title_venue_key(rec: dict):
+        t = normalize_title(rec.get("title"))
+        v = normalize_title(rec.get("venue"))
+        return (t, v) if len(t) >= min_title_len and v else None
+
+    for members in group_by(title_venue_key).values():
+        for i in members:
+            for j in members:
+                if i < j and uf.find(i) != uf.find(j):
+                    yi, yj = live[i].get("year"), live[j].get("year")
+                    if yi and yj and abs(yi - yj) <= 1 and same_first_author(live[i], live[j]):
+                        merge(i, j, "same_title_venue")
 
     groups: dict[int, list[int]] = defaultdict(list)
     for idx in range(n):

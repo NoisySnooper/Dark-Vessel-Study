@@ -196,6 +196,14 @@ def _classify_raw(name: str) -> str:
     return "journal"
 
 
+def _clean_raw(name: str | None) -> str:
+    """A harvested venue string, or "" when it is a URL or too short to be a venue name."""
+    value = (name or "").strip()
+    if re.match(r"^(?:https?://|www\.)", value, re.I) or len(value) < 3:
+        return ""
+    return value
+
+
 def resolve_venue(row: dict, recovery: dict | None) -> dict:
     """Venue name, type and how it was found for one stored row."""
     if row.get("source_name"):
@@ -204,11 +212,11 @@ def resolve_venue(row: dict, recovery: dict | None) -> dict:
     for loc in rec.get("locations") or []:
         if loc.get("source_name") and (loc.get("source_type") in GOOD_LOCATION_TYPES):
             return {"venue": loc["source_name"], "venue_type": loc["source_type"], "method": "other_location_source"}
-    raw = (rec.get("primary_raw_source_name") or "").strip()
+    raw = _clean_raw(rec.get("primary_raw_source_name"))
     if raw:
         return {"venue": raw, "venue_type": _classify_raw(raw), "method": "primary_raw_source_name"}
     for loc in rec.get("locations") or []:
-        name = (loc.get("raw_source_name") or "").strip()
+        name = _clean_raw(loc.get("raw_source_name"))
         if name and not REPOSITORY_WORDS.search(name):
             return {"venue": name, "venue_type": _classify_raw(name), "method": "location_raw_source_name"}
     hit = venue_from_doi(row.get("doi"))
@@ -253,7 +261,7 @@ def series_name(venue: str, venue_type: str) -> str:
     """Venue name with years and ordinals removed for conferences, unchanged for journals."""
     if not venue:
         return ""
-    if venue_type not in ("conference", ""):
+    if venue_type not in ("conference", "") and not _CONFERENCE_NAME.search(venue):
         return venue
     for rx, label in _CURATED_SERIES:
         if rx.search(venue):
@@ -261,16 +269,23 @@ def series_name(venue: str, venue_type: str) -> str:
     name = _LEAD_ACRONYM.sub("", venue.strip())
     name = _PROCEEDINGS.sub("", name)
     name = _ORDINAL.sub(" ", _YEAR.sub(" ", name))
-    name = re.sub(r"\s+", " ", name).strip(" -,:;")
+    name = re.sub(r"\s+", " ", name).strip(" -,:;.")
     return name or venue
 
 
-def venue_group(venue_type: str) -> str:
-    """journal, conference, repository or other, for ranking separately."""
-    if venue_type in ("conference",):
+_CONFERENCE_NAME = re.compile(r"\bconference\s+(?:proceedings|series)\b|^proceedings\b", re.I)
+
+
+def venue_group(venue_type: str, venue: str = "") -> str:
+    """journal, conference, repository, other or unattributed, for ranking separately.
+
+    OpenAlex types some proceedings series as journals ("IET conference proceedings.",
+    "Journal of Physics Conference Series"); those are moved to conference.
+    """
+    if venue_type == "conference":
         return "conference"
-    if venue_type in ("repository",):
+    if venue_type == "repository":
         return "repository"
     if venue_type in ("journal", "book series", "ebook platform"):
-        return "journal"
+        return "conference" if _CONFERENCE_NAME.search(venue or "") else "journal"
     return "other" if venue_type else "unattributed"

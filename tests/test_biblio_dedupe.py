@@ -168,7 +168,7 @@ def test_iuu_and_viirs_and_small_vessel_positive():
     assert "iuu_remote_sensing" in strict("Mapping illegal fishing with satellite imagery")
     assert "iuu_remote_sensing" in strict("IUU fishing", "A remote sensing review")
     assert "viirs_boats" in strict("VIIRS Boat Detection of fishing vessels")
-    assert "viirs_boats" in strict("Nighttime lights reveal ships")
+    assert "viirs_boats" in strict("Detecting ships from nighttime lights imagery")
     assert "small_vessel" in strict("Small ship detection in satellite imagery")
     assert "small_vessel" in strict("Artisanal fishing boats detected from imagery")
 
@@ -240,3 +240,114 @@ def test_sea_and_vietnam_flags():
     assert flags["vn_flag"] and flags["vn_affil"]
     flags = themes.sea_flags("Boats", "The Strait of Malacca and the South China Sea", [])
     assert flags["sea_flag"] and not flags["vn_flag"]
+
+
+# --------------------------------------------------------------------------
+# strict-mode guards added after the precision checks
+# --------------------------------------------------------------------------
+def loose(title, abstract=""):
+    return themes.match_themes(title, abstract, "loose")
+
+
+def test_bare_sar_in_mri_text_is_rejected_in_strict_but_kept_in_loose():
+    title = "Radiofrequency heating near blood vessels"
+    abstract = "We detect hot spots in patients. The SAR limit was respected in all MRI scans."
+    assert "sar_ship_detection" in loose(title, abstract)
+    assert strict(title, abstract) == []
+
+
+def test_small_vessel_disease_is_not_the_small_vessel_theme():
+    title = "Detection of small vessel disease in brain imagery"
+    abstract = "Automated detection of cerebral small vessel lesions in patients."
+    assert "small_vessel" in loose(title, abstract)
+    assert strict(title, abstract) == []
+
+
+def test_dark_fishing_spider_and_nonbroadcast_film_are_not_dark_vessels():
+    assert "dark_vessels" in loose("A dark fishing spider", "It hunts near the sea and boats.")
+    assert strict("A dark fishing spider", "It hunts near the sea and boats.") == []
+    assert strict("Entangled", "Best Non-Broadcast Film. Fishing gear and vessel strikes endanger whales.") == []
+    assert "dark_vessels" in strict("Non-broadcasting vessels", "Ships at sea that do not transmit AIS.")
+
+
+def test_dark_target_aerosol_retrieval_is_not_a_dark_vessel():
+    text = "MODIS Dark Target aerosol retrieval over clean maritime air"
+    assert "dark_vessels" in loose(text)
+    assert strict(text) == []
+
+
+def test_iuu_weak_phrases_need_vessel_context_in_strict():
+    assert strict("Potential fishing zones", "Fishing effort follows sea surface temperature seen by satellite.") == []
+    assert "iuu_remote_sensing" in strict("Fishing effort of vessels", "Mapped from satellite AIS.")
+    assert "iuu_remote_sensing" in strict("Illegal fishing", "Detected with satellite imagery.")
+
+
+def test_animal_satellite_telemetry_is_not_remote_sensing_of_fishing():
+    text = "Sharks tagged with satellite tags overlap with fishing vessels."
+    assert "iuu_remote_sensing" in loose(text)
+    assert strict(text) == []
+
+
+def test_ais_abbreviation_needs_a_ship_word_for_sar_ais_fusion():
+    title = "Amery Ice Shelf (AIS) fronts from Sentinel-1 SAR"
+    abstract = "We combine CFAR and morphology to map the frontal line."
+    assert "sar_ais_fusion" in loose(title, abstract)
+    assert "sar_ais_fusion" not in strict(title, abstract)
+    assert "sar_ais_fusion" in strict("Matching AIS tracks to Sentinel-1 SAR ship detections")
+
+
+def test_viirs_theme_guards():
+    # mobile photography and emission inventories are not boat detection
+    assert strict("Burst photography for low-light imaging", "The pipeline ships on several phones.") == []
+    assert strict("A CO2 emission inventory", "Uses satellite nighttime lights and ship fleet tracks.") == []
+    # sea surface temperature from VIIRS validated on a research vessel
+    assert strict("VIIRS sea surface temperature", "Validated with measurements from a research vessel.") == []
+    assert "viirs_boats" in strict("Light fishing boat detection by VIIRS Low Light Imaging Data")
+    assert "viirs_boats" in strict("Fishing vessels from the VIIRS day/night band")
+
+
+def test_research_vessels_and_shipboard_phrases_are_not_detection_targets():
+    assert strict("SAR ocean wave imaging", "Detection of swell from shipboard instruments in SAR images.") == []
+
+
+# --------------------------------------------------------------------------
+# later dedupe rules
+# --------------------------------------------------------------------------
+def test_label_prefix_is_ignored_in_titles_and_year_rule_merges_it():
+    assert dedupe.normalize_title("Article Ship detection in SAR images with a lightweight network") == \
+        dedupe.normalize_title("Ship detection in SAR images with a lightweight network")
+    a = rec("W1", LONG_TITLE, 2015, "10.3390/rs1")
+    b = rec("W2", "Article " + LONG_TITLE, 2015, None, venue="")
+    kept, log = dedupe.dedupe([a, b])
+    assert len(kept) == 1 and kept[0]["id"] == "W1"
+
+
+def test_weak_record_with_label_and_different_year_merges_when_authors_agree():
+    pub = dict(rec("W1", LONG_TITLE, 2015, "10.3390/rs1"), first_author="Christopher Elvidge")
+    weak = dict(rec("W2", "Article " + LONG_TITLE, 2016, None, venue=""), first_author="Christopher D. Elvidge")
+    kept, log = dedupe.dedupe([pub, weak])
+    assert len(kept) == 1 and log[0]["reason"] in ("repository_or_weak_pair", "weak_record_title_variant")
+    other = dict(weak, first_author="Someone Else")
+    kept, _ = dedupe.dedupe([pub, other])
+    assert len(kept) == 2
+
+
+def test_preprint_pair_window_widens_to_three_years_only_when_authors_agree():
+    pub = dict(rec("W1", LONG_TITLE, 2019, "10.1109/x.1", type_="conference-paper"), first_author="Dejan Stepec")
+    pre = dict(rec("W2", LONG_TITLE, 2021, "10.48550/arxiv.2104.1", type_="preprint", venue="arXiv", source_type="repository"),
+               first_author="Stepec, Dejan")
+    kept, _ = dedupe.dedupe([pub, pre])
+    assert len(kept) == 1 and kept[0]["id"] == "W1"
+    no_author = dict(pre, first_author="")
+    kept, _ = dedupe.dedupe([pub, no_author])
+    assert len(kept) == 2
+
+
+def test_same_title_same_venue_adjacent_years_merge():
+    a = dict(rec("W1", LONG_TITLE, 2017, "10.5555/1", venue="Engineering Applications of Artificial Intelligence"), first_author="Nerea del-Rey")
+    b = dict(rec("W2", LONG_TITLE, 2018, "10.1016/2", venue="Engineering applications of artificial intelligence"), first_author="Nerea Del Rey")
+    kept, log = dedupe.dedupe([a, b])
+    assert len(kept) == 1 and log[0]["reason"] == "same_title_venue"
+    c = dict(b, venue="Another Journal")
+    kept, _ = dedupe.dedupe([a, c])
+    assert len(kept) == 2

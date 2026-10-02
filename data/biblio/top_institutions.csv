@@ -1,51 +1,51 @@
 institution_id,institution,country_code,n_papers,pct_of_corpus
-I19820366,Chinese Academy of Sciences,CN,225,4.95
-I170215575,National University of Defense Technology,CN,207,4.55
-I149594827,Xidian University,CN,169,3.72
-I4210165038,University of Chinese Academy of Sciences,CN,143,3.14
-I150229711,University of Electronic Science and Technology of China,CN,142,3.12
-I4210137199,Aerospace Information Research Institute,CN,126,2.77
-I99065089,Tsinghua University,CN,90,1.98
-I125839683,Beijing Institute of Technology,CN,88,1.94
-I82880672,Beihang University,CN,86,1.89
-I183067930,Shanghai Jiao Tong University,CN,72,1.58
-I2898391981,Deutsches Zentrum für Luft- und Raumfahrt e. V. (DLR),DE,72,1.58
-I96733725,Shanghai Maritime University,CN,64,1.41
-I204983213,Harbin Institute of Technology,CN,62,1.36
-I4800084,Southwest Jiaotong University,CN,59,1.3
-I75390827,Beijing University of Chemical Technology,CN,59,1.3
-I211433327,Ministry of Natural Resources,CN,59,1.3
-I17145004,Northwestern Polytechnical University,CN,55,1.21
-I194716290,China Academy of Space Technology,CN,53,1.17
-I37461747,Wuhan University,CN,51,1.12
-I2800710378,Naval University of Engineering,CN,44,0.97
-I4210114556,First Institute of Oceanography,CN,43,0.95
-I71267560,University of Naples Federico II,IT,42,0.92
-I151727225,Harbin Engineering University,CN,41,0.9
-I9842412,Nanjing University of Aeronautics and Astronautics,CN,40,0.88
-I4210110458,Institute of Electronics,CN,39,0.86
-I43313876,Dalian Maritime University,CN,37,0.81
-I24943067,Fudan University,CN,36,0.79
-I4210166112,State Key Laboratory of Remote Sensing Science,CN,36,0.79
-I4210162190,"China University of Petroleum, East China",CN,34,0.75
-I157773358,Sun Yat-sen University,CN,33,0.73
-I36399199,Nanjing University of Science and Technology,CN,31,0.68
-I4210148107,Space Engineering University,CN,30,0.66
-I4210088244,Shanghai Micro Satellite Engineering Center,CN,30,0.66
-I4210162215,Naval Aeronautical and Astronautical University,CN,29,0.64
-I4210118728,State Key Laboratory of Information Engineering in Surveying Mapping and Remote Sensing,CN,28,0.62
-I4210128053,Institute of Remote Sensing and Digital Earth,CN,28,0.62
-I158842170,Chongqing University,CN,27,0.59
-I28290843,University of Surrey,GB,26,0.57
-I1303474014,Defence Science and Technology Group,AU,26,0.57
-I59028903,Ocean University of China,CN,25,0.55
-I92403157,University of Science and Technology Beijing,CN,24,0.53
-I50760025,Hangzhou Dianzi University,CN,24,0.53
-I46529539,Chinese Academy of Fishery Sciences,CN,24,0.53
-I4210104252,Air Force Engineering University,CN,24,0.53
-I16365422,Hefei University of Technology,CN,23,0.51
-I116953780,Tongji University,CN,23,0.51
-I1297460800,Defence Research and Development Canada,CA,23,0.51
-I143868143,Anhui University,CN,22,0.48
-I1294671590,Centre National de la Recherche Scientifique,FR,22,0.48
-I133437993,Korea Institute of Ocean Science and Technology,KR,22,0.48
+I19820366,Chinese Academy of Sciences,CN,222,5.12
+I170215575,National University of Defense Technology,CN,207,4.77
+I149594827,Xidian University,CN,169,3.89
+I150229711,University of Electronic Science and Technology of China,CN,142,3.27
+I4210165038,University of Chinese Academy of Sciences,CN,140,3.23
+I4210137199,Aerospace Information Research Institute,CN,126,2.9
+I99065089,Tsinghua University,CN,90,2.07
+I125839683,Beijing Institute of Technology,CN,88,2.03
+I82880672,Beihang University,CN,86,1.98
+I2898391981,Deutsches Zentrum für Luft- und Raumfahrt e. V. (DLR),DE,72,1.66
+I183067930,Shanghai Jiao Tong University,CN,71,1.64
+I96733725,Shanghai Maritime University,CN,64,1.47
+I204983213,Harbin Institute of Technology,CN,61,1.41
+I4800084,Southwest Jiaotong University,CN,59,1.36
+I75390827,Beijing University of Chemical Technology,CN,59,1.36
+I211433327,Ministry of Natural Resources,CN,58,1.34
+I17145004,Northwestern Polytechnical University,CN,55,1.27
+I194716290,China Academy of Space Technology,CN,53,1.22
+I37461747,Wuhan University,CN,51,1.18
+I2800710378,Naval University of Engineering,CN,44,1.01
+I4210114556,First Institute of Oceanography,CN,43,0.99
+I71267560,University of Naples Federico II,IT,42,0.97
+I151727225,Harbin Engineering University,CN,41,0.94
+I9842412,Nanjing University of Aeronautics and Astronautics,CN,40,0.92
+I4210110458,Institute of Electronics,CN,39,0.9
+I43313876,Dalian Maritime University,CN,37,0.85
+I4210166112,State Key Laboratory of Remote Sensing Science,CN,36,0.83
+I24943067,Fudan University,CN,36,0.83
+I4210162190,"China University of Petroleum, East China",CN,34,0.78
+I157773358,Sun Yat-sen University,CN,33,0.76
+I36399199,Nanjing University of Science and Technology,CN,31,0.71
+I4210148107,Space Engineering University,CN,30,0.69
+I4210088244,Shanghai Micro Satellite Engineering Center,CN,30,0.69
+I4210162215,Naval Aeronautical and Astronautical University,CN,29,0.67
+I4210118728,State Key Laboratory of Information Engineering in Surveying Mapping and Remote Sensing,CN,28,0.65
+I4210128053,Institute of Remote Sensing and Digital Earth,CN,28,0.65
+I158842170,Chongqing University,CN,27,0.62
+I28290843,University of Surrey,GB,26,0.6
+I1303474014,Defence Science and Technology Group,AU,26,0.6
+I92403157,University of Science and Technology Beijing,CN,24,0.55
+I50760025,Hangzhou Dianzi University,CN,24,0.55
+I46529539,Chinese Academy of Fishery Sciences,CN,24,0.55
+I4210104252,Air Force Engineering University,CN,24,0.55
+I16365422,Hefei University of Technology,CN,23,0.53
+I116953780,Tongji University,CN,23,0.53
+I1297460800,Defence Research and Development Canada,CA,23,0.53
+I143868143,Anhui University,CN,22,0.51
+I59028903,Ocean University of China,CN,22,0.51
+I44675526,Shanghai Ocean University,CN,22,0.51
+I139660479,Central South University,CN,21,0.48

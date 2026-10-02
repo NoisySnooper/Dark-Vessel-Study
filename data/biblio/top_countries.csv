@@ -1,51 +1,51 @@
 country_code,country,n_papers,pct_of_corpus,pct_of_papers_with_country_data
-CN,China,2354,51.77,60.69
-US,United States,276,6.07,7.12
-GB,United Kingdom,184,4.05,4.74
-IT,Italy,156,3.43,4.02
-IN,India,151,3.32,3.89
-ID,Indonesia,132,2.9,3.4
-DE,Germany,123,2.71,3.17
-KR,South Korea,118,2.6,3.04
-CA,Canada,110,2.42,2.84
-AU,Australia,95,2.09,2.45
-JP,Japan,89,1.96,2.29
-FR,France,68,1.5,1.75
-ES,Spain,54,1.19,1.39
-BR,Brazil,40,0.88,1.03
-RU,Russia,39,0.86,1.01
-DK,Denmark,33,0.73,0.85
-ZA,South Africa,30,0.66,0.77
-GR,Greece,29,0.64,0.75
-NO,Norway,24,0.53,0.62
-TR,Turkey,23,0.51,0.59
-NL,Netherlands,23,0.51,0.59
-TW,Taiwan,20,0.44,0.52
-NZ,New Zealand,19,0.42,0.49
-IR,Iran,17,0.37,0.44
-VN,Vietnam,16,0.35,0.41
-MY,Malaysia,15,0.33,0.39
-SA,Saudi Arabia,15,0.33,0.39
-EG,Egypt,15,0.33,0.39
-PT,Portugal,15,0.33,0.39
-RO,Romania,14,0.31,0.36
-SE,Sweden,14,0.31,0.36
-PK,Pakistan,14,0.31,0.36
-HK,Hong Kong,13,0.29,0.34
-FI,Finland,13,0.29,0.34
-BE,Belgium,13,0.29,0.34
-DZ,Algeria,12,0.26,0.31
-PH,Philippines,11,0.24,0.28
-PL,Poland,11,0.24,0.28
-BD,Bangladesh,10,0.22,0.26
-SG,Singapore,9,0.2,0.23
-CH,Switzerland,8,0.18,0.21
-OM,Oman,8,0.18,0.21
-CY,Cyprus,8,0.18,0.21
-MX,Mexico,7,0.15,0.18
-UA,Ukraine,7,0.15,0.18
-AE,United Arab Emirates,7,0.15,0.18
-MO,Macao,7,0.15,0.18
-LU,Luxembourg,7,0.15,0.18
-AT,Austria,6,0.13,0.15
-LK,Sri Lanka,6,0.13,0.15
+CN,China,2331,53.72,62.71
+US,United States,236,5.44,6.35
+GB,United Kingdom,173,3.99,4.65
+IT,Italy,148,3.41,3.98
+IN,India,144,3.32,3.87
+DE,Germany,119,2.74,3.2
+KR,South Korea,114,2.63,3.07
+CA,Canada,100,2.3,2.69
+AU,Australia,90,2.07,2.42
+ID,Indonesia,89,2.05,2.39
+JP,Japan,81,1.87,2.18
+FR,France,60,1.38,1.61
+ES,Spain,48,1.11,1.29
+BR,Brazil,36,0.83,0.97
+RU,Russia,34,0.78,0.91
+ZA,South Africa,29,0.67,0.78
+GR,Greece,29,0.67,0.78
+DK,Denmark,28,0.65,0.75
+TR,Turkey,22,0.51,0.59
+NO,Norway,22,0.51,0.59
+NL,Netherlands,19,0.44,0.51
+TW,Taiwan,18,0.41,0.48
+NZ,New Zealand,17,0.39,0.46
+IR,Iran,17,0.39,0.46
+VN,Vietnam,15,0.35,0.4
+RO,Romania,14,0.32,0.38
+SA,Saudi Arabia,13,0.3,0.35
+EG,Egypt,13,0.3,0.35
+SE,Sweden,13,0.3,0.35
+PK,Pakistan,13,0.3,0.35
+MY,Malaysia,12,0.28,0.32
+HK,Hong Kong,12,0.28,0.32
+PT,Portugal,12,0.28,0.32
+FI,Finland,12,0.28,0.32
+DZ,Algeria,12,0.28,0.32
+PH,Philippines,11,0.25,0.3
+PL,Poland,11,0.25,0.3
+BD,Bangladesh,10,0.23,0.27
+BE,Belgium,10,0.23,0.27
+SG,Singapore,9,0.21,0.24
+OM,Oman,8,0.18,0.22
+CY,Cyprus,8,0.18,0.22
+UA,Ukraine,7,0.16,0.19
+AE,United Arab Emirates,7,0.16,0.19
+MO,Macao,7,0.16,0.19
+LU,Luxembourg,7,0.16,0.19
+MX,Mexico,6,0.14,0.16
+AR,Argentina,6,0.14,0.16
+PE,Peru,5,0.12,0.13
+LK,Sri Lanka,5,0.12,0.13

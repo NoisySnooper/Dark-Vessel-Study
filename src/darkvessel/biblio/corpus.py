@@ -17,6 +17,7 @@ Counting rules
 from __future__ import annotations
 
 import gzip
+import hashlib
 import io
 import json
 import time
@@ -30,6 +31,7 @@ import pyarrow.parquet as pq
 
 from . import dedupe as D
 from . import themes as T
+from . import venues as V
 from .snapshot import WORKS_DELETED_URL, RangeClient, https_url
 
 COUNTRIES_MANIFEST = "https://openalex.s3.amazonaws.com/data/parquet/countries/manifest.json"
@@ -53,6 +55,9 @@ CORPUS_COLUMNS = [
     "vn_flag",
 ]
 EXTRA_COLUMNS = [
+    "venue_series",
+    "venue_group",
+    "venue_method",
     "cited_by_with_merged",
     "n_authors",
     "first_author",
@@ -150,15 +155,23 @@ def _doc_kind(row: dict) -> str:
     return "article"
 
 
-def prepare_rows(rows: list[dict]) -> list[dict]:
-    """Add strict themes, flags and normalised fields to every stored row."""
+def prepare_rows(rows: list[dict], recovery: dict | None = None) -> list[dict]:
+    """Add strict themes, flags, venue and normalised fields to every stored row.
+
+    recovery is the output of venues.load_recovery (works without an OpenAlex primary source).
+    """
     out = []
     for r in rows:
         rec = dict(r)
         rec["themes_strict"] = T.match_themes(r["title"], r["abstract"], "strict")
         flags = T.sea_flags(r["title"], r["abstract"], r["countries"])
         rec.update(flags)
-        rec["venue"] = r["source_name"] or ""
+        resolved = V.resolve_venue(r, recovery)
+        rec["venue"] = resolved["venue"]
+        rec["venue_type"] = resolved["venue_type"]
+        rec["venue_method"] = resolved["method"]
+        rec["venue_series"] = V.series_name(resolved["venue"], resolved["venue_type"])
+        rec["venue_group"] = V.venue_group(resolved["venue_type"], resolved["venue"])
         rec["issn"] = r["source_issn_l"] or (r["source_issn"].split(";")[0] if r["source_issn"] else "")
         rec["kind"] = _doc_kind(r)
         out.append(rec)
@@ -189,7 +202,7 @@ def _dedupe_record(rec: dict) -> dict:
         "cited_by_count": rec["cited_by_count"] or 0,
         "themes": list(rec["themes_strict"]),
         "venue": rec["venue"],
-        "source_type": rec["source_type"],
+        "source_type": rec["venue_type"],
         "first_author": rec["authors"][0] if rec["authors"] else "",
     }
 
@@ -204,9 +217,11 @@ def _ordered_union(lists) -> list:
     return out
 
 
-def build_corpus_rows(rows: list[dict], deleted: set[str]) -> tuple[list[dict], list[dict], dict]:
+def build_corpus_rows(
+    rows: list[dict], deleted: set[str], recovery: dict | None = None
+) -> tuple[list[dict], list[dict], dict]:
     """Strict filter, then dedupe. Returns (corpus rows, merge log, funnel counts)."""
-    prepared = prepare_rows(rows)
+    prepared = prepare_rows(rows, recovery)
     funnel: dict = {"stored_loose_rows": len(prepared)}
     excluded: Counter = Counter()
     elig: list[dict] = []
@@ -254,7 +269,10 @@ def build_corpus_rows(rows: list[dict], deleted: set[str]) -> tuple[list[dict], 
                 "type": base["type"],
                 "kind": base["kind"],
                 "venue": base["venue"],
-                "venue_type": base["source_type"] or "",
+                "venue_type": base["venue_type"],
+                "venue_method": base["venue_method"],
+                "venue_series": base["venue_series"],
+                "venue_group": base["venue_group"],
                 "issn": base["issn"],
                 "cited_by_count": base["cited_by_count"] or 0,
                 "cited_by_with_merged": sum((g["cited_by_count"] or 0) for g in group),
@@ -306,6 +324,9 @@ def corpus_frame(corpus: list[dict]) -> pd.DataFrame:
                 "sea_flag": c["sea_flag"],
                 "vn_flag": c["vn_flag"],
                 "cited_by_with_merged": c["cited_by_with_merged"],
+                "venue_series": c["venue_series"],
+                "venue_group": c["venue_group"],
+                "venue_method": c["venue_method"],
                 "n_authors": c["n_authors"],
                 "first_author": c["authors"][0] if c["authors"] else "",
                 "authors": "; ".join(c["authors"]),
@@ -337,23 +358,61 @@ def papers_per_year(corpus: list[dict]) -> pd.DataFrame:
     return df.reset_index()[["year", *T.THEMES, "all_papers"]]
 
 
-def top_venues(corpus: list[dict], n: int = 50) -> pd.DataFrame:
-    groups: dict[tuple, dict] = {}
+def _venue_groups(corpus: list[dict], groups: tuple[str, ...]) -> pd.DataFrame:
+    """Count works per venue for the given venue groups. Conferences are grouped by series (years removed)."""
+    agg: dict[tuple, dict] = {}
     for c in corpus:
-        key = c["source_id"] or ("name:" + c["venue"])
-        g = groups.setdefault(
+        if c["venue_group"] not in groups:
+            continue
+        if c["venue_group"] == "conference":
+            key = ("conference", c["venue_series"])
+            label = c["venue_series"]
+        else:
+            key = (c["venue_group"], c["source_id"] or c["venue_series"])
+            label = c["venue"]
+        g = agg.setdefault(
             key,
-            {"venue": c["venue"] or "(no source recorded)", "venue_type": c["venue_type"], "source_id": c["source_id"],
-             "issn": c["issn"], "n_papers": 0, "cited_by_sum": 0, "first_year": c["year"], "last_year": c["year"]},
+            {"venue": label, "venue_group": c["venue_group"], "venue_type": c["venue_type"], "source_id": c["source_id"],
+             "n_papers": 0, "cited_by_sum": 0, "first_year": c["year"], "last_year": c["year"],
+             "n_dark_vessel_papers": 0, "themes": Counter()},
         )
         g["n_papers"] += 1
         g["cited_by_sum"] += c["cited_by_count"]
         g["first_year"] = min(g["first_year"], c["year"])
         g["last_year"] = max(g["last_year"], c["year"])
-    df = pd.DataFrame(groups.values()).sort_values(["n_papers", "cited_by_sum"], ascending=False)
-    total = len(corpus)
-    df["pct_of_corpus"] = (100 * df["n_papers"] / total).round(2)
-    return df.head(n).reset_index(drop=True)
+        g["n_dark_vessel_papers"] += 1 if "dark_vessels" in c["themes"] else 0
+        g["themes"].update(c["themes"])
+    rows = []
+    for g in agg.values():
+        top = g.pop("themes").most_common(1)
+        g["main_theme"] = top[0][0] if top else ""
+        rows.append(g)
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    df = df.sort_values(["n_papers", "cited_by_sum"], ascending=False).reset_index(drop=True)
+    df.insert(0, "rank", df.index + 1)
+    df["pct_of_corpus"] = (100 * df["n_papers"] / len(corpus)).round(2)
+    return df
+
+
+def top_venues(corpus: list[dict], n: int = 50) -> pd.DataFrame:
+    """Journals and conference series only. Repositories and works with no venue are ranked elsewhere."""
+    return _venue_groups(corpus, ("journal", "conference")).head(n)
+
+
+def top_repositories(corpus: list[dict], n: int = 30) -> pd.DataFrame:
+    """Repositories and other non-journal, non-conference sources, reported separately from the venue ranking."""
+    return _venue_groups(corpus, ("repository", "other")).head(n)
+
+
+def venue_coverage(corpus: list[dict]) -> dict:
+    """How venues were found and how the corpus splits by venue group."""
+    return {
+        "by_group": dict(Counter(c["venue_group"] for c in corpus)),
+        "by_method": dict(Counter(c["venue_method"] for c in corpus)),
+        "unattributed": sum(1 for c in corpus if c["venue_group"] == "unattributed"),
+    }
 
 
 def top_countries(corpus: list[dict], names: dict[str, str], n: int = 50) -> pd.DataFrame:
@@ -465,12 +524,18 @@ def sea_vietnam(corpus: list[dict], names: dict[str, str]) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # precision sample
 # ---------------------------------------------------------------------------
+def _hash_key(seed: int, tag: str, oid: str) -> str:
+    return hashlib.sha256(f"{seed}:{tag}:{oid}".encode()).hexdigest()
+
+
 def draw_sample(corpus: list[dict], n: int = PRECISION_N, seed: int = PRECISION_SEED) -> list[dict]:
-    """Random sample of n corpus records with a fixed seed (sorted by ID first, so it is reproducible)."""
-    ordered = sorted(corpus, key=lambda c: c["openalex_id"])
-    rng = np.random.default_rng(seed)
-    idx = rng.choice(len(ordered), size=min(n, len(ordered)), replace=False)
-    return [ordered[i] for i in sorted(idx)]
+    """Random sample of n corpus records with a fixed seed.
+
+    Records are ranked by a seeded hash of their OpenAlex ID and the first n are taken, so the
+    sample does not depend on corpus order and changes only where the corpus itself changes.
+    """
+    ranked = sorted(corpus, key=lambda c: _hash_key(seed, "main", c["openalex_id"]))[:n]
+    return sorted(ranked, key=lambda c: c["openalex_id"])
 
 
 def sample_frame(sample: list[dict], judgments: dict[str, dict]) -> pd.DataFrame:
@@ -490,6 +555,66 @@ def sample_frame(sample: list[dict], judgments: dict[str, dict]) -> pd.DataFrame
             }
         )
     return pd.DataFrame(rows)
+
+
+THEME_SAMPLE_SEED = 20260924
+THEME_SAMPLE_N = {
+    "dark_vessels": 15,
+    "sar_ais_fusion": 15,
+    "xview3": 12,
+    "iuu_remote_sensing": 20,
+    "small_vessel": 20,
+    "viirs_boats": 15,
+}
+
+
+def draw_theme_samples(
+    corpus: list[dict], exclude_ids: set[str], sizes: dict[str, int] | None = None, seed: int = THEME_SAMPLE_SEED
+) -> list[tuple[str, dict]]:
+    """Supplementary sample per theme (the 50-record random sample has too few records for small themes).
+
+    Returns (theme, record) pairs. A work in two themes can appear twice. Works in
+    exclude_ids are skipped. A theme with fewer works than requested is taken whole.
+    """
+    sizes = sizes or THEME_SAMPLE_N
+    out: list[tuple[str, dict]] = []
+    for theme in sizes:
+        pool = [c for c in corpus if theme in c["themes"] and c["openalex_id"] not in exclude_ids]
+        pool.sort(key=lambda c: _hash_key(seed, theme, c["openalex_id"]))
+        out.extend((theme, c) for c in sorted(pool[: sizes[theme]], key=lambda c: c["openalex_id"]))
+    return out
+
+
+def theme_sample_frame(pairs: list[tuple[str, dict]], judgments: dict[str, dict]) -> pd.DataFrame:
+    rows = []
+    for theme, c in pairs:
+        j = judgments.get(c["openalex_id"], {})
+        rows.append(
+            {
+                "sample_theme": theme,
+                "openalex_id": c["openalex_id"],
+                "doi": c["doi"],
+                "year": c["year"],
+                "themes": ";".join(c["themes"]),
+                "title": c["title"],
+                "abstract": c["abstract"][:1500],
+                "judgment": j.get("judgment", ""),
+                "note": j.get("note", ""),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def theme_sample_precision(pairs: list[tuple[str, dict]], judgments: dict[str, dict]) -> dict:
+    out: dict = {}
+    for theme in dict.fromkeys(t for t, _ in pairs):
+        js = [judgments[c["openalex_id"]]["judgment"] for t, c in pairs if t == theme and c["openalex_id"] in judgments]
+        out[theme] = {
+            "n": len(js),
+            "relevant": sum(1 for j in js if j == "relevant"),
+            "precision": round(sum(1 for j in js if j == "relevant") / len(js), 3) if js else None,
+        }
+    return out
 
 
 def precision_by_theme(sample: list[dict], judgments: dict[str, dict]) -> dict:
@@ -590,7 +715,7 @@ def anchors_table(prepared: list[dict], corpus: list[dict], summaries: dict[str,
                     "publication_date": r["publication_date"] or "",
                     "type": r["type"],
                     "venue": r["venue"],
-                    "venue_type": r["source_type"] or "",
+                    "venue_type": r["venue_type"],
                     "cited_by_count": r["cited_by_count"],
                     "authors": "; ".join(authors[:6]) + (" et al." if len(authors) > 6 else ""),
                     "n_authors": r["n_authors"],
@@ -728,15 +853,23 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
 
     rows = load_filtered(cache)
     log(f"loaded {len(rows)} stored loose matches")
+    mismatches = sum(
+        1 for r in rows if ";".join(T.match_themes(r["title"], r["abstract"], "loose")) != r["themes_loose"] and not r["watch"]
+    )
+    log(f"loose matcher reproduces the scan's stored themes: {len(rows) - mismatches}/{len(rows)} (mismatches {mismatches})")
+    recovery = V.load_recovery(cache)
+    if not recovery:
+        log("WARNING: no venue_recovery.parquet; run scripts/biblio_venues.py first")
     deleted, deleted_total = find_deleted(cache, {r["id"] for r in rows})
     log(f"deleted-ID list: {deleted_total} rows, {len(deleted)} hit our matches")
-    corpus, merge_log, funnel = build_corpus_rows(rows, deleted)
+    corpus, merge_log, funnel = build_corpus_rows(rows, deleted, recovery)
     names = load_country_names(cache)
     inst_country = institution_countries(rows)
 
     corpus_frame(corpus).to_csv(out / "corpus.csv", index=False)
     papers_per_year(corpus).to_csv(out / "papers_per_year.csv", index=False)
     top_venues(corpus).to_csv(out / "top_venues.csv", index=False)
+    top_repositories(corpus).to_csv(out / "top_repositories.csv", index=False)
     top_countries(corpus, names).to_csv(out / "top_countries.csv", index=False)
     top_institutions(corpus, inst_country).to_csv(out / "top_institutions.csv", index=False)
     top_cited(corpus).to_csv(out / "top20_cited.csv", index=False)
@@ -749,7 +882,7 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
 
     summaries_path = out / "anchor_summaries.json"
     summaries = json.loads(summaries_path.read_text()) if summaries_path.exists() else {}
-    anchors = anchors_table(prepare_rows(rows), corpus, summaries)
+    anchors = anchors_table(prepare_rows(rows, recovery), corpus, summaries)
     anchors.to_csv(out / "anchors.csv", index=False)
     elvidge_viirs_table(corpus).to_csv(out / "elvidge_viirs_boats.csv", index=False)
 
@@ -757,6 +890,11 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
     judgments = judgments or {}
     sample_frame(sample, judgments).to_csv(out / "precision_sample.csv", index=False)
     precision = precision_by_theme(sample, judgments)
+    theme_judgments_path = out / "precision_theme_judgments.json"
+    theme_judgments = json.loads(theme_judgments_path.read_text()) if theme_judgments_path.exists() else {}
+    pairs = draw_theme_samples(corpus, set())
+    theme_sample_frame(pairs, {**judgments, **theme_judgments}).to_csv(out / "precision_theme_sample.csv", index=False)
+    precision["theme_sample"] = theme_sample_precision(pairs, {**judgments, **theme_judgments})
 
     theme_counts = Counter(t for c in corpus for t in c["themes"])
     summary = {
@@ -770,6 +908,8 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
         "sea_papers": sum(1 for c in corpus if c["sea_flag"]),
         "vn_papers": sum(1 for c in corpus if c["vn_flag"]),
         "papers_without_country_data": sum(1 for c in corpus if not c["countries"]),
+        "venues": venue_coverage(corpus),
+        "loose_matcher_mismatches": mismatches,
         "precision": precision,
         "precision_seed": PRECISION_SEED,
     }

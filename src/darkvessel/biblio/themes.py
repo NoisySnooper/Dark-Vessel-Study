@@ -129,6 +129,9 @@ _NONMARITIME_VESSEL = _c(
     r"microvascular|pressure|reaction|reactor|xylem|tumou?r|brain|hepatic|cardiovascular)[\s-]+vessels?\b"
     r"|\bvessels?[\s-]+(?:wall|walls|segmentation|occlusion|extraction|tree|diameter|tortuosity|density|lumen|"
     r"stenosis|bifurcation|branching)\b"
+    # platforms that carry the instruments rather than the objects being detected
+    r"|\b(?:research|oceanographic|survey|scientific|training)\s+(?:vessels?|ships?)\b"
+    r"|\bship-?(?:board|borne|based)\b|\bshipboard\b"
 )
 _MEDICAL = _c(
     r"\b(?:blood|vascular|mri|magnetic resonance|angiogra\w*|arter\w*|vein|veins|cerebr\w*|retina|retinal|tumou?r|"
@@ -224,9 +227,16 @@ _DARK_PHRASE_LOOSE = (
     r"\bdark[\s-]+(?:vessels?|ships?|fleets?|fishing|boats?|targets?|shipping|trawlers?|activit(?:y|ies)|maritime)\b"
 )
 # strict: no "dark target" (MODIS Dark Target aerosol retrieval, dark infrared targets) and no "dark activity"
-_DARK_PHRASE_STRICT = r"\bdark[\s-]+(?:vessels?|ships?|fleets?|fishing|boats?|shipping|trawlers?)\b"
+_DARK_PHRASE_STRICT = (
+    r"\bdark[\s-]+(?:vessels?|ships?|fleets?|boats?|shipping|trawlers?)\b"
+    r"|\bdark[\s-]+fishing\b(?![\s-]+spiders?)"  # "dark fishing spider" is a species
+)
+_DARK_NONBROADCAST_LOOSE = r"|\bnon[\s-]?broadcast\w*"
+# strict: "Non-Broadcast Film" (an award category) and "non-broadcast application" (spraying) are not about AIS
+_DARK_NONBROADCAST_STRICT = (
+    r"|\bnon[\s-]?broadcast\w*(?![\s-]+(?:films?|videos?|tv|television|radio|media|spray\w*|applications?))"
+)
 _DARK_REST = (
-    r"|\bnon[\s-]?broadcast\w*"
     r"|(?-i:\bAIS)[\s-]+(?:gaps?|disabl\w+|dark\w*|silen\w+|outages?|(?:switch|turn|shut)\w*[\s-]+off)\b"
     r"|\bgaps?\s+in\s+(?:the\s+)?(?:(?-i:AIS)|automatic[\s-]+identification[\s-]+systems?)\b"
     r"|\b(?:go|goes|going|gone|went)\s+dark\b"
@@ -234,8 +244,8 @@ _DARK_REST = (
     r"(?:(?-i:AIS)|automatic[\s-]+identification[\s-]+systems?)\b"
     r"|(?-i:\bAIS)\s+(?:\w+\s+){0,2}?(?:disabled|(?:switched|turned|shut)\s+off)\b"
 )
-_DARK = _c(_DARK_PHRASE_LOOSE + _DARK_REST)
-_DARK_STRICT = _c(_DARK_PHRASE_STRICT + _DARK_REST)
+_DARK = _c(_DARK_PHRASE_LOOSE + _DARK_NONBROADCAST_LOOSE + _DARK_REST)
+_DARK_STRICT = _c(_DARK_PHRASE_STRICT + _DARK_NONBROADCAST_STRICT + _DARK_REST)
 _MARITIME_STRONG = _c(
     r"\b(?:ships?|boats?|fishing|fisher(?:y|ies|men|man)|maritime|shipping|automatic[\s-]+identification[\s-]+systems?)\b"
     r"|(?-i:\bAIS\b)"
@@ -400,10 +410,38 @@ def _t_small_vessel(text: str, low: str, strict: bool) -> bool:
     return bool(_RS_SMALL.search(text)) or has_sar_term(text, strict)
 
 
+# strict VIIRS boats: bare VIIRS also serves sea surface temperature and ocean colour, so the text must
+# show night imaging (night, DNB, low light, fishing lights) or vessel-position data (AIS, VMS, V-Pass)
+_NIGHT_OR_VESSEL_DATA = _c(
+    r"night|nocturnal|day[\s/-]*night|\bDNB\b|low[\s-]*light|\bVBD\b|boat detection"
+    r"|\b(?:fishing|LED|squid|jigging|attracting)\s+lights?\b|\blight[\s-]+(?:fishing|attracting)"
+    r"|(?-i:\bAIS\b|\bVMS\b)|V-?Pass|vessel\s+monitoring"
+)
+
+
+# strict VIIRS boats: "low light imaging" alone also names mobile photography, and generic night-time lights
+# (emission inventories, economics) with a ship or vessel need a detection or monitoring word to count
+_VIIRS_SENSOR = _c(r"\bVIIRS\b|visible[\s-]+infrared[\s-]+imaging[\s-]+radiometer|day[\s/-]*night[\s-]+band|\bDNB\b")
+_DETECT_MONITOR = _c(r"\b(?:detect|identif|recogni[sz]|classif|extract|monitor)\w*")
+_BOAT_OR_FISHING = _c(r"\b(?:boats?)\b|\bfishing[\s-]+(?:vessels?|boats?|fleets?|lights?|lamps?)\b")
+
+
+def _viirs_trigger_strict(text: str) -> bool:
+    if _VIIRS_SENSOR.search(text):
+        return True
+    if not re.search(r"night[\s-]*(?:time[\s-]*)?lights?\b", text, _I):
+        return False
+    return bool(_BOAT_OR_FISHING.search(text)) or bool(_DETECT_MONITOR.search(text))
+
+
 def _t_viirs_boats(text: str, low: str, strict: bool) -> bool:
     if not _any(low, ("viirs", "night", "low light", "low-light", "visible infrared", "visible-infrared")):
         return False
-    return bool(_VIIRS.search(text)) and _has_craft(text, strict, fishing_counts=True)
+    if not _VIIRS.search(text) or not _has_craft(text, strict, fishing_counts=True):
+        return False
+    if not strict:
+        return True
+    return _viirs_trigger_strict(text) and bool(_NIGHT_OR_VESSEL_DATA.search(text))
 
 
 _TESTS = {

@@ -1,0 +1,1442 @@
+{
+ "W2422429383": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2465660745": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2586436819": {
+  "judgment": "relevant",
+  "note": "Maritime radar (not SAR) detection of small sea-surface targets; counted relevant."
+ },
+ "W2626155425": {
+  "judgment": "not relevant",
+  "note": "CubeSat reliability paper; 'small vessels' is a figure of speech for small satellites."
+ },
+ "W2762809431": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2899663553": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2900475502": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2906629296": {
+  "judgment": "relevant",
+  "note": "Sea-surface polarimetric parameter for SAR; abstract says it supports ship detection; counted relevant."
+ },
+ "W2976569345": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3027132747": {
+  "judgment": "relevant",
+  "note": "Detection of surface targets from an unmanned ship's camera; counted relevant."
+ },
+ "W3130269452": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3148432746": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3152767834": {
+  "judgment": "relevant",
+  "note": "VMS track interpolation for trawlers; vessel monitoring data, counted relevant."
+ },
+ "W3180954604": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3207324304": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4213311183": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4281871930": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4312480434": {
+  "judgment": "not relevant",
+  "note": "SAR imaging algorithm for scattering-centre models; ships named only as example targets, no vessel detection or monitoring."
+ },
+ "W4317740016": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4323317274": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4361298171": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4386473010": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4389917075": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4401510976": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4403022111": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4403122848": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4408019896": {
+  "judgment": "not relevant",
+  "note": "Western boundary current observing review; ships only as measurement platforms."
+ },
+ "W4412623704": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4412739713": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4413984420": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4414165191": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4415594627": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4416818943": {
+  "judgment": "relevant",
+  "note": "No abstract in OpenAlex; judged on title (ship detection in SAR)."
+ },
+ "W4416955967": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6884768553": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6893366491": {
+  "judgment": "not relevant",
+  "note": "NovaSAR-1 product quality assessment; the ship detection mode is listed as an operating mode only."
+ },
+ "W7044308546": {
+  "judgment": "not relevant",
+  "note": "Squid distribution from a research-vessel survey; no vessel detection or monitoring."
+ },
+ "W7110672974": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7116671327": {
+  "judgment": "not relevant",
+  "note": "Uses fishing vessel positions as an ecological signal for tuna availability; not about vessel detection or monitoring itself."
+ },
+ "W7133869313": {
+  "judgment": "not relevant",
+  "note": "Under-ice camera system for fish; not about vessels."
+ },
+ "W7134835396": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7153077293": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7165141601": {
+  "judgment": "relevant",
+  "note": "Generic SAR target detector tested on a ship dataset (HRSID); counted relevant."
+ },
+ "W7165581572": {
+  "judgment": "relevant",
+  "note": "No abstract in OpenAlex; judged on title (SAR ship-sea-land segmentation)."
+ },
+ "W7169794833": {
+  "judgment": "relevant",
+  "note": "No abstract in OpenAlex; judged on title (SAR ship detection)."
+ },
+ "W7170056462": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7172334321": {
+  "judgment": "relevant",
+  "note": "No abstract in OpenAlex; judged on title (optical-SAR ship detection)."
+ },
+ "W7172589357": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7203794224": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7204033562": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2793227382": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2886827422": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2897838656": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2903966801": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3111763431": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4312430267": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4387403246": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4407925788": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4417170187": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6884962948": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (fishing boats going dark)."
+ },
+ "W7213862670": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7213865140": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2546996448": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2562541885": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2772450271": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2890700095": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2898542784": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3129276052": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3205080956": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4390677415": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4404356487": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4416827876": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2244211439": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2345912506": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2731795019": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2737999009": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2995596915": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3205407459": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4379231415": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4387298119": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4409311051": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4414363034": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7126439809": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7148301194": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W1573877486": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2900805607": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3158147561": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3182924980": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3205542223": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4287148526": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4292454830": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4362500735": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4392230130": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4392902708": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4399511332": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4407237170": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4415820449": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7140176699": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7163400886": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2891191818": {
+  "judgment": "relevant",
+  "note": "Night-time lights at sea from VIIRS DNB, fishing lights included; counted relevant (borderline)."
+ },
+ "W3135257094": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4308076062": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (VIIRS fishing vessel detection)."
+ },
+ "W4399323765": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (VIIRS against AIS and V-Pass)."
+ },
+ "W4416260556": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (VIIRS boat detections in Southeast Asia)."
+ },
+ "W4307481490": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4308237325": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4319978456": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4394843990": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4402259084": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4402264151": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4407362978": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7133194003": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7139599428": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7167587580": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7207826674": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4408533460": {
+  "judgment": "not relevant",
+  "note": "History of fishing empires; mentions 'dark fleets' only as a discourse term."
+ },
+ "W6893767484": {
+  "judgment": "not relevant",
+  "note": "Wasp taxonomy; 'dark fishing spider' is a spider species."
+ },
+ "W7167665673": {
+  "judgment": "not relevant",
+  "note": "Film review; 'Non-Broadcast Film' is an award category."
+ },
+ "W2791217838": {
+  "judgment": "not relevant",
+  "note": "Oil spill modelling review; SAR and AIS mentioned as data sources, no vessel detection."
+ },
+ "W3027925641": {
+  "judgment": "not relevant",
+  "note": "Benthic fauna report; fishing pressure from AIS/VMS used as a covariate; 'SAR' is a fishing-intensity abbreviation."
+ },
+ "W4285323481": {
+  "judgment": "not relevant",
+  "note": "NovaSAR-1 ground-segment product generation; AIS payload mentioned only (borderline)."
+ },
+ "W4387400657": {
+  "judgment": "not relevant",
+  "note": "AIS/VDES radio channel performance; communications engineering (borderline)."
+ },
+ "W4387802138": {
+  "judgment": "not relevant",
+  "note": "InSAR volume change of grain tanks; AIS used only as a comparison source."
+ },
+ "W1920429187": {
+  "judgment": "not relevant",
+  "note": "3G radio coverage for small-vessel accident notification; communications, not vessel monitoring."
+ },
+ "W2986932890": {
+  "judgment": "not relevant",
+  "note": "Weather radar study of convection over Lake Victoria; fishing boats named only as victims."
+ },
+ "W3206715954": {
+  "judgment": "not relevant",
+  "note": "Seabed imagery survey of marine protected areas."
+ },
+ "W4242345947": {
+  "judgment": "not relevant",
+  "note": "Photograph feature 'Fishing Boats in Psathopyrgos, Greece' in a spine journal."
+ },
+ "W4376614841": {
+  "judgment": "not relevant",
+  "note": "Teaching-method study; AOFIC INDESO mentioned as context."
+ },
+ "W7127609110": {
+  "judgment": "not relevant",
+  "note": "Fish school detection with UAV and satellite communications; not vessel detection."
+ },
+ "W7130938537": {
+  "judgment": "not relevant",
+  "note": "Administrative reform to lift the EU fish export ban; no monitoring or detection."
+ },
+ "W7213926995": {
+  "judgment": "not relevant",
+  "note": "Altimetry and data assimilation for a western boundary current."
+ },
+ "W2750966512": {
+  "judgment": "not relevant",
+  "note": "Oil pollution mapping; not about vessels."
+ },
+ "W2782033220": {
+  "judgment": "not relevant",
+  "note": "Tern foraging hotspots from echosounder data."
+ },
+ "W4387623909": {
+  "judgment": "not relevant",
+  "note": "Generic small-target detection in remote sensing images; no ships in the abstract."
+ },
+ "W4400908931": {
+  "judgment": "not relevant",
+  "note": "Micro-Doppler of drones and seagulls; not vessels."
+ },
+ "W4403422383": {
+  "judgment": "not relevant",
+  "note": "SAR vehicle small targets; not vessels."
+ },
+ "W1272385719": {
+  "judgment": "not relevant",
+  "note": "Sun glint and polarized radiance from a research vessel; no vessel detection."
+ },
+ "W2552290192": {
+  "judgment": "not relevant",
+  "note": "Mobile-phone burst photography; 'ships' is a software verb."
+ },
+ "W2901045274": {
+  "judgment": "not relevant",
+  "note": "VIIRS sea surface temperature validation with shipboard radiometers."
+ },
+ "W2974350918": {
+  "judgment": "not relevant",
+  "note": "Hydroacoustic survey of Caspian sprat."
+ },
+ "W3080996502": {
+  "judgment": "not relevant",
+  "note": "Potential fishing zones from sea surface temperature fronts; no vessel detection."
+ },
+ "W4214881704": {
+  "judgment": "not relevant",
+  "note": "Fishing ground estimation from VIIRS sea surface temperature and chlorophyll; no vessel detection."
+ },
+ "W4224265485": {
+  "judgment": "not relevant",
+  "note": "Dust aerosol and atmospheric correction."
+ },
+ "W4295532863": {
+  "judgment": "not relevant",
+  "note": "Diffuse attenuation algorithm validation."
+ },
+ "W4401496658": {
+  "judgment": "not relevant",
+  "note": "Fishing ground and fish distribution from catch data."
+ },
+ "W7171670036": {
+  "judgment": "not relevant",
+  "note": "Artificial light at night and salmonid foraging; no vessels."
+ },
+ "W2461048438": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2470744786": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2587237118": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2626591931": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2763244131": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2899800495": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (PolSAR ship detection)."
+ },
+ "W2900704220": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2908616867": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (compact-pol SAR ship detection)."
+ },
+ "W2979293353": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3029894858": {
+  "judgment": "relevant",
+  "note": "SAR change detection for ephemeral objects 'such as vehicles or ships'; counted relevant (borderline)."
+ },
+ "W3130969601": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3150553702": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3153411055": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3184820801": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3207743597": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4214700866": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4283156134": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (full-pol SAR ship detector)."
+ },
+ "W4312585618": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4318954087": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4324142521": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4362587662": {
+  "judgment": "not relevant",
+  "note": "Oil seep mapping with SAR; ships appear only as a source of false alarms."
+ },
+ "W4386634509": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4390277399": {
+  "judgment": "relevant",
+  "note": "Fishing light boats from VIIRS DNB used to locate fishing grounds; counted relevant."
+ },
+ "W4401831853": {
+  "judgment": "relevant",
+  "note": "Withdrawn article on remote sensing for maritime surveillance; judged on its abstract."
+ },
+ "W4403088537": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4403268021": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4408053874": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4412624474": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4414011120": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4414165743": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4416797645": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4416922679": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6884749170": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6891750661": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7048998526": {
+  "judgment": "not relevant",
+  "note": "Oil spill detection by data mining (Portuguese); no vessel detection."
+ },
+ "W7113903326": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7117141142": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7134164589": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (SAR ship detection)."
+ },
+ "W7135040379": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7153199418": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7165203950": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7165633015": {
+  "judgment": "relevant",
+  "note": "Situational awareness framework fusing AIS and radar to detect threats including small vessels; counted relevant (borderline)."
+ },
+ "W7169836252": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7170064637": {
+  "judgment": "not relevant",
+  "note": "Altimetry and data assimilation for a western boundary current."
+ },
+ "W7172392314": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7196928027": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7203794284": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7204086170": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (SAR ship wake detection)."
+ },
+ "W4310959365": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4311603024": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4385837620": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4407783585": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4416444567": {
+  "judgment": "not relevant",
+  "note": "Legal analysis of ship-to-ship transfers by the dark fleet; no detection or monitoring (borderline)."
+ },
+ "W4416707236": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7167599259": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7171636319": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (SAR dark vessel identification)."
+ },
+ "W2732303225": {
+  "judgment": "not relevant",
+  "note": "Radio communications for small-vessel accident notification; not vessel monitoring."
+ },
+ "W2994790926": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2997773234": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3206083542": {
+  "judgment": "not relevant",
+  "note": "Report on the economic impact of IUU fishing and under-reported catches; no vessel monitoring."
+ },
+ "W3210658766": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (remote sensing for IUU fishing enforcement)."
+ },
+ "W4248428872": {
+  "judgment": "not relevant",
+  "note": "Regional ocean circulation model."
+ },
+ "W4378842166": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4379931747": {
+  "judgment": "not relevant",
+  "note": "Humanities essay on geoengineering narratives."
+ },
+ "W4387802125": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4409475772": {
+  "judgment": "relevant",
+  "note": "Fishery law enforcement comparison that uses VIIRS-DNB analysis; counted relevant (borderline)."
+ },
+ "W4415244641": {
+  "judgment": "relevant",
+  "note": "IoT geolocation and LoRa tracking for small-scale fishing vessels; counted relevant (borderline)."
+ },
+ "W7128601361": {
+  "judgment": "not relevant",
+  "note": "No abstract; judged on title (gull foraging under fishing-vessel lights, ecology)."
+ },
+ "W7154011988": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2632026579": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2774985326": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2896976687": {
+  "judgment": "not relevant",
+  "note": "Human observer trials for visible signatures of military platforms."
+ },
+ "W3157979615": {
+  "judgment": "relevant",
+  "note": "Maritime surveillance radar target detection in sea clutter (not SAR); counted relevant."
+ },
+ "W3172697134": {
+  "judgment": "not relevant",
+  "note": "Hyperspectral water quality proxies for shellfish aquaculture."
+ },
+ "W3202192104": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4286203011": {
+  "judgment": "relevant",
+  "note": "Timelapse cameras with machine learning to count small boats for acoustic monitoring; counted relevant (borderline)."
+ },
+ "W4288754461": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4327976839": {
+  "judgment": "relevant",
+  "note": "Generic spaceborne target detector tested on aircraft and ships; counted relevant (borderline)."
+ },
+ "W4387445983": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4392170010": {
+  "judgment": "relevant",
+  "note": "Small-object detection in remote sensing images, ships named among the targets; counted relevant (borderline)."
+ },
+ "W4399350770": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4400809093": {
+  "judgment": "relevant",
+  "note": "Small-object detector evaluated on the Airbus-Ships dataset; counted relevant (borderline)."
+ },
+ "W4403336764": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4415785828": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7140101899": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W1457884173": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2883529539": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2897839944": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2971760306": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3003385220": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3145700396": {
+  "judgment": "not relevant",
+  "note": "General overview of night-time light remote sensing; fishing boat lights are one of several sources."
+ },
+ "W4239594294": {
+  "judgment": "not relevant",
+  "note": "Fossil-fuel CO2 emission inventory using night-time lights."
+ },
+ "W4312537900": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4312633089": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4401692218": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4404883356": {
+  "judgment": "not relevant",
+  "note": "Economic development study using night-time lights; 'boats' is a figure of speech."
+ },
+ "W4415727458": {
+  "judgment": "relevant",
+  "note": "Potential fishing zones from MODIS and VIIRS boat detection (Indonesian); counted relevant (borderline)."
+ },
+ "W7163403919": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W1930985770": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2044249491": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2547333652": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2792837649": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2796338532": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2912410187": {
+  "judgment": "not relevant",
+  "note": "UAS lidar survey of breakwaters in small-boat harbors; no vessel detection."
+ },
+ "W2971751619": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3021084276": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3040434942": {
+  "judgment": "not relevant",
+  "note": "Edge detection in SAR images; ships named only among example objects."
+ },
+ "W3093502239": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3126843481": {
+  "judgment": "relevant",
+  "note": "Radar (not SAR) detection of small boats in clutter; counted relevant."
+ },
+ "W3194254656": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4210675347": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4213156196": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4283795270": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4296743665": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4313318703": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4317810564": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4364305662": {
+  "judgment": "not relevant",
+  "note": "Explainability metric for automated target recognition, ships among several target types (borderline)."
+ },
+ "W4367626240": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4385485733": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4387803624": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4390332083": {
+  "judgment": "relevant",
+  "note": "Maritime radar target detection in sea clutter; counted relevant."
+ },
+ "W4392649830": {
+  "judgment": "relevant",
+  "note": "Multi-class SAR object detector aimed at ship recognition; counted relevant."
+ },
+ "W4392740199": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (SAR ship detection)."
+ },
+ "W4399339161": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4400112224": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4400877983": {
+  "judgment": "relevant",
+  "note": "ISAR tracking of vessels; counted relevant."
+ },
+ "W4401991137": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4402452093": {
+  "judgment": "not relevant",
+  "note": "Policy review of the fisheries sector of Nigeria's blue economy."
+ },
+ "W4404787427": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4407193821": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4407403642": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4409157699": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4414405180": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4415217064": {
+  "judgment": "not relevant",
+  "note": "Legal study of the shadow fleet (Korean); no detection or monitoring method (borderline)."
+ },
+ "W4415353200": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4415883012": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6940867398": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7089210479": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7096415365": {
+  "judgment": "not relevant",
+  "note": "Remote sensing of tsunami damage along the Andaman coast."
+ },
+ "W7104056382": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7117463245": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7137890271": {
+  "judgment": "relevant",
+  "note": "Ship classification from lidar for waterway traffic monitoring; counted relevant (not satellite)."
+ },
+ "W7154311246": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7163192547": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7167852899": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7168128229": {
+  "judgment": "not relevant",
+  "note": "Nearshore sediment nourishment in Lake Michigan; 'small boat harbor' only as a place name."
+ },
+ "W7169760624": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2592354307": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2608946399": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2889603650": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4307930356": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4388623220": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7160923711": {
+  "judgment": "relevant",
+  "note": "Systematic review of at-sea transshipment including AIS-based detection and dark-vessel activity."
+ },
+ "W7167699349": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (SAR-optical dark ship detection)."
+ },
+ "W2654467866": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2729645863": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4387829066": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4388757654": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4392159352": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4402261006": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4408028350": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6968553670": {
+  "judgment": "relevant",
+  "note": "Requirements for a maritime situational awareness use case fusing vessel data sources (borderline)."
+ },
+ "W7061880596": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7161585222": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2912708802": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2982044501": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W3175844481": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4309229364": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4386906344": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4390187693": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4414550502": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4416725974": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W6957776784": {
+  "judgment": "relevant",
+  "note": "Fishing activity from satellite vessel positions; counted relevant (borderline)."
+ },
+ "W7162114145": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2224714789": {
+  "judgment": "not relevant",
+  "note": "News digest on Ukrainian politics; 'went dark' means a blackout."
+ },
+ "W4392204494": {
+  "judgment": "not relevant",
+  "note": "Reception of satellite AIS frames by a CubeSat; radio engineering rather than vessel monitoring (borderline)."
+ },
+ "W4406786647": {
+  "judgment": "not relevant",
+  "note": "Legal analysis of coastal-state actions against dark fleet tankers; no detection or monitoring."
+ },
+ "W4409452809": {
+  "judgment": "not relevant",
+  "note": "Legal analysis of shadow fleet tankers; no detection or monitoring."
+ },
+ "W7155486165": {
+  "judgment": "not relevant",
+  "note": "Data platform for deep-sea mining transparency; vessel monitoring is incidental."
+ },
+ "W2613446435": {
+  "judgment": "not relevant",
+  "note": "Purse seine gear utilisation study (Indonesian)."
+ },
+ "W2790064035": {
+  "judgment": "not relevant",
+  "note": "Community case study of Provincetown."
+ },
+ "W4255255172": {
+  "judgment": "not relevant",
+  "note": "Poetry book review."
+ },
+ "W4313149173": {
+  "judgment": "not relevant",
+  "note": "Air quality from marine traffic using Sentinel-5P; not vessel monitoring."
+ },
+ "W4391377810": {
+  "judgment": "not relevant",
+  "note": "Oceanography of small pelagic fisheries; VIIRS boat positions used only as a covariate."
+ },
+ "W4412398754": {
+  "judgment": "not relevant",
+  "note": "Satellite communication network topology design."
+ },
+ "W2522414883": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2986049086": {
+  "judgment": "relevant",
+  "note": "Detector for aircraft, ships and oil tankers in remote sensing images; counted relevant (borderline)."
+ },
+ "W3035375414": {
+  "judgment": "relevant",
+  "note": "Maritime radar (not SAR) detection of small targets; counted relevant."
+ },
+ "W3205264775": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4213258329": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4225326762": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4293103855": {
+  "judgment": "relevant",
+  "note": "Small-object detector reporting ships among its classes (DIOR); counted relevant (borderline)."
+ },
+ "W4312790920": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4379780991": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4391096267": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4403331821": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4404345408": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4407784139": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4411055798": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4413264481": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7125948471": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7167835494": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2561939013": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W2596131037": {
+  "judgment": "relevant",
+  "note": "Fishery lights from DNB with SAR; counted relevant."
+ },
+ "W2767295662": {
+  "judgment": "relevant",
+  "note": "Removes artefact pixels in VIIRS DNB images, motivated by automatic fishing boat detection; counted relevant (borderline)."
+ },
+ "W2922334674": {
+  "judgment": "relevant",
+  "note": "No abstract (citation line only); judged on title (fishing traffic from VIIRS night surveys)."
+ },
+ "W2979943818": {
+  "judgment": "relevant",
+  "note": "Japanese abstract; fishing boats with fishing lights from VIIRS night images."
+ },
+ "W2984287907": {
+  "judgment": "relevant",
+  "note": "Fishing activity from DNB images against ocean fronts; counted relevant (borderline)."
+ },
+ "W3162812363": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W4406774232": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7097623949": {
+  "judgment": "relevant",
+  "note": "No abstract; judged on title (VIIRS DNB for Arctic ship tracking)."
+ },
+ "W4413967098": {
+  "judgment": "not relevant",
+  "note": "Generic infrared small-target detection; no vessels."
+ },
+ "W4406334403": {
+  "judgment": "not relevant",
+  "note": "Light pollution removal in ship-borne night camera images; 'night-time light' is not VIIRS and no vessel detection."
+ },
+ "W7034596462": {
+  "judgment": "not relevant",
+  "note": "On-orbit calibration of the VIIRS day-night band."
+ }
+}
