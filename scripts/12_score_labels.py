@@ -37,8 +37,11 @@ LABELS = ("vessel", "structure", "clutter")
 
 def products() -> pd.DataFrame:
     """det_id -> view, class, mission (and CNN verdict for the Ca Mau view) from the current products."""
-    reg = pyogrio.read_dataframe(DATA_DIR / "detections_regional.gpkg", layer="detections_regional_4326",
-                                 read_geometry=False, columns=["det_id", "confidence", "mission"])
+    reg = pd.concat([pyogrio.read_dataframe(DATA_DIR / f, layer=layer, read_geometry=False,
+                                            columns=["det_id", "confidence", "mission"])
+                     for f, layer in (("detections_regional.gpkg", "detections_regional_4326"),
+                                      ("structures_regional.gpkg", "structures_regional_4326"))
+                     if (DATA_DIR / f).exists()], ignore_index=True)
     reg["view"] = "regional"
     det = pyogrio.read_dataframe(DATA_DIR / "detections_baseline.gpkg", layer="detections_baseline_4326",
                                  read_geometry=False, columns=["det_id", "confidence"])
