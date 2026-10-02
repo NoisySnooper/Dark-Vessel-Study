@@ -11,6 +11,7 @@ Imagery chips are re-read from the AWS mirror. Optional CNN scores from data/det
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -179,20 +180,25 @@ def _cols_b64(dets: pd.DataFrame, lat, lon, index) -> dict:
     }
 
 
-QUEUE_SHARE = {"high": 0.4, "medium": 0.4, "fixed": 0.2}
+# Labeling sample: each contact is in the queue with a fixed probability per view and class, decided by
+# a hash of its det_id. Membership never changes when scenes are added, and the inclusion probability
+# is known exactly, so labels give unbiased per-class estimates (scripts/12_score_labels.py).
+QUEUE_RATES = {
+    "regional": {"high": 0.01, "medium": 0.006, "fixed": 0.004},
+    "detail": {"high": 0.35, "medium": 0.25, "fixed": 0.15},
+}
 
 
-def label_queue(dets: pd.DataFrame, n: int, seed: int = 20261002) -> list[str]:
-    """Labeling sample: a fixed random draw per class (40 % high, 40 % medium, 20 % fixed), shuffled.
+def queue_key(det_id: str) -> float:
+    """Stable uniform number in [0, 1) from a det_id (first 32 bits of its SHA-1)."""
+    return int(hashlib.sha1(det_id.encode()).hexdigest()[:8], 16) / 2 ** 32
 
-    A random draw, not the brightest contacts, so labels give unbiased per-class precision. The seed
-    and shares are recorded so the sampling weights can be recovered (class count / sample count).
-    """
-    parts = []
-    for k, share in QUEUE_SHARE.items():
-        pool = dets[dets.confidence == k]
-        parts.append(pool.sample(min(len(pool), int(round(n * share))), random_state=seed))
-    q = pd.concat(parts).sample(frac=1.0, random_state=seed)
+
+def label_queue(dets: pd.DataFrame, rates: dict) -> list[str]:
+    """det_ids in the labeling sample, in a fixed pseudo-random order (by hash)."""
+    key = dets.det_id.map(queue_key)
+    rate = dets.confidence.map(rates).fillna(0.0)
+    q = dets.assign(_k=key)[key < rate].sort_values("_k")
     return q.det_id.tolist()
 
 
@@ -229,7 +235,7 @@ def camau_data(max_chips: int, max_px: int = 2600) -> tuple[dict, str, dict]:
     dets["px_y"] = ((dets.geometry.y - tr.f) / tr.e).round(1)
     dets["scene_id"] = summary["scene_id"]
     scene = GRDScene(_scene_path(summary["scene_id"]))
-    queue = label_queue(dets, max_chips)
+    queue = label_queue(dets, QUEUE_RATES["detail"])[:max_chips]
     chips = _chips_for(dets, lambda r: scene, queue + _top_ids(dets))
     scenes, index = _scene_table(dets.det_id, dets.scene_id, pd.Series([summary["acq_utc"]] * len(dets)),
                                  pd.Series([summary["scene_id"][:3]] * len(dets)))
@@ -310,7 +316,7 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
             scenes[r.scene_id] = GRDScene(_scene_path(r.scene_id))
         return scenes[r.scene_id]
 
-    queue = label_queue(dets, max_chips)
+    queue = label_queue(dets, QUEUE_RATES["regional"])[:max_chips]
     chips = _chips_for(dets, scene_of, queue + _top_ids(dets))
     vessel = dets[dets.confidence != "low"].reset_index(drop=True)
     scenes_tab, index = _scene_table(dets.det_id, dets.scene_id, dets.acq_utc, dets.mission)
@@ -333,7 +339,7 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
         "cols": COLS, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
         "n_low": int(summary["classes"].get("low", 0)),
         "passes": pass_list, "label_check": label_check(), "queue": queue,
-        "queue_rule": {"seed": 20261002, "share": QUEUE_SHARE},
+        "queue_rule": {"hash": "sha1(det_id)[:8] / 2^32 < rate", "rates": QUEUE_RATES},
     }
     return data, chips
 
