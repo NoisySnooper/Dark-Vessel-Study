@@ -20,6 +20,7 @@ import gzip
 import hashlib
 import io
 import json
+import re
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -390,7 +391,7 @@ def _venue_groups(corpus: list[dict], groups: tuple[str, ...]) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if df.empty:
         return df
-    df = df.sort_values(["n_papers", "cited_by_sum"], ascending=False).reset_index(drop=True)
+    df = df.sort_values(["n_papers", "cited_by_sum", "venue"], ascending=[False, False, True], kind="mergesort").reset_index(drop=True)
     df.insert(0, "rank", df.index + 1)
     df["pct_of_corpus"] = (100 * df["n_papers"] / len(corpus)).round(2)
     return df
@@ -415,6 +416,11 @@ def venue_coverage(corpus: list[dict]) -> dict:
     }
 
 
+def _ranked(counts: Counter, n: int) -> list[tuple[str, int]]:
+    """Highest counts first; ties broken by key so the output does not depend on hash order."""
+    return sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:n]
+
+
 def top_countries(corpus: list[dict], names: dict[str, str], n: int = 50) -> pd.DataFrame:
     counts: Counter = Counter()
     with_data = 0
@@ -431,7 +437,7 @@ def top_countries(corpus: list[dict], names: dict[str, str], n: int = 50) -> pd.
             "pct_of_corpus": round(100 * k / len(corpus), 2),
             "pct_of_papers_with_country_data": round(100 * k / with_data, 2) if with_data else 0.0,
         }
-        for cc, k in counts.most_common(n)
+        for cc, k in _ranked(counts, n)
     ]
     return pd.DataFrame(rows)
 
@@ -452,7 +458,7 @@ def top_institutions(corpus: list[dict], country_of: dict[str, str] | None = Non
             "n_papers": k,
             "pct_of_corpus": round(100 * k / len(corpus), 2),
         }
-        for iid, k in counts.most_common(n)
+        for iid, k in _ranked(counts, n)
     ]
     return pd.DataFrame(rows)
 
@@ -887,6 +893,15 @@ def scan_totals(cache_dir: Path) -> dict:
     }
 
 
+def _to_csv(df: pd.DataFrame, path: Path) -> None:
+    """Write a table. The project style bans the em dash (U+2014), so quoted titles and abstracts get a spaced hyphen."""
+    df = df.copy()
+    for col in df.columns:
+        if pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_string_dtype(df[col]):
+            df[col] = df[col].map(lambda v: re.sub(r"\s*\u2014\s*", " - ", v) if isinstance(v, str) else v)
+    df.to_csv(path, index=False)
+
+
 def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -> dict:
     """Build every table. Returns the summary dict (also written to data/biblio/summary.json)."""
     repo = Path(repo)
@@ -910,17 +925,17 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
     names = load_country_names(cache)
     inst_country = institution_countries(rows)
 
-    corpus_frame(corpus).to_csv(out / "corpus.csv", index=False)
-    papers_per_year(corpus).to_csv(out / "papers_per_year.csv", index=False)
-    top_venues(corpus).to_csv(out / "top_venues.csv", index=False)
-    top_repositories(corpus).to_csv(out / "top_repositories.csv", index=False)
-    top_countries(corpus, names).to_csv(out / "top_countries.csv", index=False)
-    top_institutions(corpus, inst_country).to_csv(out / "top_institutions.csv", index=False)
-    top_cited(corpus).to_csv(out / "top20_cited.csv", index=False)
+    _to_csv(corpus_frame(corpus), out / "corpus.csv")
+    _to_csv(papers_per_year(corpus), out / "papers_per_year.csv")
+    _to_csv(top_venues(corpus), out / "top_venues.csv")
+    _to_csv(top_repositories(corpus), out / "top_repositories.csv")
+    _to_csv(top_countries(corpus, names), out / "top_countries.csv")
+    _to_csv(top_institutions(corpus, inst_country), out / "top_institutions.csv")
+    _to_csv(top_cited(corpus), out / "top20_cited.csv")
     sea_judgments_path = out / "sea_vietnam_judgments.json"
     sea_judgments = json.loads(sea_judgments_path.read_text()) if sea_judgments_path.exists() else {}
-    sea_vietnam(corpus, names, sea_judgments).to_csv(out / "sea_vietnam.csv", index=False)
-    pd.DataFrame(merge_log).to_csv(out / "dedupe_log.csv", index=False)
+    _to_csv(sea_vietnam(corpus, names, sea_judgments), out / "sea_vietnam.csv")
+    _to_csv(pd.DataFrame(merge_log), out / "dedupe_log.csv")
 
     q = queries_json()
     (out / "queries.json").write_text(json.dumps(q, indent=1))
@@ -931,17 +946,17 @@ def build_all(repo: Path, judgments: dict[str, dict] | None = None, log=print) -
     meta_path = out / "anchor_metadata.json"
     metadata = json.loads(meta_path.read_text()).get("records", {}) if meta_path.exists() else {}
     anchors = anchors_table(prepare_rows(rows, recovery), corpus, summaries, metadata)
-    anchors.to_csv(out / "anchors.csv", index=False)
-    elvidge_viirs_table(corpus).to_csv(out / "elvidge_viirs_boats.csv", index=False)
+    _to_csv(anchors, out / "anchors.csv")
+    _to_csv(elvidge_viirs_table(corpus), out / "elvidge_viirs_boats.csv")
 
     sample = draw_sample(corpus)
     judgments = judgments or {}
-    sample_frame(sample, judgments).to_csv(out / "precision_sample.csv", index=False)
+    _to_csv(sample_frame(sample, judgments), out / "precision_sample.csv")
     precision = precision_by_theme(sample, judgments)
     theme_judgments_path = out / "precision_theme_judgments.json"
     theme_judgments = json.loads(theme_judgments_path.read_text()) if theme_judgments_path.exists() else {}
     pairs = draw_theme_samples(corpus, set())
-    theme_sample_frame(pairs, {**judgments, **theme_judgments}).to_csv(out / "precision_theme_sample.csv", index=False)
+    _to_csv(theme_sample_frame(pairs, {**judgments, **theme_judgments}), out / "precision_theme_sample.csv")
     precision["theme_sample"] = theme_sample_precision(pairs, {**judgments, **theme_judgments})
 
     theme_counts = Counter(t for c in corpus for t in c["themes"])

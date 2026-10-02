@@ -19,13 +19,13 @@ rank,venue,venue_group,venue_type,source_id,n_papers,cited_by_sum,first_year,las
 18,ISTI Open Portal,repository,repository,S7407055261,4,0,2017,2019,0,sar_ship_detection,0.09
 19,Institutional Archive of Ifremer (French Research Institute for Exploitation of the Sea),repository,repository,S4377196267,3,4,2020,2026,0,iuu_remote_sensing,0.07
 20,Marine Scotland,repository,repository,S7407050771,3,3,2021,2023,0,iuu_remote_sensing,0.07
-21,Fraunhofer-Publica (Fraunhofer-Gesellschaft),repository,repository,S4306400318,3,1,2022,2026,0,small_vessel,0.07
-22,Data Archiving and Networked Services (DANS),repository,repository,S4306401843,3,1,2018,2024,0,iuu_remote_sensing,0.07
+21,Data Archiving and Networked Services (DANS),repository,repository,S4306401843,3,1,2018,2024,0,iuu_remote_sensing,0.07
+22,Fraunhofer-Publica (Fraunhofer-Gesellschaft),repository,repository,S4306400318,3,1,2022,2026,0,small_vessel,0.07
 23,International Council for the Exploration of the Sea (ICES),repository,repository,S7407051122,3,0,2016,2023,0,iuu_remote_sensing,0.07
 24,ScholarWorks@UMassAmherst (University of Massachusetts Amherst),repository,repository,S4306402240,2,7,2016,2017,0,viirs_boats,0.05
 25,bioRxiv (Cold Spring Harbor Laboratory),repository,repository,S4306402567,2,4,2021,2025,0,viirs_boats,0.05
 26,IRIS Research product catalog (Sapienza University of Rome),repository,repository,S4377196107,2,2,2017,2021,0,sar_ship_detection,0.05
-27,Surrey Research Insight Open Access (The University of Surrey),repository,repository,S4306400680,2,2,2017,2018,0,sar_ais_fusion,0.05
-28,NORA - Norwegian Open Research Archives,repository,repository,S7407064446,2,2,2015,2018,0,sar_ship_detection,0.05
+27,NORA - Norwegian Open Research Archives,repository,repository,S7407064446,2,2,2015,2018,0,sar_ship_detection,0.05
+28,Surrey Research Insight Open Access (The University of Surrey),repository,repository,S4306400680,2,2,2017,2018,0,sar_ais_fusion,0.05
 29,ARCA (Università Ca' Foscari Venezia),repository,repository,S4306402336,2,1,2017,2021,0,iuu_remote_sensing,0.05
 30,DergiPark (Istanbul University),repository,repository,S4306401840,2,1,2018,2018,0,sar_ship_detection,0.05

@@ -212,3 +212,22 @@ def test_anchor_table_uses_the_actual_merge_reason_and_summary_by_id():
     assert row.loc["W10", "summary"] == ""
     # anchors that are absent from the stored rows are reported as not found
     assert (df[df.anchor_key == "paolo_2024_nature"]["found_in_snapshot"] == False).all()  # noqa: E712
+
+
+def test_csv_output_has_no_em_dash(tmp_path):
+    import pandas as pd
+
+    df = pd.DataFrame({"title": ["A study — of ships", None], "n": [1, 2]})
+    path = tmp_path / "t.csv"
+    corpus._to_csv(df, path)
+    text = path.read_text(encoding="utf-8")
+    assert "—" not in text and "A study - of ships" in text
+    assert df.loc[0, "title"].count("—") == 1  # the caller's frame is not modified
+
+
+def test_rankings_break_ties_by_key_not_by_hash_order():
+    docs = [work(f"W{i}", 2020, ["sar_ship_detection"], "J", "journal", ["CN"], [("I9", "Z"), ("I1", "A")]) for i in range(3)]
+    inst = corpus.top_institutions(docs)
+    assert list(inst["institution_id"]) == ["I1", "I9"]  # equal counts, ordered by ID
+    docs = [work("W1", 2020, ["sar_ship_detection"], "J", "journal", ["US", "CN", "DE"], [])]
+    assert list(corpus.top_countries(docs, {})["country_code"]) == ["CN", "DE", "US"]
