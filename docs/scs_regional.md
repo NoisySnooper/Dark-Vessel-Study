@@ -123,6 +123,24 @@ The labels miss some real ships, so these are lower bounds on precision. Read on
 
 This is a consistency check, not a transfer result: the dates differ and nothing is scored against truth.
 
+**Weather at the radar time.** `scripts/16_weather_context.py` sampled two sources at each of 162,386 regional objects (candidates, fixed structures and both kinds of clutter-flagged objects; `data/weather_context.json`, `data/weather_context.parquet`):
+- GFS 0.25 degree 10 m wind of the nearest hour;
+- Himawari-9 cloud-top temperature of the nearest 10-minute full disk, parallax corrected.
+
+Both are NOAA open data on AWS, read by byte range.
+
+| Group | Objects | Under deep convection (tops below 220 K) | Under no cloud | Median wind |
+|---|---|---|---|---|
+| Clutter zone (flagged) | 52,820 | 39.0 % [38.6, 39.4] | 17 % | 3.4 m/s |
+| One-channel candidates | 49,387 | 29.1 % [28.7, 29.5] | 31 % | 4.2 m/s |
+| Both-channel candidates | 29,228 | 23.4 % [22.9, 23.9] | 40 % | 3.8 m/s |
+| Fixed structures | 25,224 | 21.0 % | 43 % | 3.7 m/s |
+| Near fixed (flagged) | 5,727 | 16.6 % | 61 % | 3.6 m/s |
+
+- The clutter-zone rule was set from the radar alone. It flags objects under deep convection 1.7 times as often as it keeps both-channel candidates, which is independent support for the rule.
+- The separation is partial. 61 % of flagged objects are not under tops colder than 220 K (aquaculture, fleets, warmer rain clouds), and about a quarter of kept candidates are under convective cloud. Ships do not stop for storms, and some rain cells survive the rule.
+- Winds were light in this window (medians 3 to 4 m/s), the conditions in which small boats are easiest to see.
+
 **Products.**
 - `data/detections_regional.gpkg` (36 MB):
   - `detections_regional_4326` and `_utm49n`: 78,615 vessel candidates. Columns:

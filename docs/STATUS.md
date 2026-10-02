@@ -71,6 +71,12 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
   - There is no 1D ground truth yet; next task 2 supplies it.
 - Applied regionally only on the shared 1C/1D cells (above), as a consistency check; the transfer has to be scored first.
 
+### Extra data (`docs/data_additions.md`, `data/data_additions.csv`)
+- 27 further sources researched, with access tested from this environment. Night lights, weather and sea state, optical, other SAR and Vietnamese sources each come with licence, latency and the owner action needed.
+- Added now, with no owner action:
+  - VIIRS Day/Night Band lights at sea, every night, over the whole AOI including the central sea that Sentinel-1 never imaged (`scripts/15_viirs_lights.py`, run in progress);
+  - GFS 10 m wind and Himawari-9 cloud tops at each radar object (`scripts/16_weather_context.py`). 39 % of the objects the clutter rule removes sit under deep convection, against 23 % of the both-channel candidates it keeps.
+
 ### Paper 1 groundwork (`docs/paper1_design.md`)
 - Noise floor from the products' own annotation: Sentinel-1C and 1D are 1.4 dB (VV) and 1.8 dB (VH) below Sentinel-1A (2022) at every incidence angle, and 1C and 1D match each other (`docs/figures/nesz_by_satellite.png`). This explains about half of the darker 1D chip backgrounds.
 - Labeling design: a fixed random sample per class, plus every CNN-accepted Ca Mau contact (149, enough to detect a 10-point precision drop). The demo page queues them, and `scripts/12_score_labels.py` turns your CSV into per-class shares and CNN precision and recall with intervals.

@@ -42,7 +42,7 @@ The NESZ values come from the products' own noise and calibration annotation (20
 | M3 | CNN recall on 1D relative to the baseline: the share of labelled vessels among baseline candidates that the CNN keeps | Owner labels on the class sample | Horvitz-Thompson ratio with bootstrap interval | Ready (`scripts/12_score_labels.py`) |
 | M4 | Recall of the full detector on 1C and 1D, by length | AIS positions at the radar time, or exhaustive labels of small windows | Matched or found share, Wilson interval, by AIS length bin | Blocked: no AIS source; matcher built (`src/darkvessel/ais/match.py`) |
 | M5 | NESZ by satellite and incidence angle | None (annotation) | Median per 1 degree bin | Done |
-| M6 | Chip-background offset explained by NESZ and wind | Wind speed at the radar time | Regression of background on NESZ and wind, per sub-swath | Wind source to be chosen (ERA5 or SAR wind retrieval; UNVERIFIED access) |
+| M6 | Chip-background offset explained by NESZ and wind | Wind speed at the radar time | Regression of background on NESZ and wind, per sub-swath | First pass done with GFS 10 m wind (`data/weather_context.json`): VV background rises 0.47 dB (1D) and 0.71 dB (1C) per m/s, VH is flat (noise floor). Within wind bins with at least 1,400 objects per satellite the 1D minus 1C VV difference is +1.4, +1.4, +2.4 and -2.6 dB (0 to 8 m/s in 2 m/s steps): no stable sensor offset. Next: per sub-swath, and a SAR wind retrieval |
 | M7 | 1C against 1D on shared sea | None | Density ratio per shared cell; CNN acceptance | Done on the 12-day run (373 cells) |
 
 Random contact labels measure precision only. Recall needs the vessels that were missed, so M4 needs AIS (large vessels) or exhaustive labels of whole windows (all vessels).
