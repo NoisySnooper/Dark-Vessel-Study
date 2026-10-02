@@ -7,6 +7,9 @@ Confidence (heuristic baseline, to be replaced by the learned verifier):
            longer than `max_vessel_m` (no vessel is that long; rows of structures, artefacts)
   fixed  = recurs within `radius_m` on every other date checked (same orbit geometry):
            wind turbines, platforms, fixed fishing gear. Overrides high/medium.
+  clutter zone (regional run) = a high or medium object with at least `min_low` low objects
+           within `radius_m` in the same scene: rain cells, wind fronts and aquaculture rafts
+           light up as fields of weak returns. Downgraded to low (low_reason "clutter_zone").
 """
 
 from __future__ import annotations
@@ -59,3 +62,26 @@ def apply_persistence(main: gpd.GeoDataFrame, n_matched: np.ndarray, n_dates: in
         fixed = (n_matched >= n_dates) & out.confidence.isin(["high", "medium"])
         out.loc[fixed, "confidence"] = "fixed"
     return out
+
+
+def clutter_zone(df, radius_m: float = 1000.0, min_low: int = 5, group: str = "scene_id"):
+    """Flag vessel candidates that sit among many weak returns of the same scene.
+
+    `df` needs lon, lat, confidence and `group` columns. Returns (flag, n_low): flag is True for
+    high/medium rows with at least `min_low` low-class objects within `radius_m`; n_low is that
+    count for every row. Check on AI2-labelled Sentinel-1A/1B candidates (scripts/11_clutter_zone_check.py):
+    1 km and 5 removes about a quarter of clutter candidates and about 2 % of labelled vessels. A very
+    dense fleet of small boats with weak returns can be flagged too, so flagged rows are kept, not dropped.
+    """
+    n_low = np.zeros(len(df), int)
+    pos = {k: i for i, k in enumerate(df.index)}
+    for _, g in df.groupby(group):
+        lat0 = np.radians(float(g.lat.mean()))
+        xy = np.column_stack([np.radians(g.lon.values) * 6371008.8 * np.cos(lat0), np.radians(g.lat.values) * 6371008.8])
+        low = (g.confidence == "low").to_numpy()
+        if not low.any():
+            continue
+        counts = cKDTree(xy[low]).query_ball_point(xy, radius_m, return_length=True)
+        n_low[[pos[k] for k in g.index]] = counts
+    flag = df.confidence.isin(["high", "medium"]).to_numpy() & (n_low >= min_low)
+    return flag, n_low

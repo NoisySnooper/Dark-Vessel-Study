@@ -95,7 +95,7 @@ def relean():
     print("wrote", write_lean(det, proc, about), f"{len(det)} rows")
 
 
-def run(days: int, workers: int, pfa: float, max_scenes: int | None, min_overlap_km2: float = 2000.0):
+def run(days: int, workers: int, pfa: float, max_scenes: int | None, min_overlap_km2: float = 300.0):
     CACHE.mkdir(parents=True, exist_ok=True)
     sc = pd.read_csv(DATA_DIR / "s1_scenes.csv", parse_dates=["start_utc"])
     end = sc.start_utc.max().normalize() + pd.Timedelta(days=1)
@@ -113,7 +113,8 @@ def run(days: int, workers: int, pfa: float, max_scenes: int | None, min_overlap
             print(f"[{time.time() - t0:6.0f}s] {i}/{len(todo)} {sid} {km2:,.0f} km2 {n} objects {err or ''}", flush=True)
 
 
-def merge(pfa: float, persist_workers: int = 6):
+def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
+    from darkvessel.detect.postprocess import clutter_zone
     from darkvessel.io import write_dual_crs
     from darkvessel.regional import recurs
     from darkvessel.s1.grd import GRDScene
@@ -123,6 +124,14 @@ def merge(pfa: float, persist_workers: int = 6):
     det = pd.concat([p for p in parts if len(p)], ignore_index=True)
     det = gpd.GeoDataFrame(det, geometry=gpd.points_from_xy(det.lon, det.lat), crs="EPSG:4326")
     print(f"merged {len(det)} objects from {len(parts)} scenes", flush=True)
+
+    # Clutter zones: candidates among many weak returns (rain cells, wind fronts, aquaculture rafts)
+    n_clutter = 0
+    if clutter:
+        flag, det["n_low_1km"] = clutter_zone(det)
+        det.loc[flag, ["confidence", "low_reason"]] = ["low", "clutter_zone"]
+        n_clutter = int(flag.sum())
+        print(f"clutter zone: {n_clutter} candidates downgraded to low", flush=True)
 
     # Targeted persistence for vessel candidates: same relative orbit and pass, 1 to 30 days earlier
     fp = gpd.read_file(DATA_DIR / "s1_footprints.gpkg", layer="s1_footprints_4326")
@@ -195,8 +204,12 @@ def merge(pfa: float, persist_workers: int = 6):
     write_dual_crs(proc, full, "scenes_processed", utm_crs=CRS_UTM_REGIONAL)
     about = {"caveat_full": DARK_CAVEAT, "detector": "ca_cfar_v0 regional, block streaming", "pfa": str(pfa),
              "guard_px": "81", "background_px": "161", "land_buffer_m": "1000",
-             "confidence_classes": "high = VV and VH; medium = VH only or strong VV only; low = weak VV only or longer "
-                                   "than 450 m; fixed = bright return at the same spot on every earlier same-orbit pass checked",
+             "confidence_classes": "high = VV and VH; medium = VH only or strong VV only; low = weak VV only, longer "
+                                   "than 450 m, or in a clutter zone; fixed = bright return at the same spot on every earlier "
+                                   "same-orbit pass checked",
+             "clutter_zone": "high or medium object with 5 or more low objects within 1 km in the same scene (rain cells, "
+                             "wind fronts, aquaculture rafts; a very dense small-boat fleet can be flagged too); downgraded "
+                             "to low with low_reason clutter_zone" if clutter else "not applied",
              "persistence": "20 m overview window, contrast >= 7 dB within ~60 m, up to 2 earlier passes 1 to 30 days before",
              "data_credit": "Contains modified Copernicus Sentinel data 2026; ESA WorldCover 2021 v200 (CC BY 4.0); "
                             "Natural Earth (public domain)"}
@@ -212,6 +225,7 @@ def merge(pfa: float, persist_workers: int = 6):
         "candidates_per_1000km2": round(1000 * len(vessels) / max(float(st.tested_km2.sum()), 1), 2),
         "length_est_m_vessels": vessels.length_est_m.describe().round(1).to_dict(),
         "scene_runtime_s_median": float(st.runtime_s.median()), "persistence_checks": len(jobs),
+        "clutter_zone_downgraded": n_clutter,
     }
     (DATA_DIR / "regional_summary.json").write_text(json.dumps(summary, indent=2, default=str))
     print(json.dumps(summary, indent=2, default=str))
@@ -225,10 +239,11 @@ if __name__ == "__main__":
     ap.add_argument("--max-scenes", type=int, default=None)
     ap.add_argument("--merge", action="store_true")
     ap.add_argument("--relean", action="store_true", help="rebuild data/detections_regional.gpkg from the full file")
+    ap.add_argument("--no-clutter-zone", action="store_true", help="keep candidates that sit among many weak returns")
     a = ap.parse_args()
     if a.relean:
         relean()
     elif a.merge:
-        merge(a.pfa)
+        merge(a.pfa, clutter=not a.no_clutter_zone)
     else:
         run(a.days, a.workers, a.pfa, a.max_scenes)

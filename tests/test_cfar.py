@@ -87,3 +87,22 @@ def test_extract_detections_measures_length_and_merges_fragments():
     assert df.length_est_m.iloc[0] == pytest.approx(200, rel=0.2)
     assert df.row.iloc[0] == pytest.approx(1150, abs=0.5)
     assert df.peak_to_bg_db.iloc[0] == pytest.approx(20, abs=0.1)
+
+
+def test_clutter_zone_flags_candidates_among_weak_returns():
+    import pandas as pd
+
+    from darkvessel.detect.postprocess import clutter_zone
+
+    rng = np.random.default_rng(1)
+    # Scene A: a candidate inside a field of 20 weak returns within ~500 m, and a lone candidate 20 km away
+    lon = list(110.0 + rng.uniform(-0.004, 0.004, 20)) + [110.0, 110.18]
+    lat = list(10.0 + rng.uniform(-0.004, 0.004, 20)) + [10.0, 10.0]
+    conf = ["low"] * 20 + ["medium", "high"]
+    df = pd.DataFrame({"lon": lon, "lat": lat, "confidence": conf, "scene_id": "A"})
+    # Scene B: same position as the field, other scene: must not borrow scene A's weak returns
+    df = pd.concat([df, pd.DataFrame({"lon": [110.0], "lat": [10.0], "confidence": ["high"], "scene_id": ["B"]})],
+                   ignore_index=True)
+    flag, n_low = clutter_zone(df, radius_m=1000.0, min_low=5)
+    assert flag.tolist() == [False] * 20 + [True, False, False]
+    assert n_low[20] == 20 and n_low[21] == 0 and n_low[22] == 0
