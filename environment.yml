@@ -23,6 +23,7 @@ dependencies:
   - torchvision
   - requests
   - fsspec
+  - h5py
   - aiohttp
   - python-dotenv
   - pyyaml
