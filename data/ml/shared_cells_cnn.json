@@ -1,0 +1,127 @@
+{
+ "threshold": 0.631782591342926,
+ "shared_cells": 373,
+ "min_share": 0.3,
+ "objects": 35626,
+ "by": [
+  {
+   "mission": "S1C",
+   "class": "fixed",
+   "n": 3598,
+   "accepted": 735,
+   "accept_share": 0.204,
+   "accept_ci": [
+    0.191,
+    0.218
+   ],
+   "score_q25_q50_q75": [
+    0.006,
+    0.094,
+    0.519
+   ],
+   "bg_vv_db_median": -21.27,
+   "bg_vh_db_median": -27.56,
+   "length_median_m": 70.6
+  },
+  {
+   "mission": "S1C",
+   "class": "high",
+   "n": 4180,
+   "accepted": 2514,
+   "accept_share": 0.601,
+   "accept_ci": [
+    0.587,
+    0.616
+   ],
+   "score_q25_q50_q75": [
+    0.419,
+    0.744,
+    0.925
+   ],
+   "bg_vv_db_median": -21.5,
+   "bg_vh_db_median": -27.66,
+   "length_median_m": 61.0
+  },
+  {
+   "mission": "S1C",
+   "class": "medium",
+   "n": 6706,
+   "accepted": 678,
+   "accept_share": 0.101,
+   "accept_ci": [
+    0.094,
+    0.109
+   ],
+   "score_q25_q50_q75": [
+    0.001,
+    0.026,
+    0.25
+   ],
+   "bg_vv_db_median": -20.23,
+   "bg_vh_db_median": -27.33,
+   "length_median_m": 24.1
+  },
+  {
+   "mission": "S1D",
+   "class": "fixed",
+   "n": 5229,
+   "accepted": 1203,
+   "accept_share": 0.23,
+   "accept_ci": [
+    0.219,
+    0.242
+   ],
+   "score_q25_q50_q75": [
+    0.004,
+    0.104,
+    0.578
+   ],
+   "bg_vv_db_median": -20.64,
+   "bg_vh_db_median": -26.97,
+   "length_median_m": 80.4
+  },
+  {
+   "mission": "S1D",
+   "class": "high",
+   "n": 6173,
+   "accepted": 3880,
+   "accept_share": 0.629,
+   "accept_ci": [
+    0.616,
+    0.641
+   ],
+   "score_q25_q50_q75": [
+    0.443,
+    0.782,
+    0.941
+   ],
+   "bg_vv_db_median": -21.05,
+   "bg_vh_db_median": -27.69,
+   "length_median_m": 70.5
+  },
+  {
+   "mission": "S1D",
+   "class": "medium",
+   "n": 9740,
+   "accepted": 1037,
+   "accept_share": 0.106,
+   "accept_ci": [
+    0.1,
+    0.113
+   ],
+   "score_q25_q50_q75": [
+    0.002,
+    0.039,
+    0.272
+   ],
+   "bg_vv_db_median": -19.41,
+   "bg_vh_db_median": -27.34,
+   "length_median_m": 24.1
+  }
+ ],
+ "paired_cells_bg": {
+  "cells": 369,
+  "vv_1d_minus_1c_median": 1.21,
+  "vh_1d_minus_1c_median": 0.34
+ }
+}

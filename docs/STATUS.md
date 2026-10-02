@@ -7,11 +7,11 @@ Updated: 2026-10-02 (UTC). The owner reviews; the assistant does the heavy lifti
 ## Look at this first
 
 - **Demo page (private link, yours to share):** https://claude.ai/artifact/5VbpXaoghkKx8nwGoaEeUs (version 5). It holds:
-  - a regional map of the South China Sea with all 43,944 vessel candidates and the 90-day Sentinel-1 coverage layer;
+  - a regional map of the South China Sea with all 78,615 vessel candidates of one 12-day cycle and the 90-day Sentinel-1 coverage layer;
   - a radar view of one Ca Mau scene, with CNN scores;
   - a contact inspector (radar chip, DMS and MGRS position, date-time group);
   - in-browser labeling with CSV export.
-- **ArcGIS Pro:** `data/detections_regional.gpkg`, `data/detections_baseline.gpkg`, `data/aoi.gpkg`, rasters in `data/outputs/small/`. Every product has an EPSG:4326 layer or file plus a UTM one (49N regional, 48N Ca Mau).
+- **ArcGIS Pro:** `data/detections_regional.gpkg` (vessel candidates), `data/structures_regional.gpkg` (fixed structures), `data/detections_baseline.gpkg` (Ca Mau), `data/aoi.gpkg`, rasters in `data/outputs/small/`. Every product has an EPSG:4326 layer or file plus a UTM one (49N regional, 48N Ca Mau).
 - **Figures:** `docs/figures/coverage.png`, `docs/figures/regional_detections.png`, `docs/figures/baseline_map.png`, `docs/figures/ml_1d_chips.png`.
 
 ## Scope change (2026-10-02)
@@ -42,10 +42,15 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 - Repo scaffold, `environment.yml` verified by a real install, secret-safe `.gitignore`, `.env.example`, walkthrough notebook, offline `pytest` suite (167 tests pass in the conda environment).
 - Coverage, 90 days: 1,042 Sentinel-1C/1D IW products in 280 passes. 55 % of the AOI imaged at least once. **1.61 million km2 (45 %), the whole central sea including the Spratly area, never imaged.** On an average day Sentinel-1 images 6.3 % of the AOI.
 - Ca Mau detail scene (Sentinel-1D, 2026-09-29): 720 vessel candidates (285 in both channels), 349 fixed structures, 4,936 low-confidence objects over about 17,700 km2 of open sea.
-- Regional run, 26 September to 1 October 2026: 64 Sentinel-1C/1D scenes, 1.19 million km2 of sea tested. **43,944 vessel candidates** (16,807 in both channels), 13,560 fixed structures. Density map and rasters done (`docs/figures/regional_detections.png`).
-- Quicklooks of the densest cells showed rain cells (off Brunei, Gulf of Thailand) and aquaculture rafts (Zhanjiang Bay). A clutter-zone rule now moves candidates among 5 or more weak returns within 1 km to the low class (32,040 here). On labelled 1A/1B scenes it costs about 2 % of labelled vessels.
+- Regional run over one 12-day repeat cycle, 20 September to 1 October 2026: 119 Sentinel-1C/1D scenes, 2.38 million km2 of sea tested. **78,615 vessel candidates** (29,228 in both channels) and 25,224 fixed structures. Density map and rasters are done (`docs/figures/regional_detections.png`).
+- Quicklooks of the densest cells showed four false sources:
+  - rain cells (off Brunei, Gulf of Thailand);
+  - aquaculture rafts (Zhanjiang Bay);
+  - an offshore wind farm (Shanwei).
+
+  Two rules now move candidates to the low class: 5 or more weak returns within 1 km (52,820), and within 250 m of a fixed structure (5,727). The first costs about 2 % of labelled vessels on 1A/1B scenes; the cost of the second is unmeasured. Both keep their rows in the full file.
 - A sea-mask bug that dropped nearshore sea in 9 coastal scenes was found and fixed. 22,400 km2 was recovered, including the Gulf of Thailand off Kien Giang and the northern Gulf of Tonkin.
-- First look for paper 1: on the 93 cells both satellites imaged, Sentinel-1C and 1D give the same candidate density (33.4 and 31.6 per 1,000 km2 per look).
+- First look for paper 1: on 373 cells both satellites imaged, Sentinel-1C and 1D agree. Density is 38.8 against 41.1 per 1,000 km2 per look. The CNN accepts 60 % against 63 % of both-channel candidates.
 - AIS matching module (interface, synthetic generator, tests). No real AIS used.
 
 ### ML stage (`docs/ml_verifier.md`, `data/detections_ml.gpkg`)
@@ -64,7 +69,7 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
   - Many rejects are lines of point targets with cross-shaped sidelobes (stake nets or other fixed gear; `docs/figures/ml_1d_chips.png`).
   - Chip backgrounds are 3.6 dB darker than the training clutter. That is either a sensor or sea-state shift, or a model that knows only large ships.
   - There is no 1D ground truth yet; next task 2 supplies it.
-- Not applied to the regional run yet: the transfer has to be scored first.
+- Applied regionally only on the shared 1C/1D cells (above), as a consistency check; the transfer has to be scored first.
 
 ### Paper 1 groundwork (`docs/paper1_design.md`)
 - Noise floor from the products' own annotation: Sentinel-1C and 1D are 1.4 dB (VV) and 1.8 dB (VH) below Sentinel-1A (2022) at every incidence angle, and 1C and 1D match each other (`docs/figures/nesz_by_satellite.png`). This explains about half of the darker 1D chip backgrounds.
@@ -78,7 +83,7 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 | No keys | OpenAlex API (key-only since 2026), Copernicus S3 and GFW API unavailable | Add `OPENALEX_API_KEY`, `CDSE_S3_ACCESS_KEY`, `CDSE_S3_SECRET_KEY` and `GFW_API_TOKEN` as environment secrets. Never in chat or git. |
 | No AIS source | Nothing can be labeled dark; no AIS-based recall by length on 1C/1D scenes | GFW token (noncommercial) for the papers; a commercial feed for anything Viettel-facing |
 | No 1C/1D ground truth | Transfer to 1C/1D cannot be scored | Hand labels: next task 2 |
-| Compute | Regional run covers the most recent days only, on a shared 4-core machine | `scripts/09_run_regional.py --days 90` on a bigger machine (checkpointed per scene) |
+| Compute | Regional run covers one 12-day cycle of the 90 days, on a shared 4-core machine | `scripts/09_run_regional.py --days 90` on a bigger machine (checkpointed per scene) |
 
 Worked around: OpenAlex via its public S3 snapshot; Sentinel-1 via the AWS Open Data mirror; land mask via ESA WorldCover on S3; AOI and coastline via Natural Earth on GitHub; labels via the public Skylight repo.
 

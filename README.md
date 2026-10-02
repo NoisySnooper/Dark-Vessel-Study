@@ -29,7 +29,7 @@ conda env create -f environment.yml && conda activate darkvessel
 python scripts/01_make_aoi.py                  # data/aoi.gpkg
 python scripts/02_search_scenes.py             # data/s1_footprints.gpkg, last 90 days, Sentinel-1C/1D
 python scripts/08_coverage.py                  # passes per cell: COGs, docs/figures/coverage.png
-python scripts/09_run_regional.py --days 6     # regional detection, checkpointed per scene
+python scripts/09_run_regional.py --days 12    # regional detection, checkpointed per scene
 python scripts/09_run_regional.py --merge      # data/detections_regional.gpkg + persistence check
 python scripts/10_regional_density.py          # density COGs, docs/figures/regional_detections.png
 python scripts/02_search_scenes.py --aoi ca_mau && python scripts/03_run_baseline.py   # Ca Mau detail

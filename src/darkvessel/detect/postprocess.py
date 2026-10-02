@@ -10,6 +10,9 @@ Confidence (heuristic baseline, to be replaced by the learned verifier):
   clutter zone (regional run) = a high or medium object with at least `min_low` low objects
            within `radius_m` in the same scene: rain cells, wind fronts and aquaculture rafts
            light up as fields of weak returns. Downgraded to low (low_reason "clutter_zone").
+  near fixed (regional run) = a high or medium object within `radius_m` (250 m) of a fixed
+           structure of the same scene: mostly turbines or platforms the persistence test missed,
+           and their sidelobes. Downgraded to low (low_reason "near_fixed").
 """
 
 from __future__ import annotations
@@ -85,3 +88,30 @@ def clutter_zone(df, radius_m: float = 1000.0, min_low: int = 5, group: str = "s
         n_low[[pos[k] for k in g.index]] = counts
     flag = df.confidence.isin(["high", "medium"]).to_numpy() & (n_low >= min_low)
     return flag, n_low
+
+
+def near_fixed(df, radius_m: float = 250.0, group: str = "scene_id"):
+    """Flag high/medium objects within `radius_m` of a fixed structure of the same scene.
+
+    Returns (flag, dist_m): dist_m is the distance to the nearest other fixed object (inf if none).
+    Masking a buffer around known infrastructure is the usual practice; here the infrastructure
+    layer is the project's own persistence result. Vessels moored at or passing close to a structure
+    are lost too, at an unmeasured rate; flagged rows are kept in the full product.
+    """
+    dist = np.full(len(df), np.inf)
+    pos = {k: i for i, k in enumerate(df.index)}
+    for _, g in df.groupby(group):
+        fixed = (g.confidence == "fixed").to_numpy()
+        if not fixed.any():
+            continue
+        lat0 = np.radians(float(g.lat.mean()))
+        xy = np.column_stack([np.radians(g.lon.values) * 6371008.8 * np.cos(lat0), np.radians(g.lat.values) * 6371008.8])
+        k = 2 if fixed.sum() > 1 else 1
+        d, _ = cKDTree(xy[fixed]).query(xy, k=k)
+        if k == 2:
+            d = np.where(fixed, d[:, 1], d[:, 0])  # a fixed object's nearest fixed object is itself
+        else:
+            d = np.where(fixed, np.inf, d)
+        dist[[pos[i] for i in g.index]] = d
+    flag = df.confidence.isin(["high", "medium"]).to_numpy() & (dist <= radius_m)
+    return flag, dist

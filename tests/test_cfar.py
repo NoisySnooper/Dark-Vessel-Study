@@ -106,3 +106,23 @@ def test_clutter_zone_flags_candidates_among_weak_returns():
     flag, n_low = clutter_zone(df, radius_m=1000.0, min_low=5)
     assert flag.tolist() == [False] * 20 + [True, False, False]
     assert n_low[20] == 20 and n_low[21] == 0 and n_low[22] == 0
+
+
+def test_near_fixed_flags_candidates_next_to_structures_only_in_the_same_scene():
+    import pandas as pd
+
+    from darkvessel.detect.postprocess import near_fixed
+
+    # Scene A: two turbines 1 km apart, a candidate 100 m from one, a candidate 2 km away;
+    # scene B: a candidate at the same spot as the first one, but scene B has no structures.
+    m = 1 / 111_320  # degrees per metre near the equator
+    df = pd.DataFrame({
+        "lon": [110.0, 110.0 + 1000 * m, 110.0 + 100 * m, 110.0 + 2000 * m, 110.0 + 100 * m],
+        "lat": [1.0] * 5,
+        "confidence": ["fixed", "fixed", "medium", "high", "high"],
+        "scene_id": ["A", "A", "A", "A", "B"],
+    })
+    flag, dist = near_fixed(df, radius_m=250.0)
+    assert flag.tolist() == [False, False, True, False, False]
+    assert abs(dist[0] - 1000) < 5 and abs(dist[2] - 100) < 5 and abs(dist[3] - 1000) < 5
+    assert np.isinf(dist[4])

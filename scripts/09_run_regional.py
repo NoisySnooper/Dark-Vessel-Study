@@ -2,8 +2,9 @@
 
 Each scene is processed block by block over sea inside the AOI (src/darkvessel/regional.py) and
 checkpointed to data/cache/regional/. Re-running skips finished scenes. --merge builds products:
-  data/detections_regional.gpkg       vessel candidates + fixed structures (lean, committed):
-                                      detections_regional_4326 / _utm49n, scenes_processed_*, about
+  data/detections_regional.gpkg       vessel candidates (lean, committed): detections_regional_4326 / _utm49n,
+                                      scenes_processed_*, about
+  data/structures_regional.gpkg       fixed structures (lean, committed): structures_regional_4326 / _utm49n, ...
   data/detections_regional_all.gpkg   every object incl. low-confidence clutter (large, gitignored)
   data/regional_summary.json
 Density raster and map: scripts/10_regional_density.py.
@@ -51,15 +52,17 @@ def _work(args):
         return sid, 0, 0, repr(e)
 
 
-LEAN = DATA_DIR / "detections_regional.gpkg"
+LEAN = DATA_DIR / "detections_regional.gpkg"          # vessel candidates (high, medium)
+LEAN_FIXED = DATA_DIR / "structures_regional.gpkg"     # fixed structures, kept apart so each file stays well under 50 MB
 LEAN_COLS = ["det_id", "scene_idx", "mission", "acq_utc", "confidence", "lat", "lon", "length_est_m", "scr_vv_db",
              "scr_vh_db", "inc_angle_deg", "persist_dates", "persist_dates_checked", "ais_status", "caveat", "geometry"]
 
 
-def write_lean(det: gpd.GeoDataFrame, proc: gpd.GeoDataFrame, about: dict, out=LEAN):
-    """Committed product: vessel candidates and fixed structures with essential columns, small enough for git.
+def write_lean(det: gpd.GeoDataFrame, proc: gpd.GeoDataFrame, about: dict, out=LEAN, out_fixed=LEAN_FIXED):
+    """Committed products with essential columns, small enough for git: vessel candidates in `out`
+    (layer detections_regional_*), fixed structures in `out_fixed` (layer structures_regional_*).
 
-    `scene_idx` links each detection to the scenes_processed layer (product_id, footprint, sea tested).
+    `scene_idx` links each row to the scenes_processed layer (product_id, footprint, sea tested).
     """
     from darkvessel.io import write_dual_crs
 
@@ -74,14 +77,16 @@ def write_lean(det: gpd.GeoDataFrame, proc: gpd.GeoDataFrame, about: dict, out=L
         lean[c] = lean[c].round(5)
     for c in ("length_est_m", "scr_vv_db", "scr_vh_db", "inc_angle_deg"):
         lean[c] = lean[c].round(1)
-    if out.exists():
-        out.unlink()
-    write_dual_crs(lean, out, "detections_regional", utm_crs=CRS_UTM_REGIONAL, spatial_index=False)
     keep = ["scene_idx", "product_id", "mission", "start_utc", "pass_dir", "orbit_rel", "tested_km2", "blocks_processed",
             "runtime_s", *[c for c in ("high", "medium", "fixed", "low") if c in proc], "geometry"]
-    write_dual_crs(proc[keep], out, "scenes_processed", utm_crs=CRS_UTM_REGIONAL)
-    pyogrio.write_dataframe(pd.DataFrame([{**about, "ais_status": "not_checked = no AIS source connected yet"}]), out,
-                            layer="about", driver="GPKG")
+    for path, layer, rows in ((out, "detections_regional", lean[lean.confidence != "fixed"]),
+                              (out_fixed, "structures_regional", lean[lean.confidence == "fixed"])):
+        if path.exists():
+            path.unlink()
+        write_dual_crs(rows, path, layer, utm_crs=CRS_UTM_REGIONAL, spatial_index=False)
+        write_dual_crs(proc[keep], path, "scenes_processed", utm_crs=CRS_UTM_REGIONAL)
+        pyogrio.write_dataframe(pd.DataFrame([{**about, "ais_status": "not_checked = no AIS source connected yet"}]), path,
+                                layer="about", driver="GPKG")
     return out
 
 
@@ -114,7 +119,7 @@ def run(days: int, workers: int, pfa: float, max_scenes: int | None, min_overlap
 
 
 def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
-    from darkvessel.detect.postprocess import clutter_zone
+    from darkvessel.detect.postprocess import clutter_zone, near_fixed
     from darkvessel.io import write_dual_crs
     from darkvessel.regional import recurs
     from darkvessel.s1.grd import GRDScene
@@ -138,8 +143,10 @@ def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
         pc = PERSIST / f"{sid}.parquet"
         if pc.exists() and pc.stat().st_mtime >= (CACHE / f"{sid}.parquet").stat().st_mtime:
             cached.append(pd.read_parquet(pc))
+    known = set()  # det_ids whose persistence values are known (cached now or checked below)
     if cached:
         prev_res = pd.concat(cached, ignore_index=True).set_index("det_id")
+        known |= set(prev_res.index)
         sel = det.det_id.isin(prev_res.index)
         for c in ("persist_dates", "persist_dates_checked"):
             det.loc[sel, c] = det.loc[sel, "det_id"].map(prev_res[c]).astype(int)
@@ -177,7 +184,9 @@ def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
             if i % 500 == 0:
                 print(f"  persistence {i}/{len(jobs)} [{time.time() - t0:.0f}s]", flush=True)
     PERSIST.mkdir(exist_ok=True)
-    for sid, g in det.loc[cand.index].groupby("scene_id"):
+    known |= set(cand.det_id)
+    for sid in cand.scene_id.unique():  # rewrite each touched scene with everything known for it
+        g = det[(det.scene_id == sid) & det.det_id.isin(known)]
         g[["det_id", "persist_dates", "persist_dates_checked"]].to_parquet(PERSIST / f"{sid}.parquet")
     fixed = det.confidence.isin(["high", "medium"]) & (det.persist_dates_checked > 0) & (det.persist_dates >= det.persist_dates_checked)
     det.loc[fixed, "confidence"] = "fixed"
@@ -189,6 +198,13 @@ def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
         det.loc[flag, ["confidence", "low_reason"]] = ["low", "clutter_zone"]
         n_clutter = int(flag.sum())
         print(f"clutter zone: {n_clutter} candidates downgraded to low", flush=True)
+    # Near fixed: candidates within 250 m of a fixed structure (turbine rows, platform fields)
+    n_near_fixed = 0
+    if clutter:
+        flag, det["near_fixed_m"] = near_fixed(det, radius_m=250.0)
+        det.loc[flag, ["confidence", "low_reason"]] = ["low", "near_fixed"]
+        n_near_fixed = int(flag.sum())
+        print(f"near fixed: {n_near_fixed} candidates downgraded to low", flush=True)
     det = det.drop(columns=["acq"])
     det["ais_status"] = "not_checked: no AIS source connected"
 
@@ -211,6 +227,9 @@ def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
              "clutter_zone": "high or medium object with 5 or more low objects within 1 km in the same scene (rain cells, "
                              "wind fronts, aquaculture rafts; a very dense small-boat fleet can be flagged too); downgraded "
                              "to low with low_reason clutter_zone" if clutter else "not applied",
+             "near_fixed": "high or medium object within 250 m of a fixed structure of the same scene (turbines or "
+                           "platforms the persistence test missed, sidelobes); downgraded to low with low_reason "
+                           "near_fixed" if clutter else "not applied",
              "persistence": "20 m overview window, contrast >= 7 dB within ~60 m, up to 2 earlier passes 1 to 30 days before",
              "data_credit": "Contains modified Copernicus Sentinel data 2026; ESA WorldCover 2021 v200 (CC BY 4.0); "
                             "Natural Earth (public domain)"}
@@ -226,7 +245,7 @@ def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
         "candidates_per_1000km2": round(1000 * len(vessels) / max(float(st.tested_km2.sum()), 1), 2),
         "length_est_m_vessels": vessels.length_est_m.describe().round(1).to_dict(),
         "scene_runtime_s_median": float(st.runtime_s.median()), "persistence_checks": len(jobs),
-        "clutter_zone_downgraded": n_clutter,
+        "clutter_zone_downgraded": n_clutter, "near_fixed_downgraded": n_near_fixed,
     }
     (DATA_DIR / "regional_summary.json").write_text(json.dumps(summary, indent=2, default=str))
     print(json.dumps(summary, indent=2, default=str))
@@ -240,7 +259,8 @@ if __name__ == "__main__":
     ap.add_argument("--max-scenes", type=int, default=None)
     ap.add_argument("--merge", action="store_true")
     ap.add_argument("--relean", action="store_true", help="rebuild data/detections_regional.gpkg from the full file")
-    ap.add_argument("--no-clutter-zone", action="store_true", help="keep candidates that sit among many weak returns")
+    ap.add_argument("--no-clutter-zone", action="store_true",
+                    help="keep candidates among many weak returns or within 250 m of a fixed structure")
     a = ap.parse_args()
     if a.relean:
         relean()

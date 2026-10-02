@@ -27,9 +27,11 @@ A null result for H1 is a useful result: it licenses reuse of every 1A label set
 | Annotated NESZ, 1C minus 1A (2022) | VV -1.45 dB (range over incidence bins -1.65 to -1.23), VH -1.87 dB (-2.24 to -1.56) | `data/nesz_by_satellite.csv`, `docs/figures/nesz_by_satellite.png` |
 | Annotated NESZ, 1D minus 1A (2022) | VV -1.37 dB (-1.86 to -0.98), VH -1.74 dB (-2.04 to -1.28) | same |
 | Annotated NESZ, 1D minus 1C | VV +0.09 dB, VH +0.13 dB | same |
-| Candidate density on 93 shared 0.25 degree cells | 1C 33.4, 1D 31.6 per 1,000 km2 per look; both-channel share 33 % and 31 %; median per-cell ratio 0.96 | `docs/scs_regional.md` |
+| Candidate density on 373 shared 0.25 degree cells (12 days) | 1C 38.8, 1D 41.1 per 1,000 km2 per look; both-channel share 38.4 % and 38.8 %; median per-cell ratio 1.02 | `docs/scs_regional.md` |
+| CNN acceptance on the same cells | both-channel 1C 0.601 [0.587, 0.616], 1D 0.629 [0.616, 0.641]; one-channel 0.101 and 0.106 | `data/ml/shared_cells_cnn.json` |
+| Chip background on the same cells, 1D minus 1C (paired by cell) | VV +1.21 dB, VH +0.34 dB (369 cells) | same |
 
-The NESZ values come from the products' own noise and calibration annotation (20 scenes per satellite; 1A from 2022 in Southeast Asia, 1C and 1D from the South China Sea, July to October 2026). Per-scene medians do not overlap between 1A and the new satellites. The annotation reflects both the instrument and the processor version (2022 against 2026 processing), so the letter must say which of the two it measures. The NESZ difference (about 1.8 dB in VH) is about half of the observed 1D chip-background offset; sea state and region are candidates for the rest.
+The NESZ values come from the products' own noise and calibration annotation (20 scenes per satellite; 1A from 2022 in Southeast Asia, 1C and 1D from the South China Sea, July to October 2026). Per-scene medians do not overlap between 1A and the new satellites. The annotation reflects both the instrument and the processor version (2022 against 2026 processing), so the letter must say which of the two it measures. The NESZ difference (about 1.8 dB in VH) is about half of the observed 1D chip-background offset; sea state and region are candidates for the rest. On the same sea, 1C and 1D behave alike under the CNN (acceptance within 3 points), as their equal noise floors predict; their VV backgrounds differ by 1.2 dB, which points at wind on different dates. Both accept fewer both-channel candidates (about 61 %) than the held-out 1A/1B scenes (about 77 %), a gap that region and traffic could also explain.
 
 ## 3. Measurements
 
@@ -41,7 +43,7 @@ The NESZ values come from the products' own noise and calibration annotation (20
 | M4 | Recall of the full detector on 1C and 1D, by length | AIS positions at the radar time, or exhaustive labels of small windows | Matched or found share, Wilson interval, by AIS length bin | Blocked: no AIS source; matcher built (`src/darkvessel/ais/match.py`) |
 | M5 | NESZ by satellite and incidence angle | None (annotation) | Median per 1 degree bin | Done |
 | M6 | Chip-background offset explained by NESZ and wind | Wind speed at the radar time | Regression of background on NESZ and wind, per sub-swath | Wind source to be chosen (ERA5 or SAR wind retrieval; UNVERIFIED access) |
-| M7 | 1C against 1D on shared sea | None | Density ratio per shared cell | Preliminary done; repeat on the 12-day run |
+| M7 | 1C against 1D on shared sea | None | Density ratio per shared cell; CNN acceptance | Done on the 12-day run (373 cells) |
 
 Random contact labels measure precision only. Recall needs the vessels that were missed, so M4 needs AIS (large vessels) or exhaustive labels of whole windows (all vessels).
 

@@ -35,11 +35,11 @@ Why it matters:
 
 Verification status: counts come from the AWS mirror and were not cross-checked against Copernicus Data Space (blocked from this environment). Whether the gap reflects the Sentinel-1 observation scenario is UNVERIFIED until the ESA scenario page can be opened.
 
-## 3. Regional detection, 26 September to 1 October 2026
+## 3. Regional detection, 20 September to 1 October 2026 (one 12-day repeat cycle)
 
-Scripts: `scripts/09_run_regional.py --days 6` (detection, checkpointed per scene), `--merge` (products and persistence), `scripts/10_regional_density.py` (density raster and map), `scripts/11_clutter_zone_check.py` (cost of the clutter rule).
+Scripts: `scripts/09_run_regional.py --days 12` (detection, checkpointed per scene), `--merge` (products, persistence, clutter rules), `scripts/10_regional_density.py` (density raster and map), `scripts/11_clutter_zone_check.py` (cost of the clutter rule), `scripts/14_cnn_shared_cells.py` (1C against 1D).
 
-**Input.** Every Sentinel-1C/1D IW product of the last 6 days of the search window whose footprint holds at least 300 km2 of the AOI: 64 of the 65 products that touch it (44 Sentinel-1D, 20 Sentinel-1C; 37 ascending, 27 descending). One 149 km2 sliver was skipped.
+**Input.** Every Sentinel-1C/1D IW product of the last 12 days of the search window whose footprint holds at least 300 km2 of the AOI: 119 of the 124 products that touch it (93 Sentinel-1D, 26 Sentinel-1C; 62 ascending, 57 descending). The five skipped slivers hold 0 to 287 km2 of the AOI each.
 
 **Method.** The detector is the Ca Mau baseline (`docs/gis_baseline.md`), run over whole scenes:
 - Each scene is read in place over HTTPS in 2048-pixel blocks. Only blocks holding testable sea are read: WorldCover water inside the AOI, beyond a 1 km shore buffer.
@@ -49,64 +49,83 @@ Scripts: `scripts/09_run_regional.py --days 6` (detection, checkpointed per scen
   - medium = VH only, or strong VV only.
   - low = weak VV only, or longer than 450 m.
 - Persistence: each high or medium object is checked on up to two earlier passes of the same orbit, 1 to 30 days before (20 m overview, contrast of at least 7 dB within about 60 m). A return on every pass checked makes it "fixed".
-- Clutter zone: a remaining high or medium object with 5 or more low objects within 1 km of the same scene is downgraded to low (low_reason `clutter_zone`).
+- Two clutter rules then move remaining high or medium objects to low:
+  - clutter zone: 5 or more low objects within 1 km in the same scene;
+  - near fixed: within 250 m of a fixed structure of the same scene.
 
-Median processing time was 167 s per scene on a shared 4-core machine.
+Median processing time was 216 s per scene on a shared 4-core machine.
 
 | Item | Result |
 |---|---|
-| Sea tested (sum over scenes) | 1,190,147 km2 (Sentinel-1D 904,668; Sentinel-1C 285,479) |
-| CFAR objects | 518,745 |
-| Vessel candidates | **43,944**: 16,807 in both channels (high), 27,137 in one channel (medium) |
-| Fixed structures | 13,560 |
-| Low | 461,241: 426,505 weak VV only, 32,040 clutter zone, 2,696 longer than 450 m |
-| Candidates per 1,000 km2 tested | 36.9 (Sentinel-1D 42.1, Sentinel-1C 20.7) |
-| Estimated length of candidates | median 40 m; 36 % at 25 m or less, 23 % 25 to 50 m, 23 % 50 to 100 m, 18 % over 100 m |
-| Persistence | 98.6 % of high, medium and fixed objects checked on 2 earlier passes, 1.3 % on none |
+| Sea tested (sum over scenes) | 2,380,852 km2 (Sentinel-1D 2,011,473; Sentinel-1C 369,379) |
+| CFAR objects | 927,124 |
+| Vessel candidates | **78,615**: 29,228 in both channels (high), 49,387 in one channel (medium) |
+| Fixed structures | 25,224 |
+| Low | 823,285: 759,790 weak VV only, 52,820 clutter zone, 5,727 near fixed, 4,948 longer than 450 m |
+| Candidates per 1,000 km2 tested | 33.0 (Sentinel-1D 32.5, Sentinel-1C 36.0) |
+| Estimated length of candidates | median 40 m; 37 % at 25 m or less, 22 % 25 to 50 m, 22 % 50 to 100 m, 19 % over 100 m |
+| Persistence | 98.1 % of high, medium and fixed objects checked on 2 earlier passes, 1.7 % on none |
 
 ![Regional detections](figures/regional_detections.png)
 
 **Density.**
 - Candidates per 1,000 km2 of sea per look, on a 0.25 degree grid (`data/outputs/small/vessel_density_regional_4326.tif` and `_utm49n.tif`, `data/regional_density.json`).
-- Median over the 1,307 observed cells: 21. 90th percentile: 103. 99th percentile: 348.
-- The densest cells are near ports and fishing harbours:
-  - the northern Gulf of Tonkin (21.1 to 21.4 N, 108.1 to 109.6 E; 430 to 535)
-  - the Pearl River mouth (22.4 to 22.6 N, 113.6 to 113.9 E; about 420)
-  - the Shanwei and Shantou coast (22.6 to 23.4 N, 116.4 to 117.1 E; 445 to 495)
+- Median over the 2,162 observed cells: 17.6. 90th percentile: 80. 99th percentile: 262.
+- The densest cells:
+  - off Beihai, Guangxi (21.4 N, 109.1 to 109.4 E; 424 to 573);
+  - the Vung Tau and Can Gio anchorages (10.4 N, 106.9 E; 412);
+  - the Pearl River mouth (22.4 to 22.6 N, 113.6 to 113.9 E; 358 to 388);
+  - the Shantou coast (23.4 N, 117.1 E; 377).
+- A quicklook of the Beihai cell shows separate point targets spread over open water north of the Beihai peninsula, consistent with a fishing fleet. Not verified: no AIS.
 - One look is a 25-second snapshot, so a boat seen on two passes counts twice, against two looks of area.
 
-**Hot spots that were not vessels.** Quicklooks of the densest cells before the clutter rule showed three false sources:
+**Hot spots that were not vessels.** Quicklooks of the densest cells before the clutter rules showed four false sources:
 - Convective rain cells off Brunei (6.4 N, 114.5 E; one scene, 3,307 candidates in a 0.85 x 0.6 degree box).
 - Rain cells in the central Gulf of Thailand (10.5 N, 101.8 E).
 - Aquaculture rafts and stake lines in Zhanjiang Bay (20.9 N, 110.4 E).
+- An offshore wind farm off Shanwei, Guangdong (22.6 N, 116.1 E). The persistence test marked 512 turbines in one scene as fixed, but about 800 candidates on the same rows were turbines it missed, or sidelobes.
 
-In each case the detector fired thousands of times on bright, textured patches in both channels. The clutter-zone rule targets this pattern. Measured on the AI2-labelled Sentinel-1A/1B candidates of the ML stage (`data/clutter_zone_check.json`), the 1 km and 5 rule:
+The clutter-zone rule targets the first three; the near-fixed rule the fourth.
+
+The clutter-zone rule was measured on the AI2-labelled Sentinel-1A/1B candidates of the ML stage (`data/clutter_zone_check.json`). The 1 km and 5 rule:
 - flags 16 % of candidates;
 - removes 26 % of clutter candidates;
 - loses 2.3 % of candidates within 50 m of a labelled vessel;
 - raises the share of both-channel candidates near a labelled vessel from 51 % to 54 %, and of one-channel candidates from 14 % to 17 %.
 
-On this regional run it flagged 32,040 of 75,984 remaining candidates (42 %), because late-September storms covered large parts of the scenes. The rule can also flag a very dense fleet of small boats with weak returns, and the AI2 labels contain few such fleets. Flagged objects are therefore kept in the full product (`data/detections_regional_all.gpkg`, low_reason `clutter_zone`). Run `09_run_regional.py --merge --no-clutter-zone` to keep them as candidates.
+On this regional run it flagged 52,820 of 137,162 candidates left after persistence (39 %), because late-September storms covered large parts of the scenes. It can also flag a very dense fleet of small boats with weak returns, and the AI2 labels hold few such fleets.
+
+The near-fixed rule flagged 5,727 candidates (7 %); in the Shanwei wind farm it took 797 of 1,621 candidates in a 0.5 x 0.4 degree box. Its cost in real vessels (moored at, or passing close to, a structure) is not measured. Masking a buffer around known infrastructure is the usual practice; here the infrastructure layer is the project's own fixed class.
+
+Both rules keep their rows in the full product (`data/detections_regional_all.gpkg`, low_reason `clutter_zone` or `near_fixed`, columns n_low_1km and near_fixed_m). Run `09_run_regional.py --merge --no-clutter-zone` to keep them as candidates.
 
 **How good are the candidates?** There is no Sentinel-1C/1D ground truth yet. The same detector on 321 Sentinel-1A/1B scenes in Southeast Asia with AI2 expert labels (`data/ml/candidates.parquet`) gives these shares within 50 m of a labelled vessel:
 - 51 % of both-channel candidates (65 % within 150 m);
 - 14 % of one-channel candidates (25 % within 150 m).
 
-The labels miss some real ships, so these are lower bounds on precision. Read one-channel candidates as leads. 56 % of all candidates are seen in VH only. The median length of one-channel candidates is 24 m, which is 2 to 3 pixels, close to the speckle correlation length.
+The labels miss some real ships, so these are lower bounds on precision. Read one-channel candidates as leads. 58 % of all candidates are seen in VH only. The median length of one-channel candidates is 24 m, which is 2 to 3 pixels, close to the speckle correlation length.
 
-**First look for the transfer letter.** Across the whole run, Sentinel-1C gives half the candidate density of 1D (20.7 against 42.1 per 1,000 km2) and fewer both-channel candidates (27 % against 40 %). On the 93 cells of 0.25 degree that both satellites imaged in the window, the two agree:
+**First look for the transfer letter: 1C against 1D on the same sea.** Of the 0.25 degree cells, 373 had at least 30 % of their sea imaged by each satellite in the 12 days (100.75 to 121 E, 10 to 21.75 N). On these cells (`data/ml/shared_cells_cnn.json`, `scripts/14_cnn_shared_cells.py`):
 
 | | Sentinel-1C | Sentinel-1D |
 |---|---|---|
-| Area | Gulf of Thailand and the central Vietnamese coast, 101.75 to 110 E, 10.25 to 18.75 N | same |
-| Candidates per 1,000 km2 per look | 33.4 | 31.6 |
-| Both-channel share | 33 % | 31 % |
+| Candidates per 1,000 km2 per look | 38.8 | 41.1 |
+| Both-channel share | 38.4 % | 38.8 % |
+| CNN accepts, both-channel candidates | 60.1 % [58.7, 61.6] | 62.9 % [61.6, 64.1] |
+| CNN accepts, one-channel candidates | 10.1 % [9.4, 10.9] | 10.6 % [10.0, 11.3] |
+| CNN accepts, fixed structures | 20.4 % | 23.0 % |
+| Chip background, both-channel candidates, VV / VH | -21.5 / -27.7 dB | -21.1 / -27.7 dB |
 
-The median per-cell ratio is 0.96 (interquartile range 0.53 to 1.62). The mission-wide gap is geography: 1D imaged the busier northern Gulf of Tonkin and south China coast. This is a consistency check, not a transfer result: the dates and traffic differ, and nothing is scored against truth.
+- The median per-cell density ratio is 1.02 (interquartile range 0.62 to 1.55).
+- Paired by cell, 1D chip backgrounds are 1.2 dB brighter than 1C in VV and 0.3 dB in VH (369 cells). The two satellites have the same annotated noise floor (`docs/paper1_design.md`), so the VV gap points at sea state on different dates, not at the sensor.
+- Mission-wide the two also agree: 36.0 and 32.5 candidates per 1,000 km2 tested, 37 % both-channel each. The 6-day run had suggested a gap (20.7 against 42.1); it came from geography and closed with a full cycle.
+- On held-out 1A/1B scenes the CNN accepted about 77 % of both-channel candidates, against about 61 % here. That is a lead for the letter, not a result: region, traffic and truth all differ.
+
+This is a consistency check, not a transfer result: the dates differ and nothing is scored against truth.
 
 **Products.**
-- `data/detections_regional.gpkg`:
-  - `detections_regional_4326` and `_utm49n`: vessel candidates and fixed structures, 57,504 rows. Columns:
+- `data/detections_regional.gpkg` (36 MB):
+  - `detections_regional_4326` and `_utm49n`: 78,615 vessel candidates. Columns:
     - det_id, scene_idx, mission, acq_utc, confidence, lat, lon
     - length_est_m, scr_vv_db, scr_vh_db, inc_angle_deg
     - persist_dates, persist_dates_checked
@@ -114,8 +133,9 @@ The median per-cell ratio is 0.96 (interquartile range 0.53 to 1.62). The missio
     - caveat
   - `scenes_processed_4326` and `_utm49n`: footprint, product id, sea tested and class counts per scene.
   - `about`: method, settings, full caveat and data credit.
-  - The point layers carry no R-tree index, to keep the file small; in ArcGIS Pro, run Add Spatial Index if panning is slow.
-- `data/detections_regional_all.gpkg`: every object, all columns (490 MB, gitignored). Regenerate it with `--merge` from the per-scene cache, or from scratch with `--days 6` (about 3 hours on 4 cores).
+- `data/structures_regional.gpkg` (12 MB): the 25,224 fixed structures (`structures_regional_4326` and `_utm49n`), same columns and side layers. Split from the candidates to keep each file well under 50 MB for git.
+- The point layers carry no R-tree index, to keep the files small; in ArcGIS Pro, run Add Spatial Index if panning is slow.
+- `data/detections_regional_all.gpkg`: every object, all columns (877 MB, gitignored). Regenerate it with `--merge` from the per-scene cache, or from scratch with `--days 12` (about 3 hours with 3 workers).
 - `data/regional_summary.json`, `data/regional_density.json`.
 
 **Fix made during this run.** WorldCover codes nearshore sea inside its land tiles as permanent water (80). The first version of the sea mask kept water only when it connected to a code-0 (open ocean) cell in the scene frame, so 6 coastal scenes lost all their sea and 3 lost part of it:
@@ -128,7 +148,7 @@ The mask now also counts water connected to cells 0.05 degree inside the marine-
 
 **Limits.**
 - No AIS is connected, so nothing is labeled dark.
-- Six days of a 90-day window, a coastal ring only (section 2).
+- 12 days of a 90-day window, a coastal ring only (section 2).
 - Single looks, not tracks.
 - Lengths are pixel extents.
 - The 1 km shore buffer leaves out harbours and river mouths.
