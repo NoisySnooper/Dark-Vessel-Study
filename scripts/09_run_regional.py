@@ -5,8 +5,8 @@ checkpointed to data/cache/regional/. Re-running skips finished scenes. --merge 
   data/detections_regional.gpkg       vessel candidates + fixed structures (lean, committed):
                                       detections_regional_4326 / _utm49n, scenes_processed_*, about
   data/detections_regional_all.gpkg   every object incl. low-confidence clutter (large, gitignored)
-  data/outputs/small/vessel_density_regional_4326.tif  vessel candidates per 1,000 km2 tested, 0.25 deg
-  data/regional_summary.json, docs/figures/regional_detections.png
+  data/regional_summary.json
+Density raster and map: scripts/10_regional_density.py.
 Usage: python scripts/09_run_regional.py --days 6 --workers 3   then   --merge
 """
 
@@ -86,12 +86,15 @@ def merge(pfa: float, persist_workers: int = 6):
             scenes[path] = GRDScene(path)
         return scenes[path]
 
-    jobs = []
-    for idx, r in cand.iterrows():
-        earlier = fp[(fp.orbit_rel == r.orbit_rel) & (fp.pass_dir == r.pass_dir)
-                     & (fp.start_utc < r.acq - pd.Timedelta(days=1)) & (fp.start_utc >= r.acq - pd.Timedelta(days=30))]
-        earlier = earlier[earlier.geometry.contains(r.geometry)].sort_values("start_utc", ascending=False).head(2)
-        jobs.append((idx, list(earlier.path), r.lon, r.lat))
+    jobs = []  # earlier scenes are looked up once per scene, then point-in-footprint for all its candidates
+    for (_, orb, pdir), g in cand.groupby(["scene_id", "orbit_rel", "pass_dir"]):
+        acq = g.acq.iloc[0]
+        prev = fp[(fp.orbit_rel == orb) & (fp.pass_dir == pdir) & (fp.start_utc < acq - pd.Timedelta(days=1))
+                  & (fp.start_utc >= acq - pd.Timedelta(days=30))].sort_values("start_utc", ascending=False)
+        hit = shapely.contains_xy(np.asarray(prev.geometry.values)[:, None], g.lon.values[None, :], g.lat.values[None, :])
+        paths = prev.path.to_numpy()
+        for j, idx in enumerate(g.index):
+            jobs.append((idx, list(paths[hit[:, j]][:2]), g.lon.values[j], g.lat.values[j]))
     for path in {p for _, ps, _, _ in jobs for p in ps}:
         get_scene(path).geocoder  # load geocoders up front (annotation XML), single-threaded
 

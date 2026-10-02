@@ -3,6 +3,7 @@
 Two views share one inspector:
 - Regional: South China Sea AOI, 90-day Sentinel-1 coverage, the most recent processed scenes and
   their detections (data/detections_regional_all.gpkg, data/outputs/small/s1_passes_4326.tif).
+  Regional records ship as base64 typed columns so tens of thousands of contacts fit in the page.
 - Ca Mau detail: one scene in radar view (data/detections_baseline.gpkg and the 40 m VV COG).
 Imagery chips are re-read from the AWS mirror. Optional CNN scores from data/detections_ml.gpkg.
 """
@@ -147,6 +148,37 @@ def _rows(dets: pd.DataFrame, lat, lon, index, extra_cols=()):
     return out
 
 
+def _b64col(a: np.ndarray, t: str, scale: float = 0, na=None) -> dict:
+    return {"t": t, "b": base64.b64encode(np.ascontiguousarray(a).tobytes()).decode(), "s": scale, "na": na}
+
+
+def _cols_b64(dets: pd.DataFrame, lat, lon, index) -> dict:
+    """Same fields as _rows, as little-endian typed columns (about 30 bytes a record instead of 70).
+
+    Scaled columns decode as value / s in the page; na marks missing values.
+    """
+    def q(v, s, dtype, na):
+        v = np.asarray(v, float)
+        return np.where(np.isfinite(v), np.round(v * s), na).astype(dtype)
+
+    return {
+        "lat": _b64col(np.round(np.asarray(lat, float) * 1e5).astype("<i4"), "i32", 1e5),
+        "lon": _b64col(np.round(np.asarray(lon, float) * 1e5).astype("<i4"), "i32", 1e5),
+        "c": _b64col(dets.confidence.map(CLASS_CODE).to_numpy("<u1"), "u8"),
+        "len": _b64col(np.clip(np.round(dets.length_est_m.to_numpy(float)), 0, 65535).astype("<u2"), "u16"),
+        "px": _b64col(np.clip(dets.n_pixels.to_numpy(float), 0, 65535).astype("<u2"), "u16"),
+        "svv": _b64col(q(dets.scr_vv_db, 10, "<i2", -32768), "i16", 10, -32768),
+        "svh": _b64col(q(dets.scr_vh_db, 10, "<i2", -32768), "i16", 10, -32768),
+        "vv": _b64col(q(dets.peak_vv_db, 10, "<i2", -32768), "i16", 10, -32768),
+        "vh": _b64col(q(dets.peak_vh_db, 10, "<i2", -32768), "i16", 10, -32768),
+        "inc": _b64col(q(dets.inc_angle_deg, 10, "<i2", -32768), "i16", 10, -32768),
+        "per": _b64col(dets.persist_dates.to_numpy("<u1"), "u8"),
+        "perN": _b64col(dets.persist_dates_checked.to_numpy("<u1"), "u8"),
+        "s": _b64col(dets.scene_id.map(index).to_numpy("<u2"), "u16"),
+        "n": _b64col(dets.det_id.str.rsplit("_", n=1).str[1].astype(int).to_numpy("<u4"), "u32"),
+    }
+
+
 def _chips_for(dets: pd.DataFrame, scene_of, n: int) -> dict:
     keep = dets[dets.confidence.isin(["high", "medium", "fixed"])].copy()
     keep["score"] = keep[["scr_vv_db", "scr_vh_db"]].max(axis=1)
@@ -221,7 +253,8 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
     summary = json.loads((DATA_DIR / "regional_summary.json").read_text())
     cov = json.loads((DATA_DIR / "s1_coverage.json").read_text())
     search = json.loads((DATA_DIR / "s1_search_summary.json").read_text())
-    dets = gpd.read_file(DATA_DIR / "detections_regional_all.gpkg", layer="detections_regional_4326")
+    dets = gpd.read_file(DATA_DIR / "detections_regional_all.gpkg", layer="detections_regional_4326",
+                         where="confidence <> 'low'")
     proc = gpd.read_file(DATA_DIR / "detections_regional_all.gpkg", layer="scenes_processed_4326")
     a = aoi_gdf(DEFAULT_AOI)
     aoi = a.geometry.iloc[0]
@@ -239,7 +272,7 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
     chips = _chips_for(dets, scene_of, max_chips)
     vessel = dets[dets.confidence != "low"].reset_index(drop=True)
     scenes_tab, index = _scene_table(dets.det_id, dets.scene_id, dets.acq_utc, dets.mission)
-    rows = _rows(vessel, vessel.lat.values, vessel.lon.values, index)
+    colz = _cols_b64(vessel, vessel.lat.values, vessel.lon.values, index)
     fp_all = gpd.read_file(DATA_DIR / "s1_footprints.gpkg", layer="s1_footprints_4326")
     passes = merge_passes(fp_all)
     aoi_ea = gpd.GeoSeries([aoi], crs="EPSG:4326").to_crs("EPSG:6933").iloc[0]
@@ -255,7 +288,8 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
         "land": _geojson(land_geoms), "aoi": _geojson([(aoi.simplify(0.02), {})]),
         "fps": _geojson([(g.simplify(0.01), {"id": r.product_id, "t": str(r.start_utc)[:16], "mis": r.mission,
                                               "km2": int(r.tested_km2)}) for g, r in zip(proc.geometry, proc.itertuples())]),
-        "cols": COLS, "rows": rows, "scenes": scenes_tab, "n_low": int((dets.confidence == "low").sum()),
+        "cols": COLS, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
+        "n_low": int(summary["classes"].get("low", 0)),
         "passes": pass_list,
     }
     return data, chips

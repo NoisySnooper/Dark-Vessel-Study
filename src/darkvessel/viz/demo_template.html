@@ -252,6 +252,20 @@ function expand(src, view) {
     return o;
   });
 }
+// Regional records arrive as base64 typed columns; rebuild row arrays so both views share expand().
+function decodeCols(src) {
+  const T = { i32: Int32Array, u8: Uint8Array, u16: Uint16Array, i16: Int16Array, u32: Uint32Array };
+  const get = {};
+  Object.entries(src.colz).forEach(([k, sp]) => {
+    const bin = atob(sp.b), u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    const a = new T[sp.t](u.buffer);
+    get[k] = sp.s ? (i) => (a[i] === sp.na ? null : a[i] / sp.s) : (i) => a[i];
+  });
+  src.rows = Array.from({ length: src.n }, (_, i) => src.cols.map((k) => get[k](i)));
+  delete src.colz;
+}
+if (R.colz) decodeCols(R);
 const RD = expand(R, "r"), XD = expand(X, "x");
 
 // ---- Masthead
@@ -284,13 +298,17 @@ const covLayer = L.imageOverlay(R.cov_img, R.cov_bounds, { opacity: 0.85, intera
 L.geoJSON(R.aoi, { interactive: false, style: { color: css("--map-aoi"), weight: 1, fill: false } }).addTo(mapR);
 const fpLayer = L.geoJSON(R.fps, { style: { color: "#d95926", weight: 1, fill: false, opacity: 0.9 },
   onEachFeature: (f, l) => l.bindTooltip(`${f.properties.mis} ${f.properties.t} UTC · ${fmt(f.properties.km2)} km² of sea tested`) }).addTo(mapR);
-["low", "fixed", "medium", "high"].forEach((k) => groups.r[k] = L.layerGroup());
+// One tooltip and one click handler per class group (not per marker): tens of thousands of contacts.
+["low", "fixed", "medium", "high"].forEach((k) => {
+  const g = L.featureGroup();
+  g.bindTooltip((l) => { const d = RD[l.options.i]; return `${d.id.slice(-5)} · ${SHORT[d.c]} · ~${d.len} m`; }, { direction: "top", offset: [0, -5] });
+  g.on("click", (e) => select(RD[e.layer.options.i].id, false));
+  groups.r[k] = g;
+});
 const rMarkers = [];
-RD.forEach((d) => {
-  const mk = L.circleMarker([d.lat, d.lon], { renderer: rendR, radius: 5, color: MC[d.c], weight: 1.6, fillOpacity: 0.01 });
+RD.forEach((d, i) => {
+  const mk = L.circleMarker([d.lat, d.lon], { renderer: rendR, radius: 5, color: MC[d.c], weight: 1.6, fillOpacity: 0.01, i });
   rMarkers.push([mk, d.c]);
-  mk.bindTooltip(`${d.id.slice(-5)} · ${SHORT[d.c]} · ~${d.len} m`, { direction: "top", offset: [0, -5] });
-  mk.on("click", () => select(d.id, false));
   mk.addTo(groups.r[d.c]); byId[d.id] = d; counts.r[d.c]++;
 });
 ["fixed", "medium", "high"].forEach((k) => groups.r[k].addTo(mapR));
