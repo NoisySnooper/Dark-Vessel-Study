@@ -1,8 +1,8 @@
 rank,venue,venue_group,venue_type,source_id,n_papers,cited_by_sum,first_year,last_year,n_dark_vessel_papers,main_theme,pct_of_corpus
-1,elib (German Aerospace Center),repository,repository,S4377196266,77,33,2015,2026,0,sar_ship_detection,1.77
-2,DOAJ (DOAJ: Directory of Open Access Journals),repository,repository,S4306401280,60,320,2015,2026,0,sar_ship_detection,1.38
-3,Zenodo (CERN European Organization for Nuclear Research),repository,repository,S4306400562,51,16,2016,2026,3,sar_ship_detection,1.18
-4,arXiv (Cornell University),repository,repository,S4306400194,48,76,2016,2026,7,sar_ship_detection,1.11
+1,elib (German Aerospace Center),repository,repository,S4377196266,77,33,2015,2026,0,sar_ship_detection,1.78
+2,DOAJ (DOAJ: Directory of Open Access Journals),repository,repository,S4306401280,60,320,2015,2026,0,sar_ship_detection,1.39
+3,Zenodo (CERN European Organization for Nuclear Research),repository,repository,S4306400562,49,15,2016,2026,3,sar_ship_detection,1.13
+4,arXiv (Cornell University),repository,repository,S4306400194,46,76,2016,2026,7,sar_ship_detection,1.06
 5,Preprints.org,repository,repository,S6309402219,16,45,2018,2026,0,sar_ship_detection,0.37
 6,Digital Commons - USU (Utah State University),repository,repository,S4377196327,14,12,2017,2026,0,iuu_remote_sensing,0.32
 7,Florida International University Digital Commons (Florida International University),repository,repository,S4306401637,11,100,2016,2025,7,dark_vessels,0.25

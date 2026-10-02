@@ -16,8 +16,8 @@ A work gets every theme it matches. Matching is case-insensitive except for the 
 
 ## Loose and strict modes
 
-- Loose: used during the scan; bare SAR accepted; no medical or search-and-rescue guards.
-- Strict: used for the corpus; adds guards: bare SAR rejected next to search and rescue, specific absorption rate, structure-activity or Special Administrative Region; blood and other non-maritime vessels ignored; dark-vessel phrases need maritime context outside the phrase and exclude dark targets and medical text; AIS abbreviation in SAR and AIS fusion needs a ship-like word; animal satellite telemetry is not remote sensing of fishing; artisanal needs a fishing or boat context; small target needs a maritime term.
+- Loose: used during the scan; bare SAR accepted; no medical, search-and-rescue or other context guards; stores a superset of the corpus.
+- Strict: used for the corpus. Guards: (1) a bare SAR is rejected next to search and rescue, specific absorption rate, structure-activity, a Special Administrative Region or biomedical text, and needs a radar, satellite or maritime word; (2) blood vessels, small vessel disease and research vessels or shipboard instruments are not ships; (3) dark vessels: no 'dark target', 'dark activity', 'dark fishing spider' or 'non-broadcast film', and the phrase needs maritime context outside itself; (4) SAR and AIS fusion: the abbreviation AIS needs a ship-like word (it also means Antarctic Ice Sheet and acute ischaemic stroke); (5) IUU: 'fishing effort' and 'fishing activity' alone need a vessel, fleet, AIS or VMS word, and satellite telemetry of animals is not remote sensing; (6) small vessels: small target needs a maritime term, artisanal needs a fishing or boat context; (7) VIIRS boats: bare 'fishing' must be a fishing phrase, 'low light imaging' is not a trigger by itself, and the text needs night imaging or vessel-position data.
 
 The scan stored every loose match. The corpus uses strict matching on the stored text. The exact regular expressions are in `src/darkvessel/biblio/themes.py`.
 

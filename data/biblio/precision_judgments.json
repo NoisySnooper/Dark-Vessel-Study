@@ -1438,5 +1438,17 @@
  "W7034596462": {
   "judgment": "not relevant",
   "note": "On-orbit calibration of the VIIRS day-night band."
+ },
+ "W4386920284": {
+  "judgment": "relevant",
+  "note": ""
+ },
+ "W7213903444": {
+  "judgment": "not relevant",
+  "note": "Sea clutter statistics for wave height estimation; small-target detection only named as a use."
+ },
+ "W4318832786": {
+  "judgment": "relevant",
+  "note": "Indonesian abstract; compares fishing vessel locations with potential fishing and conservation zones from satellite data (borderline)."
  }
 }

@@ -1,6 +1,6 @@
 {
  "snapshot_date": "2026-09-23",
- "built": "2026-10-02T07:19:07",
+ "built": "2026-10-02T07:27:03",
  "scan": {
   "files": 2040,
   "rows": 476196327,
@@ -39,63 +39,64 @@
   "eligible_rows": 4592,
   "deleted_ids_found": 0,
   "merges": {
-   "same_title_year": 233,
-   "preprint_published_pair": 16,
-   "repository_or_weak_pair": 3,
+   "same_title_year": 236,
+   "preprint_published_pair": 18,
+   "repository_or_weak_pair": 7,
+   "same_title_venue": 2,
    "weak_record_title_variant": 1
   },
-  "corpus_rows": 4339
+  "corpus_rows": 4328
  },
- "corpus_size": 4339,
+ "corpus_size": 4328,
  "theme_counts": {
-  "sar_ship_detection": 3275,
-  "dark_vessels": 144,
+  "sar_ship_detection": 3268,
+  "dark_vessels": 143,
   "sar_ais_fusion": 213,
   "xview3": 12,
   "iuu_remote_sensing": 583,
-  "small_vessel": 814,
-  "viirs_boats": 132
+  "small_vessel": 813,
+  "viirs_boats": 130
  },
  "multi_theme_papers": 738,
  "sea_papers": 203,
  "vn_papers": 24,
- "papers_without_country_data": 622,
+ "papers_without_country_data": 614,
  "venues": {
   "by_group": {
-   "journal": 2610,
-   "repository": 433,
-   "conference": 1267,
-   "unattributed": 29
+   "journal": 2584,
+   "repository": 427,
+   "conference": 1258,
+   "unattributed": 59
   },
   "by_method": {
-   "openalex_primary_source": 3214,
+   "openalex_primary_source": 3208,
    "other_location_source": 7,
-   "primary_raw_source_name": 1074,
+   "primary_raw_source_name": 1039,
    "doi_prefix": 15,
-   "unattributed": 29
+   "unattributed": 59
   },
-  "unattributed": 29
+  "unattributed": 59
  },
  "loose_matcher_mismatches": 0,
  "precision": {
-  "n_judged": 1,
-  "relevant": 1,
-  "precision": 1.0,
+  "n_judged": 50,
+  "relevant": 43,
+  "precision": 0.86,
   "per_theme": {
    "sar_ship_detection": {
-    "n": 0,
-    "relevant": 0,
-    "precision": null
+    "n": 40,
+    "relevant": 38,
+    "precision": 0.95
    },
    "dark_vessels": {
-    "n": 0,
-    "relevant": 0,
-    "precision": null
+    "n": 2,
+    "relevant": 1,
+    "precision": 0.5
    },
    "sar_ais_fusion": {
-    "n": 0,
-    "relevant": 0,
-    "precision": null
+    "n": 2,
+    "relevant": 2,
+    "precision": 1.0
    },
    "xview3": {
     "n": 0,
@@ -103,14 +104,14 @@
     "precision": null
    },
    "iuu_remote_sensing": {
-    "n": 0,
-    "relevant": 0,
-    "precision": null
+    "n": 5,
+    "relevant": 3,
+    "precision": 0.6
    },
    "small_vessel": {
-    "n": 1,
-    "relevant": 1,
-    "precision": 1.0
+    "n": 6,
+    "relevant": 4,
+    "precision": 0.667
    },
    "viirs_boats": {
     "n": 0,
@@ -120,14 +121,14 @@
   },
   "theme_sample": {
    "dark_vessels": {
-    "n": 2,
-    "relevant": 2,
-    "precision": 1.0
+    "n": 15,
+    "relevant": 9,
+    "precision": 0.6
    },
    "sar_ais_fusion": {
-    "n": 5,
-    "relevant": 4,
-    "precision": 0.8
+    "n": 15,
+    "relevant": 14,
+    "precision": 0.933
    },
    "xview3": {
     "n": 12,
@@ -135,19 +136,19 @@
     "precision": 1.0
    },
    "iuu_remote_sensing": {
-    "n": 4,
-    "relevant": 2,
-    "precision": 0.5
+    "n": 20,
+    "relevant": 12,
+    "precision": 0.6
    },
    "small_vessel": {
-    "n": 1,
-    "relevant": 1,
-    "precision": 1.0
+    "n": 20,
+    "relevant": 18,
+    "precision": 0.9
    },
    "viirs_boats": {
-    "n": 2,
-    "relevant": 2,
-    "precision": 1.0
+    "n": 15,
+    "relevant": 12,
+    "precision": 0.8
    }
   }
  },
