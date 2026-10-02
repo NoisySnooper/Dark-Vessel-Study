@@ -97,6 +97,8 @@ Worked around: OpenAlex via its public S3 snapshot; Sentinel-1 via the AWS Open 
 
 ## Next 3 tasks (smallest first, each fits a 5 h week)
 
+The full list of owner actions, with steps, is in `docs/OWNER_ACTIONS.md`.
+
 1. **Unblock the environment (about 1 h).** In the cloud environment settings, set network access to Full or allow the hosts in the Blocked table. Add the four keys as environment secrets. Then tell me. I will close the main UNVERIFIED items: SJR and quartiles, the Scopus and hijacked-journal screens, DOI resolution, a CDSE STAC cross-check of the scene list, and a GFW AIS pull for the regional window.
 2. **Label the Ca Mau queue on the demo page (about 3 h).** Open the page, switch to "Scene detail: Ca Mau" and press N: it steps through 384 contacts, each with a radar chip, including all 149 the CNN accepts. Press 1 to 4 (vessel, structure, clutter, unsure); about 30 s each. The regional queue (about 100 more) can wait for a later week. Press "Copy labels as CSV" and paste the result into `data/labels/owner_2026-10.csv`, or send it to me. These are the first Sentinel-1C/1D labels. They score the transfer for paper 1 (`docs/paper1_design.md`, sections 3 and 4) and train the next verifier.
 3. **Make three decisions (about 4 h with reading).** Read this file, `docs/scs_regional.md`, the gap analysis at the end of `docs/bibliometrics.md` and the short answer in `docs/journals.md`. Then decide:

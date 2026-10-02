@@ -8,7 +8,7 @@ A sovereign, sensor-agnostic pipeline that detects vessels in satellite SAR imag
 Three reasons, each with its source and verification status in `docs/data_landscape.md`: GFW data carries a noncommercial license, its SAR detections lag acquisition by days, and Sentinel-1A, the satellite behind most published SAR vessel work, ended operations in June 2026 (the constellation is now Sentinel-1C and 1D). This project builds its own detector and tests how it transfers to the new satellites.
 
 ## Status
-See `docs/STATUS.md` for what is done, what is blocked, and the next tasks.
+See `docs/STATUS.md` for what is done, what is blocked, and the next tasks. Actions only the owner can take (network access, keys, labels, decisions) are in `docs/OWNER_ACTIONS.md`.
 
 ## Layout
 ```
