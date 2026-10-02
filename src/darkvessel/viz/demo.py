@@ -282,7 +282,8 @@ def coverage_overlay() -> tuple[str, list]:
         b = ds.bounds
     rgba = np.zeros(c.shape + (4,), np.uint8)
     inside = c != 65535
-    for lo, hi, col in zip(COV_BINS[:-1], COV_BINS[1:], COV_COLORS):
+    # "not imaged" stays transparent: the page fills the AOI with a theme colour underneath
+    for lo, hi, col in zip(COV_BINS[1:-1], COV_BINS[2:], COV_COLORS[1:]):
         sel = inside & (c >= lo) & (c < hi)
         rgba[sel, :3] = [int(col[i:i + 2], 16) for i in (1, 3, 5)]
         rgba[sel, 3] = 200

@@ -13,10 +13,12 @@ See `docs/STATUS.md` for what is done, what is blocked, and the next tasks. Acti
 ## Layout
 ```
 src/darkvessel/      package: s1/ (search, read, calibrate), detect/ (CFAR, post-processing),
-                     ais/ (matching), landmask.py, pipeline.py, viz/, io.py, config.py
+                     ais/ (matching), viirs/ (night lights), weather.py (GFS wind, Himawari-9 cloud tops),
+                     landmask.py, pipeline.py, viz/, io.py, config.py
 scripts/             01 AOI, 02 scene search, 03 Ca Mau baseline, 04-06 ML verifier,
                      07 demo page, 08 coverage, 09 regional detection, 10 regional density,
-                     11 clutter-rule check, 12 label scoring, 13 noise floor, 14 CNN on shared 1C/1D sea
+                     11 clutter-rule check, 12 label scoring, 13 noise floor, 14 CNN on shared 1C/1D sea,
+                     15 VIIRS night lights, 16 weather context
 tests/               offline unit tests (pytest)
 data/                small derived outputs (GeoPackage, CSV) are committed; raw data is gitignored
 docs/                reports, figures, status
@@ -36,6 +38,9 @@ python scripts/02_search_scenes.py --aoi ca_mau && python scripts/03_run_baselin
 python scripts/07_build_demo_page.py --out demo.html   # self-contained demo page
 python scripts/12_score_labels.py              # score labels exported from the demo page (data/labels/*.csv)
 python scripts/13_nesz_compare.py              # noise floor of 1A, 1C and 1D from product annotation
+python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01   # VIIRS lights per granule (checkpointed)
+python scripts/15_viirs_lights.py --merge      # data/viirs_lights.gpkg, density COGs, docs/figures/viirs_lights.png
+python scripts/16_weather_context.py           # GFS wind and Himawari-9 cloud tops at every regional object
 pytest                                         # offline tests
 # ML (scripts 04-06, 14) needs PyTorch: use the conda environment from environment.yml
 ```
@@ -45,4 +50,4 @@ Imagery is read with HTTP range requests from the AWS Open Data mirror of Sentin
 Every vector product is a GeoPackage with two layers per dataset: `<name>_4326` (WGS 84) and `<name>_utm49n` (EPSG:32649, regional products) or `<name>_utm48n` (EPSG:32648, Ca Mau detail). Rasters are Cloud-Optimized GeoTIFFs in EPSG:4326 plus the same UTM zone. No maritime boundaries or claim lines are drawn.
 
 ## Data credits
-Contains modified Copernicus Sentinel data 2026. Land mask: ESA WorldCover 2021 v200 (CC BY 4.0). Training labels: AI2 Skylight vessel-detection-sentinels (Apache-2.0).
+Contains modified Copernicus Sentinel data 2026. Land mask: ESA WorldCover 2021 v200 (CC BY 4.0). Training labels: AI2 Skylight vessel-detection-sentinels (Apache-2.0). Night lights: VIIRS Day/Night Band SDR, geolocation and JRR cloud mask from NOAA JPSS on the AWS Open Data Registry. Wind: NOAA GFS 0.25 degree. Cloud tops: Himawari-9 AHI (JMA, distributed by NOAA). Offshore platforms and turbines: Satlas marine infrastructure (AI2, ODC-BY). AOI and land: Natural Earth (public domain). Sources and licence checks: `docs/data_landscape.md` and `docs/data_additions.md`.

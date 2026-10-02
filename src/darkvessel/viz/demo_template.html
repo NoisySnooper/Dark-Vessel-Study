@@ -10,7 +10,7 @@
 :root {
   --bg: #f3f4f1; --surface: #fbfbf9; --ink: #121715; --ink-2: #48504c; --muted: #737b76; --rule: #d8dcd6;
   --accent: #0b5c84; --accent-soft: #e3eef4;
-  --well: #0b0e10; --map-sea: #eef0ec; --map-land: #cfccc2; --map-aoi: #121715;
+  --well: #0b0e10; --map-sea: #eef0ec; --map-land: #cfccc2; --map-aoi: #121715; --map-unimaged: #e4e2dc;
   --caveat-bg: #fbf1d3; --caveat-ink: #523c00; --caveat-rule: #e3cd86;
   --c-high: #2a78d6; --c-medium: #eb6834; --c-fixed: #1baf7a; --c-low: #898781;
   --m-high: #3987e5; --m-medium: #d95926; --m-fixed: #199e70; --m-low: #a3a199;
@@ -23,7 +23,7 @@
   :root:not([data-theme="light"]) {
     --bg: #0e1211; --surface: #151a19; --ink: #e7ebe8; --ink-2: #b4bcb7; --muted: #8a928d; --rule: #29302e;
     --accent: #62b3dc; --accent-soft: #14262f;
-    --map-sea: #121817; --map-land: #2c3230; --map-aoi: #e7ebe8;
+    --map-sea: #121817; --map-land: #2c3230; --map-aoi: #e7ebe8; --map-unimaged: #232a28;
     --caveat-bg: #2a2412; --caveat-ink: #f0d48a; --caveat-rule: #4a3f1c;
     --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781; --c-light: #c98500;
     color-scheme: dark;
@@ -32,7 +32,7 @@
 :root[data-theme="dark"] {
   --bg: #0e1211; --surface: #151a19; --ink: #e7ebe8; --ink-2: #b4bcb7; --muted: #8a928d; --rule: #29302e;
   --accent: #62b3dc; --accent-soft: #14262f;
-  --map-sea: #121817; --map-land: #2c3230; --map-aoi: #e7ebe8;
+  --map-sea: #121817; --map-land: #2c3230; --map-aoi: #e7ebe8; --map-unimaged: #232a28;
   --caveat-bg: #2a2412; --caveat-ink: #f0d48a; --caveat-rule: #4a3f1c;
   --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781; --c-light: #c98500;
   color-scheme: dark;
@@ -302,7 +302,9 @@ const mapR = L.map("map-r", { crs: L.CRS.EPSG4326, minZoom: 2, maxZoom: 14, zoom
 mapR.fitBounds(R.view);
 const rendR = L.canvas({ padding: 0.5, tolerance: 8 });
 L.geoJSON(R.land, { interactive: false, style: { stroke: false, fillColor: css("--map-land"), fillOpacity: 1 } }).addTo(mapR);
-const covLayer = L.imageOverlay(R.cov_img, R.cov_bounds, { opacity: 0.85, interactive: false }).addTo(mapR);
+// Coverage: AOI filled with the theme's "not imaged" colour, pass counts on top (the image is transparent where never imaged)
+const covLayer = L.layerGroup([L.geoJSON(R.aoi, { interactive: false, style: { stroke: false, fillColor: css("--map-unimaged"), fillOpacity: 1 } }),
+  L.imageOverlay(R.cov_img, R.cov_bounds, { opacity: 0.85, interactive: false })]).addTo(mapR);
 L.geoJSON(R.aoi, { interactive: false, style: { color: css("--map-aoi"), weight: 1, fill: false } }).addTo(mapR);
 const fpLayer = L.geoJSON(R.fps, { style: { color: css("--ink-2"), weight: 1, dashArray: "3 3", fill: false, opacity: 0.8 },
   onEachFeature: (f, l) => l.bindTooltip(`${f.properties.mis} ${f.properties.t} UTC · ${fmt(f.properties.km2)} km² of sea tested`) }).addTo(mapR);
@@ -417,7 +419,7 @@ function buildToggles() {
   }
 }
 function keyR() {
-  let h = `<span>Passes in 90 days:</span>` + R.cov_legend.map((l) => `<span><i style="background:${l.color}"></i>${l.label}</span>`).join("");
+  let h = `<span>Passes in 90 days:</span>` + R.cov_legend.map((l, i) => `<span><i style="background:${i === 0 ? "var(--map-unimaged)" : l.color}"></i>${l.label}</span>`).join("");
   if (V && mapR.hasLayer(viirsLayer)) h += `<span class="vkey"><span><i class="vdot"></i>Light at sea, night of ${V.night}, ${hhmm(V.window_utc_min[0] + 420)} to ${hhmm(V.window_utc_min[1] + 420)} UTC+7, moon ${Math.round(V.moon_pct)} % lit</span>` +
     `<span><i class="vring"></i>Recurring light: same spot on ${V.rule} or more of ${V.nights} nights</span><span>Lights are hours away from any radar pass and are not matched to radar contacts.</span></span>`;
   $("covkey").innerHTML = h;
