@@ -1,0 +1,105 @@
+{
+  "res_deg": 0.25,
+  "fine_res_deg": 0.01,
+  "vessel_candidates": 43944,
+  "candidates_outside_valid_cells": 1599,
+  "cells_valid": 1307,
+  "observed_sea_km2_looks": 1208617,
+  "tested_km2_from_detector": 1190147,
+  "density_per_1000km2_overall": 35.88,
+  "density_percentiles_valid_cells": {
+    "p10": 5.91,
+    "p25": 10.39,
+    "p50": 21.16,
+    "p75": 48.16,
+    "p90": 102.87,
+    "p99": 348.32
+  },
+  "share_valid_cells_zero": 0.015,
+  "densest_cells": [
+    {
+      "lon": 109.125,
+      "lat": 21.375,
+      "density": 535.2,
+      "candidates": 294,
+      "looks": 1.0
+    },
+    {
+      "lon": 108.125,
+      "lat": 21.375,
+      "density": 523.8,
+      "candidates": 541,
+      "looks": 1.5
+    },
+    {
+      "lon": 116.375,
+      "lat": 22.625,
+      "density": 492.6,
+      "candidates": 240,
+      "looks": 0.7
+    },
+    {
+      "lon": 109.375,
+      "lat": 21.375,
+      "density": 456.3,
+      "candidates": 268,
+      "looks": 1.0
+    },
+    {
+      "lon": 117.125,
+      "lat": 23.375,
+      "density": 445.3,
+      "candidates": 279,
+      "looks": 1.0
+    },
+    {
+      "lon": 109.625,
+      "lat": 21.125,
+      "density": 431.0,
+      "candidates": 254,
+      "looks": 1.0
+    },
+    {
+      "lon": 113.625,
+      "lat": 22.625,
+      "density": 429.4,
+      "candidates": 198,
+      "looks": 1.0
+    },
+    {
+      "lon": 113.875,
+      "lat": 22.375,
+      "density": 417.6,
+      "candidates": 222,
+      "looks": 1.0
+    },
+    {
+      "lon": 114.125,
+      "lat": 22.125,
+      "density": 406.3,
+      "candidates": 269,
+      "looks": 1.0
+    },
+    {
+      "lon": 109.375,
+      "lat": 20.125,
+      "density": 350.1,
+      "candidates": 254,
+      "looks": 1.0
+    },
+    {
+      "lon": 100.875,
+      "lat": 13.125,
+      "density": 349.1,
+      "candidates": 343,
+      "looks": 2.0
+    },
+    {
+      "lon": 109.125,
+      "lat": 20.125,
+      "density": 336.3,
+      "candidates": 244,
+      "looks": 1.0
+    }
+  ]
+}

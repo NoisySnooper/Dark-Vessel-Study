@@ -1,32 +1,34 @@
 {
-  "scenes": 7,
+  "scenes": 64,
   "date_range": [
-    "2026-10-01T10:56:47+00:00",
-    "2026-10-01T23:09:55+00:00"
+    "2026-09-26T09:58:46+00:00",
+    "2026-10-01T23:10:20+00:00"
   ],
-  "tested_km2": 136474,
-  "objects": 40744,
+  "tested_km2": 1190147,
+  "objects": 518745,
   "classes": {
-    "low": 30648,
-    "medium": 4338,
-    "high": 3715,
-    "fixed": 2043
+    "low": 461241,
+    "medium": 27137,
+    "high": 16807,
+    "fixed": 13560
   },
-  "vessel_candidates": 8053,
+  "vessel_candidates": 43944,
   "by_mission": {
-    "S1D": 8053
+    "S1D": 38042,
+    "S1C": 5902
   },
-  "candidates_per_1000km2": 59.01,
+  "candidates_per_1000km2": 36.92,
   "length_est_m_vessels": {
-    "count": 8053.0,
-    "mean": 69.2,
-    "std": 67.2,
+    "count": 43944.0,
+    "mean": 66.2,
+    "std": 70.7,
     "min": 20.0,
-    "25%": 24.1,
-    "50%": 45.0,
-    "75%": 82.5,
-    "max": 448.9
+    "25%": 20.0,
+    "50%": 40.0,
+    "75%": 80.0,
+    "max": 450.0
   },
-  "scene_runtime_s_median": 349.295978,
-  "persistence_checks": 10096
+  "scene_runtime_s_median": 167.1790945,
+  "persistence_checks": 5397,
+  "clutter_zone_downgraded": 32040
 }

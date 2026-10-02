@@ -128,7 +128,7 @@ colors = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d
 NOT_IMAGED = "#e4e2dc"
 cmap, norm = ListedColormap(colors), BoundaryNorm(bins, len(colors))
 fig = plt.figure(figsize=(10, 11.2))
-ax = fig.add_axes([0.07, 0.1, 0.9, 0.78])
+ax = fig.add_axes([0.07, 0.08, 0.9, 0.78])
 pad = 0.6
 h, w = shape_c
 extent = (tr_c.c, tr_c.c + w * tr_c.a, tr_c.f + h * tr_c.e, tr_c.f)
@@ -150,13 +150,12 @@ ax.legend(handles=handles, title="Candidates per 1,000 km2 per look", loc="lower
           title_fontsize=9, frameon=True, facecolor="#fcfcfb", edgecolor="#e1e0d9")
 d0, d1 = (str(x)[:10] for x in (det.acq_utc.min(), det.acq_utc.max()))
 fig.text(0.07, 0.965, "Radar vessel candidates: South China Sea", fontsize=15, color=INK, fontweight="bold", va="top")
-fig.text(0.07, 0.93, f"{len(vessels):,} candidates (both channels or one strong channel) in {len(proc)} Sentinel-1C/1D "
-         f"scenes, {d0} to {d1}, {args.res:g} degree cells.\n"
-         f"Fixed structures and weak single-channel returns removed. {DARK_CAVEAT_SHORT}",
-         fontsize=10, color=INK_2, va="top")
+fig.text(0.07, 0.93, f"{len(vessels):,} radar vessel candidates in {len(proc)} Sentinel-1C/1D scenes, {d0} to {d1}, "
+         f"{args.res:g} degree cells.\nFixed structures, weak single-channel returns and clutter zones (rain cells,\n"
+         f"aquaculture) removed. {DARK_CAVEAT_SHORT}", fontsize=10, color=INK_2, va="top")
 fig.text(0.07, 0.015, "Contains modified Copernicus Sentinel data 2026 (AWS Open Data mirror). Land mask for detection: "
-         "ESA WorldCover 2021 v200 (CC BY 4.0). AOI and land: Natural Earth (public domain).",
-         fontsize=7.5, color=MUTED, va="bottom")
+         "ESA WorldCover 2021 v200\n(CC BY 4.0). AOI and land: Natural Earth (public domain). No maritime boundaries "
+         "or claims are drawn.", fontsize=7.5, color=MUTED, va="bottom")
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 fig.savefig(FIG_DIR / "regional_detections.png", dpi=150)
 print("wrote", FIG_DIR / "regional_detections.png")

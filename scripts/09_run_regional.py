@@ -125,13 +125,6 @@ def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
     det = gpd.GeoDataFrame(det, geometry=gpd.points_from_xy(det.lon, det.lat), crs="EPSG:4326")
     print(f"merged {len(det)} objects from {len(parts)} scenes", flush=True)
 
-    # Clutter zones: candidates among many weak returns (rain cells, wind fronts, aquaculture rafts)
-    n_clutter = 0
-    if clutter:
-        flag, det["n_low_1km"] = clutter_zone(det)
-        det.loc[flag, ["confidence", "low_reason"]] = ["low", "clutter_zone"]
-        n_clutter = int(flag.sum())
-        print(f"clutter zone: {n_clutter} candidates downgraded to low", flush=True)
 
     # Targeted persistence for vessel candidates: same relative orbit and pass, 1 to 30 days earlier
     fp = gpd.read_file(DATA_DIR / "s1_footprints.gpkg", layer="s1_footprints_4326")
@@ -188,6 +181,14 @@ def merge(pfa: float, persist_workers: int = 6, clutter: bool = True):
         g[["det_id", "persist_dates", "persist_dates_checked"]].to_parquet(PERSIST / f"{sid}.parquet")
     fixed = det.confidence.isin(["high", "medium"]) & (det.persist_dates_checked > 0) & (det.persist_dates >= det.persist_dates_checked)
     det.loc[fixed, "confidence"] = "fixed"
+    # Clutter zones, after persistence so dense arrays of fixed structures stay "fixed":
+    # remaining candidates among many weak returns (rain cells, wind fronts, aquaculture rafts)
+    n_clutter = 0
+    if clutter:
+        flag, det["n_low_1km"] = clutter_zone(det)
+        det.loc[flag, ["confidence", "low_reason"]] = ["low", "clutter_zone"]
+        n_clutter = int(flag.sum())
+        print(f"clutter zone: {n_clutter} candidates downgraded to low", flush=True)
     det = det.drop(columns=["acq"])
     det["ais_status"] = "not_checked: no AIS source connected"
 
