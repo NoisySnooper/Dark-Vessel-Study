@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 import threading
+import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable
@@ -59,10 +60,22 @@ def _session() -> requests.Session:
     return _local.s
 
 
+RETRY_WAITS_S = (2, 4, 8, 16)  # transient proxy and connection errors: back off, then give up
+
+
 def _get(url: str, **kw) -> requests.Response:
-    r = _session().get(url, timeout=60, **kw)
-    r.raise_for_status()
-    return r
+    """GET with retries on connection, proxy and timeout errors and on 5xx; 4xx fails at once."""
+    for wait in (*RETRY_WAITS_S, None):
+        try:
+            r = _session().get(url, timeout=60, **kw)
+            if r.status_code < 500 or wait is None:
+                r.raise_for_status()
+                return r
+        except (requests.ConnectionError, requests.Timeout):
+            if wait is None:
+                raise
+        time.sleep(wait)
+    raise RuntimeError("unreachable")
 
 
 def parse_product_id(product_id: str) -> dict:

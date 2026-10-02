@@ -142,3 +142,29 @@ def test_calibration_and_noise_interpolation():
         "</noiseAzimuthVector></noiseAzimuthVectorList></n>")
     n = noise.grid(np.array([0, 10]), np.array([0, 100]))
     assert n[0, 0] == pytest.approx(10) and n[1, 1] == pytest.approx(40)
+
+
+def test_get_retries_transient_errors(monkeypatch):
+    import requests
+
+    from darkvessel.s1 import aws
+
+    calls = {"n": 0}
+
+    class Resp:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+    class FlakySession:
+        def get(self, url, timeout=60, **kw):
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise requests.exceptions.ProxyError("Unable to connect to proxy")
+            return Resp()
+
+    monkeypatch.setattr(aws, "_session", lambda: FlakySession())
+    monkeypatch.setattr(aws.time, "sleep", lambda s: None)
+    assert isinstance(aws._get("https://example.invalid/x"), Resp)
+    assert calls["n"] == 3
