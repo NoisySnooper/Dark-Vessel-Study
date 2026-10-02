@@ -1,21 +1,21 @@
-rank,openalex_id,doi,title,year,venue,cited_by_count,themes,first_author
-1,W3038948729,10.1109/access.2020.3005861,HRSID: A High-Resolution SAR Images Dataset for Ship Detection and Instance Segmentation,2020,IEEE Access,912,sar_ship_detection,Shunjun Wei
-2,W2738771715,10.5194/essd-10-87-2018,"The Open-source Data Inventory for Anthropogenic CO 2 , version 2016 (ODIAC2016): a global monthly fossil fuel CO 2 gridded emissions data product for tracer transport simulations and surface flux inversions",2018,Earth system science data,733,viirs_boats,Tomohiro Oda
-3,W3200733355,10.3390/rs13183690,SAR Ship Detection Dataset (SSDD): Official Release and Comprehensive Data Analysis,2021,Remote Sensing,718,sar_ship_detection;small_vessel,Tianwen Zhang
-4,W2774244034,10.1109/bigsardata.2017.8124934,Ship detection in SAR images based on an improved faster R-CNN,2017,,668,sar_ship_detection,Jianwei Li
-5,W2928007866,10.3390/rs11070765,A SAR Dataset of Ship Detection for Deep Learning under Complex Backgrounds,2019,Remote Sensing,530,sar_ship_detection,Yuanyuan Wang
-6,W2552290192,10.1145/2980179.2980254,Burst photography for high dynamic range and low-light imaging on mobile cameras,2016,ACM Transactions on Graphics,503,viirs_boats,Samuel W. Hasinoff
-7,W2961699889,10.1109/tgrs.2019.2923988,Dense Attention Pyramid Networks for Multi-Scale Ship Detection in SAR Images,2019,IEEE Transactions on Geoscience and Remote Sensing,491,sar_ship_detection;small_vessel,Zongyong Cui
-8,W2762294195,10.1109/jstars.2017.2755672,OpenSARShip: A Dataset Dedicated to Sentinel-1 Ship Interpretation,2017,IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing,424,sar_ais_fusion;sar_ship_detection,Lanqing Huang
-9,W2904480641,10.1109/lgrs.2018.2882551,Squeeze and Excitation Rank Faster R-CNN for Ship Detection in SAR Images,2018,IEEE Geoscience and Remote Sensing Letters,384,sar_ship_detection,Zhao Lin
-10,W2919011445,10.3390/rs11050531,Automatic Ship Detection Based on RetinaNet Using Multi-Resolution Gaofen-3 Imagery,2019,Remote Sensing,356,sar_ship_detection,Yuanyuan Wang
-11,W2747165560,10.3390/rs9080860,Contextual Region-Based Convolutional Neural Network with Multilayer Fusion for SAR Ship Detection,2017,Remote Sensing,339,sar_ship_detection;small_vessel,Miao Kang
-12,W2786644902,10.1016/j.rse.2017.12.033,Vessel detection and classification from spaceborne optical images: A literature survey,2018,Remote Sensing of Environment,325,sar_ship_detection,Urša Kanjir
-13,W2928870406,10.3390/rs11070786,Ship Detection Based on YOLOv2 for SAR Imagery,2019,Remote Sensing,320,sar_ship_detection,Yang-Lang Chang
-14,W3041525128,10.1109/tgrs.2020.3005151,An Anchor-Free Method Based on Feature Balancing and Refinement Network for Multiscale Ship Detection in SAR Images,2020,IEEE Transactions on Geoscience and Remote Sensing,305,sar_ship_detection;small_vessel,Jiamei Fu
-15,W2799646862,10.1109/access.2018.2825376,A Densely Connected End-to-End Neural Network for Multiscale and Multiscene SAR Ship Detection,2018,IEEE Access,303,sar_ship_detection;small_vessel,Jiao Jiao
-16,W3012162230,10.1007/s11432-019-2772-5,FUSAR-Ship: building a high-resolution SAR-AIS matchup dataset of Gaofen-3 for ship detection and recognition,2020,Science China Information Sciences,297,sar_ais_fusion;sar_ship_detection,Xiyue Hou
-17,W2806290544,10.1126/sciadv.aat2504,The economics of fishing the high seas,2018,Science Advances,293,iuu_remote_sensing,Enric Sala
-18,W3089780760,10.3390/rs12182997,LS-SSDD-v1.0: A Deep Learning Dataset Dedicated to Small Ship Detection from Large-Scale Sentinel-1 SAR Images,2020,Remote Sensing,293,sar_ais_fusion;sar_ship_detection;small_vessel,Tianwen Zhang
-19,W3208019692,10.3390/rs13214209,BiFA-YOLO: A Novel YOLO-Based Method for Arbitrary-Oriented Ship Detection in High-Resolution SAR Images,2021,Remote Sensing,287,sar_ship_detection,Zhongzhen Sun
-20,W3033996275,10.1109/tgrs.2020.2997200,Ship Detection in Large-Scale SAR Images Via Spatial Shuffle-Group Enhance Attention,2020,IEEE Transactions on Geoscience and Remote Sensing,267,sar_ship_detection;small_vessel,Zongyong Cui
+rank,openalex_id,doi,title,year,venue,cited_by_count,cited_by_with_merged,themes,first_author
+1,W3038948729,10.1109/access.2020.3005861,HRSID: A High-Resolution SAR Images Dataset for Ship Detection and Instance Segmentation,2020,IEEE Access,912,912,sar_ship_detection,Shunjun Wei
+2,W2738771715,10.5194/essd-10-87-2018,"The Open-source Data Inventory for Anthropogenic CO 2 , version 2016 (ODIAC2016): a global monthly fossil fuel CO 2 gridded emissions data product for tracer transport simulations and surface flux inversions",2018,Earth system science data,733,733,viirs_boats,Tomohiro Oda
+3,W3200733355,10.3390/rs13183690,SAR Ship Detection Dataset (SSDD): Official Release and Comprehensive Data Analysis,2021,Remote Sensing,718,718,sar_ship_detection;small_vessel,Tianwen Zhang
+4,W2774244034,10.1109/bigsardata.2017.8124934,Ship detection in SAR images based on an improved faster R-CNN,2017,,668,668,sar_ship_detection,Jianwei Li
+5,W2928007866,10.3390/rs11070765,A SAR Dataset of Ship Detection for Deep Learning under Complex Backgrounds,2019,Remote Sensing,530,530,sar_ship_detection,Yuanyuan Wang
+6,W2552290192,10.1145/2980179.2980254,Burst photography for high dynamic range and low-light imaging on mobile cameras,2016,ACM Transactions on Graphics,503,503,viirs_boats,Samuel W. Hasinoff
+7,W2961699889,10.1109/tgrs.2019.2923988,Dense Attention Pyramid Networks for Multi-Scale Ship Detection in SAR Images,2019,IEEE Transactions on Geoscience and Remote Sensing,491,491,sar_ship_detection;small_vessel,Zongyong Cui
+8,W2762294195,10.1109/jstars.2017.2755672,OpenSARShip: A Dataset Dedicated to Sentinel-1 Ship Interpretation,2017,IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing,424,424,sar_ais_fusion;sar_ship_detection,Lanqing Huang
+9,W2904480641,10.1109/lgrs.2018.2882551,Squeeze and Excitation Rank Faster R-CNN for Ship Detection in SAR Images,2018,IEEE Geoscience and Remote Sensing Letters,384,384,sar_ship_detection,Zhao Lin
+10,W2919011445,10.3390/rs11050531,Automatic Ship Detection Based on RetinaNet Using Multi-Resolution Gaofen-3 Imagery,2019,Remote Sensing,356,356,sar_ship_detection,Yuanyuan Wang
+11,W2747165560,10.3390/rs9080860,Contextual Region-Based Convolutional Neural Network with Multilayer Fusion for SAR Ship Detection,2017,Remote Sensing,339,339,sar_ship_detection;small_vessel,Miao Kang
+12,W2786644902,10.1016/j.rse.2017.12.033,Vessel detection and classification from spaceborne optical images: A literature survey,2018,Remote Sensing of Environment,325,325,sar_ship_detection,Urša Kanjir
+13,W2928870406,10.3390/rs11070786,Ship Detection Based on YOLOv2 for SAR Imagery,2019,Remote Sensing,320,320,sar_ship_detection,Yang-Lang Chang
+14,W3041525128,10.1109/tgrs.2020.3005151,An Anchor-Free Method Based on Feature Balancing and Refinement Network for Multiscale Ship Detection in SAR Images,2020,IEEE Transactions on Geoscience and Remote Sensing,305,305,sar_ship_detection;small_vessel,Jiamei Fu
+15,W2799646862,10.1109/access.2018.2825376,A Densely Connected End-to-End Neural Network for Multiscale and Multiscene SAR Ship Detection,2018,IEEE Access,303,303,sar_ship_detection;small_vessel,Jiao Jiao
+16,W3012162230,10.1007/s11432-019-2772-5,FUSAR-Ship: building a high-resolution SAR-AIS matchup dataset of Gaofen-3 for ship detection and recognition,2020,Science China Information Sciences,297,297,sar_ais_fusion;sar_ship_detection,Xiyue Hou
+17,W2806290544,10.1126/sciadv.aat2504,The economics of fishing the high seas,2018,Science Advances,293,293,iuu_remote_sensing,Enric Sala
+18,W3089780760,10.3390/rs12182997,LS-SSDD-v1.0: A Deep Learning Dataset Dedicated to Small Ship Detection from Large-Scale Sentinel-1 SAR Images,2020,Remote Sensing,293,293,sar_ais_fusion;sar_ship_detection;small_vessel,Tianwen Zhang
+19,W3208019692,10.3390/rs13214209,BiFA-YOLO: A Novel YOLO-Based Method for Arbitrary-Oriented Ship Detection in High-Resolution SAR Images,2021,Remote Sensing,287,287,sar_ship_detection,Zhongzhen Sun
+20,W2944029760,10.3390/rs11111374,Deep Transfer Learning for Few-Shot SAR Image Classification,2019,Remote Sensing,178,284,sar_ship_detection,Mohammad Ghomi Rostami

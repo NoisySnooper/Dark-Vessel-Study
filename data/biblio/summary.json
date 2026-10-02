@@ -1,6 +1,6 @@
 {
  "snapshot_date": "2026-09-23",
- "built": "2026-10-02T06:53:57",
+ "built": "2026-10-02T06:59:56",
  "scan": {
   "files": 2040,
   "rows": 476196327,
@@ -40,24 +40,26 @@
   "deleted_ids_found": 0,
   "merges": {
    "same_title_year": 246,
-   "preprint_published_pair": 18
+   "preprint_published_pair": 17,
+   "repository_or_weak_pair": 4,
+   "weak_record_title_variant": 4
   },
-  "corpus_rows": 4554
+  "corpus_rows": 4547
  },
- "corpus_size": 4554,
+ "corpus_size": 4547,
  "theme_counts": {
-  "sar_ship_detection": 3291,
+  "sar_ship_detection": 3287,
   "dark_vessels": 146,
   "sar_ais_fusion": 213,
   "xview3": 12,
-  "iuu_remote_sensing": 717,
+  "iuu_remote_sensing": 716,
   "small_vessel": 819,
-  "viirs_boats": 200
+  "viirs_boats": 198
  },
  "multi_theme_papers": 748,
  "sea_papers": 262,
  "vn_papers": 26,
- "papers_without_country_data": 673,
+ "papers_without_country_data": 668,
  "precision": {
   "n_judged": 0
  },

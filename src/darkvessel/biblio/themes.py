@@ -131,10 +131,45 @@ _NONMARITIME_VESSEL = _c(
     r"stenosis|bifurcation|branching)\b"
 )
 _MEDICAL = _c(
-    r"\b(?:blood|vascular|mri|magnetic resonance|angiogra\w*|arter\w*|vein|veins|cerebr\w*|retina\w*|tumou?r|"
+    r"\b(?:blood|vascular|mri|magnetic resonance|angiogra\w*|arter\w*|vein|veins|cerebr\w*|retina|retinal|tumou?r|"
     r"endotheli\w*|aneurysm|stroke|patients?|lymph\w*|capillar\w*|thromb\w*|clinical|histolog\w*|ultrasound|"
     r"tomograph\w*)\b"
 )
+_SHIP_UNAMBIGUOUS = _c(r"\b(?:ships?|boats?)\b")
+_CRAFT_UNAMBIGUOUS = _c(r"\b(?:ships?|boats?|fishing)\b")
+# strict bare SAR must sit in a radar, satellite or maritime text, not an MRI or biomedical one
+_RS_CONTEXT = _c(
+    r"\b(?:radars?|satellites?|spaceborne|airborne|backscatter\w*|polarimetr\w*|interferometr\w*|microwave|"
+    r"sentinel|imagery|remote[\s-]*sens\w*|oceans?|maritime|marine|seas?|offshore|coastal|ships?|boats?|fishing)\b"
+)
+
+
+def _is_medical(text: str) -> bool:
+    """Two or more distinct biomedical terms (blood, patients, MRI, ...)."""
+    return len({m.lower() for m in _MEDICAL.findall(text)}) >= 2
+
+
+# strict VIIRS boats: bare "fishing" also names fishing cats and fishing poles, so it must be a fishing phrase
+_FISHING_PHRASE = _c(
+    r"\bfishing[\s-]+(?:vessels?|boats?|fleets?|lights?|lamps?|grounds?|zones?|effort|activit(?:y|ies)|operations?|"
+    r"areas?|pressure|traffic|ships?)\b|\bfishing\s+(?:with|using)\s+lights?\b"
+)
+
+
+def _has_craft(text: str, strict: bool, fishing_counts: bool = False) -> bool:
+    """Ship, boat or vessel mentioned. Strict mode ignores blood and other non-maritime vessels.
+
+    With fishing_counts (VIIRS boats) the loose test also accepts bare "fishing"; the strict test
+    accepts only fishing phrases such as "fishing vessels" or "fishing lights".
+    """
+    if not strict:
+        return bool(_VIIRS_CRAFT.search(text)) if fishing_counts else bool(_SHIP.search(text))
+    t = _strip_nonmaritime_vessels(text)
+    if _SHIP_UNAMBIGUOUS.search(t):
+        return True
+    if fishing_counts and _FISHING_PHRASE.search(text):
+        return True
+    return bool(_VESSEL.search(t)) and not _is_medical(text)
 
 # SAR terms. Case-sensitive "SAR" is scoped with (?-i:...).
 _SAR_LONG = _c(
@@ -166,7 +201,9 @@ def has_sar_term(text: str, strict: bool = True) -> bool:
     Long names and "SAR image/imagery/data/..." always count. A bare "SAR" counts
     in loose mode. In strict mode a bare SAR is rejected when the text also talks
     about search and rescue, specific absorption rate, structure-activity
-    relationships or a Special Administrative Region.
+    relationships or a Special Administrative Region, and it needs a radar,
+    satellite or maritime word somewhere in the text (so MRI and biomedical
+    uses of the abbreviation fall out).
     """
     if _SAR_LONG.search(text) or _SAR_CTX_STRONG.search(text):
         return True
@@ -175,7 +212,7 @@ def has_sar_term(text: str, strict: bool = True) -> bool:
     if not strict:
         return True
     cleaned = _HK_SAR.sub(" ", text)
-    return bool(_SAR_BARE.search(cleaned)) and not _SAR_GUARD.search(cleaned)
+    return bool(_SAR_BARE.search(cleaned)) and not _SAR_GUARD.search(cleaned) and bool(_RS_CONTEXT.search(cleaned))
 
 
 _AIS_ABBR = re.compile(r"\bAIS\b")
@@ -225,6 +262,15 @@ _IUU = _c(
     r"|\bunreported[\s,]+(?:and[\s,]+)?unregulated\b"
     r"|\bfishing[\s-]+(?:effort|activit(?:y|ies)|vessels?|boats?|fleets?)\b"
 )
+# strict IUU: "fishing effort" and "fishing activity" alone also describe fishing-ground and stock studies,
+# so they need a vessel, fleet, AIS or VMS word somewhere in the text
+_IUU_STRONG = _c(
+    r"(?-i:\bIUU\b)"
+    r"|\billegal(?:ly)?[\s,]+(?:and[\s,]+)?(?:unreported[\s,]+(?:and[\s,]+)?(?:unregulated[\s,]+)?)?fishing\b"
+    r"|\bunreported[\s,]+(?:and[\s,]+)?unregulated\b"
+    r"|\bfishing[\s-]+(?:vessels?|boats?|fleets?)\b"
+)
+_VESSEL_CTX = _c(r"\b(?:vessels?|ships?|boats?|fleets?|AIS|VMS|trawlers?|surveillance|patrol)\b|automatic[\s-]+identification")
 _RS_IUU = _c(r"\bsatellites?\b|remote[\s-]*sens\w*|\bVIIRS\b|\bsentinel\b|\bimagery\b|night[\s-]*(?:time[\s-]*)?lights?\b")
 # strict: satellite telemetry of animals is not remote sensing of fishing
 _ANIMAL_TELEMETRY = _c(
@@ -289,8 +335,7 @@ def _any(low: str, words: tuple[str, ...]) -> bool:
 def _t_sar_ship_detection(text: str, low: str, strict: bool) -> bool:
     if not (_any(low, _SHIP_WORDS) and _any(low, _DETECT_WORDS) and _any(low, _SAR_WORDS)):
         return False
-    t = _strip_nonmaritime_vessels(text) if strict else text
-    return bool(_SHIP.search(t)) and bool(_DETECT.search(text)) and has_sar_term(text, strict)
+    return _has_craft(text, strict) and bool(_DETECT.search(text)) and has_sar_term(text, strict)
 
 
 def _t_dark_vessels(text: str, low: str, strict: bool) -> bool:
@@ -334,6 +379,8 @@ def _t_iuu_remote_sensing(text: str, low: str, strict: bool) -> bool:
         return False
     if not _IUU.search(text):
         return False
+    if strict and not _IUU_STRONG.search(text) and not _VESSEL_CTX.search(_strip_nonmaritime_vessels(text)):
+        return False
     rs_text = _ANIMAL_TELEMETRY.sub(" ", text) if strict else text
     return bool(_RS_IUU.search(rs_text)) or has_sar_term(text, strict)
 
@@ -342,6 +389,8 @@ def _t_small_vessel(text: str, low: str, strict: bool) -> bool:
     if not (_gate("detect" in low) and _gate("small" in low or "artisanal" in low)):
         return False
     small = bool(_SMALL_CRAFT.search(text))
+    if small and strict and _is_medical(text) and not _CRAFT_UNAMBIGUOUS.search(text):
+        small = False  # "small vessel disease"
     if not small and _SMALL_TARGET.search(text) and _MARITIME_TERM.search(text):
         small = True
     if not small and _ARTISANAL.search(text):
@@ -354,8 +403,7 @@ def _t_small_vessel(text: str, low: str, strict: bool) -> bool:
 def _t_viirs_boats(text: str, low: str, strict: bool) -> bool:
     if not _any(low, ("viirs", "night", "low light", "low-light", "visible infrared", "visible-infrared")):
         return False
-    craft_text = _strip_nonmaritime_vessels(text) if strict else text
-    return bool(_VIIRS.search(text)) and bool(_VIIRS_CRAFT.search(craft_text))
+    return bool(_VIIRS.search(text)) and _has_craft(text, strict, fishing_counts=True)
 
 
 _TESTS = {

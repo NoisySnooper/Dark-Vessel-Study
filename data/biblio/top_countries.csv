@@ -1,20 +1,20 @@
 country_code,country,n_papers,pct_of_corpus,pct_of_papers_with_country_data
-CN,China,2355,51.71,60.68
-US,United States,276,6.06,7.11
-GB,United Kingdom,184,4.04,4.74
+CN,China,2354,51.77,60.69
+US,United States,276,6.07,7.12
+GB,United Kingdom,184,4.05,4.74
 IT,Italy,156,3.43,4.02
 IN,India,151,3.32,3.89
 ID,Indonesia,132,2.9,3.4
-DE,Germany,123,2.7,3.17
-KR,South Korea,118,2.59,3.04
-CA,Canada,110,2.42,2.83
+DE,Germany,123,2.71,3.17
+KR,South Korea,118,2.6,3.04
+CA,Canada,110,2.42,2.84
 AU,Australia,95,2.09,2.45
-JP,Japan,89,1.95,2.29
-FR,France,68,1.49,1.75
+JP,Japan,89,1.96,2.29
+FR,France,68,1.5,1.75
 ES,Spain,54,1.19,1.39
 BR,Brazil,40,0.88,1.03
-RU,Russia,39,0.86,1.0
-DK,Denmark,33,0.72,0.85
+RU,Russia,39,0.86,1.01
+DK,Denmark,33,0.73,0.85
 ZA,South Africa,30,0.66,0.77
 GR,Greece,29,0.64,0.75
 NO,Norway,24,0.53,0.62
@@ -31,9 +31,9 @@ PT,Portugal,15,0.33,0.39
 RO,Romania,14,0.31,0.36
 SE,Sweden,14,0.31,0.36
 PK,Pakistan,14,0.31,0.36
-BE,Belgium,14,0.31,0.36
-HK,Hong Kong,13,0.29,0.33
-FI,Finland,13,0.29,0.33
+HK,Hong Kong,13,0.29,0.34
+FI,Finland,13,0.29,0.34
+BE,Belgium,13,0.29,0.34
 DZ,Algeria,12,0.26,0.31
 PH,Philippines,11,0.24,0.28
 PL,Poland,11,0.24,0.28
