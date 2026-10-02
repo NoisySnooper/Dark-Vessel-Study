@@ -487,6 +487,7 @@ $("steps").innerHTML = steps.map(([t, s]) => `<li><b>${t}</b><span>${s}</span></
 $("limits").innerHTML = [
   ["Half the sea is not watched.", "Free wide-swath SAR skipped the central South China Sea for the whole 90 days. Counts here cover only the imaged ring."],
   ["No AIS yet.", "The matcher is built and tested on synthetic data; the AIS source is pending, so nothing here is called dark."],
+  ["AIS is the wrong yardstick for small Vietnamese boats.", "Most small fishing boats need not carry AIS. Vietnam's compliance stream for fishing vessels of 15 m and longer is VMS, which is not open data. A sovereign deployment would match radar contacts against VMS as well as AIS, and report \"no AIS match\" and \"no VMS match\" separately."],
   ["Baseline detector.", "CA-CFAR fires on wind streaks and slick edges in VV; those land in the low class (hidden by default) until the CNN verifier is in place."],
   ["Lengths are rough.", "Pixel extent at 10 m spacing: anything under about 20 m reads as 20 m, and bright hulls bloom."],
   ["Fixed versus moored.", "The persistence test also flags a boat moored in the same spot on every pass checked."],
