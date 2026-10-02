@@ -1,0 +1,385 @@
+<title>Ca Mau Dark Vessel Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/*__LEAFLET_CSS__*/
+
+/* Layout: imagery-first analyst console. The radar map dominates; an inspector column reads the
+   selected contact; method, coverage and limits follow as plain sections. */
+:root {
+  --bg: #f3f4f1; --surface: #fbfbf9; --ink: #121715; --ink-2: #48504c; --muted: #737b76; --rule: #d8dcd6;
+  --accent: #0b5c84; --accent-soft: #e3eef4;
+  --well: #0b0e10; --well-ink: #e8ece9;
+  --caveat-bg: #fbf1d3; --caveat-ink: #523c00; --caveat-rule: #e3cd86;
+  --c-high: #2a78d6; --c-medium: #eb6834; --c-fixed: #1baf7a; --c-low: #898781;
+  --m-high: #3987e5; --m-medium: #d95926; --m-fixed: #199e70; --m-low: #a3a199;
+  --f-display: "Archivo Narrow", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1211; --surface: #151a19; --ink: #e7ebe8; --ink-2: #b4bcb7; --muted: #8a928d; --rule: #29302e;
+    --accent: #62b3dc; --accent-soft: #14262f;
+    --caveat-bg: #2a2412; --caveat-ink: #f0d48a; --caveat-rule: #4a3f1c;
+    --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1211; --surface: #151a19; --ink: #e7ebe8; --ink-2: #b4bcb7; --muted: #8a928d; --rule: #29302e;
+  --accent: #62b3dc; --accent-soft: #14262f;
+  --caveat-bg: #2a2412; --caveat-ink: #f0d48a; --caveat-rule: #4a3f1c;
+  --c-high: #3987e5; --c-medium: #d95926; --c-fixed: #199e70; --c-low: #898781;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.page { max-width: 1440px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 20px 40px;
+        display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; letter-spacing: 0.005em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.02; }
+h2 { font-size: 24px; line-height: 1.15; }
+h3 { font-size: 17px; }
+p { margin: 0; }
+.eyebrow { font-family: var(--f-data); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+/* Masthead */
+.mast { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px 32px; align-items: end; }
+.mast-id { display: grid; gap: 8px; min-width: 0; }
+.dtg { font-family: var(--f-data); font-size: 13px; color: var(--ink-2); }
+.dtg b { color: var(--ink); font-weight: 500; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; margin: 0; }
+.tile { border-top: 2px solid var(--rule); padding-top: 8px; display: grid; gap: 2px; }
+.tile dt { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.tile dd { margin: 0; font-family: var(--f-display); font-size: 30px; font-weight: 600; line-height: 1.05; }
+.swatch { width: 10px; height: 10px; border-radius: 50%; border: 2px solid currentColor; flex: none; }
+.caveat { background: var(--caveat-bg); color: var(--caveat-ink); border: 1px solid var(--caveat-rule); border-radius: 6px;
+          padding: 10px 14px; font-size: 14px; }
+
+/* Console */
+.console { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 20px; align-items: start; }
+.viewer { display: grid; gap: 10px; min-width: 0; }
+#map { height: min(76vh, 780px); min-height: 420px; background: var(--well); border-radius: 8px; }
+.leaflet-container { background: var(--well); font-family: var(--f-body); }
+.map-bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.toggle { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border: 1px solid var(--rule);
+          border-radius: 999px; background: var(--surface); font-size: 13px; cursor: pointer; user-select: none; }
+.toggle input { accent-color: var(--accent); margin: 0; }
+.toggle:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toggle .n { font-family: var(--f-data); color: var(--ink-2); }
+.readout { font-family: var(--f-data); font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.scalebar { background: rgba(11, 14, 16, 0.72); color: #e8ece9; font: 11px var(--f-data); padding: 4px 8px 5px; border-radius: 4px; }
+.scalebar i { display: block; height: 4px; border: 1px solid #e8ece9; border-top: 0; margin-top: 3px; }
+.leaflet-tooltip { font: 12px var(--f-data); }
+
+.inspector { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px;
+             display: grid; gap: 14px; min-width: 0; }
+.chipbox { display: grid; gap: 6px; }
+.chipbox img { width: 100%; max-width: 340px; image-rendering: pixelated; border-radius: 4px; background: var(--well); }
+.chiplbl { display: grid; grid-template-columns: 1fr 1fr; max-width: 340px; font: 12px var(--f-data); color: var(--muted); }
+.chiplbl span:last-child { text-align: right; }
+.cls { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+dl.attrs { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; margin: 0; font-size: 13px; }
+dl.attrs dt { color: var(--ink-2); }
+dl.attrs dd { margin: 0; font-family: var(--f-data); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-weight: 500; color: var(--ink-2); font-size: 12px; }
+td.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; text-align: right; }
+td button { all: unset; cursor: pointer; font-family: var(--f-data); color: var(--accent); }
+td button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+tr.sel td { background: var(--accent-soft); }
+
+/* Sections */
+section.block { display: grid; gap: 14px; border-top: 1px solid var(--rule); padding-top: 22px; }
+.lede { color: var(--ink-2); max-width: 70ch; }
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; counter-reset: s; }
+ol.steps li { counter-increment: s; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
+ol.steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--f-data); font-size: 12px; color: var(--muted); }
+ol.steps li.next { background: transparent; border-style: dashed; }
+ol.steps b { font-family: var(--f-display); font-size: 17px; font-weight: 600; }
+ol.steps span { font-size: 13.5px; color: var(--ink-2); }
+.cov-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+figure { margin: 0; display: grid; gap: 8px; min-width: 0; }
+figcaption { font-size: 13px; color: var(--ink-2); }
+svg { max-width: 100%; height: auto; display: block; }
+.tl .axis { stroke: var(--rule); stroke-width: 1; }
+.tl .grid { stroke: var(--rule); stroke-width: 0.5; }
+.tl text { fill: var(--muted); font: 11px var(--f-data); }
+.tl .asc { fill: var(--c-high); }
+.tl .desc { fill: var(--c-medium); }
+.tl .ring { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.tl .note { fill: var(--ink); font: 600 12px var(--f-body); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.loc .water { fill: var(--surface); }
+.loc .land { fill: var(--rule); stroke: none; }
+.loc .grat { stroke: var(--rule); stroke-width: 0.5; }
+.loc .gl { fill: var(--muted); font: 10px var(--f-data); }
+.loc .fp { fill: var(--c-medium); fill-opacity: 0.025; stroke: var(--c-medium); stroke-opacity: 0.35; stroke-width: 0.7; }
+.loc .fp-demo { fill-opacity: 0.06; stroke-opacity: 1; stroke-width: 1.4; }
+.loc .aoi { fill: none; stroke: var(--ink); stroke-width: 1.2; }
+.loc .win { fill: var(--c-high); fill-opacity: 0.18; stroke: var(--c-high); stroke-width: 1.2; }
+.loc .lbl { fill: var(--ink); font: 600 12px var(--f-body); }
+.key { font-size: 15px; max-width: 70ch; }
+.key b { font-family: var(--f-display); font-size: 18px; }
+ul.limits { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 80ch; color: var(--ink-2); }
+ul.limits b { color: var(--ink); font-weight: 600; }
+details summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 12.5px; color: var(--ink-2); display: grid; gap: 6px; }
+
+@media (max-width: 980px) {
+  .console, .cov-grid, .mast { grid-template-columns: minmax(0, 1fr); }
+  #map { height: 62vh; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="page">
+  <header class="mast">
+    <div class="mast-id">
+      <p class="eyebrow">Dark Vessel Study &middot; pipeline demo v0</p>
+      <h1>Vessel contacts off C&agrave; Mau</h1>
+      <p class="dtg" id="dtg"></p>
+    </div>
+    <dl class="tiles" id="tiles"></dl>
+  </header>
+
+  <p class="caveat" id="caveat"></p>
+
+  <main class="console">
+    <section class="viewer" aria-label="Radar map with detections">
+      <div id="map" role="application" aria-label="Sentinel-1D VV backscatter with detections. Drag to pan, scroll or pinch to zoom."></div>
+      <div class="map-bar">
+        <div class="toggles" id="toggles"></div>
+        <div class="readout" id="readout">Move over the map for coordinates</div>
+      </div>
+    </section>
+    <aside class="inspector" aria-live="polite">
+      <div>
+        <p class="eyebrow">Selected contact</p>
+        <h2 id="sel-title">&nbsp;</h2>
+      </div>
+      <div class="chipbox">
+        <img id="chip" alt="Radar chip of the selected contact, VV left, VH right" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+        <div class="chiplbl"><span>VV &middot; 480 m</span><span>VH &middot; 480 m</span></div>
+      </div>
+      <dl class="attrs" id="attrs"></dl>
+      <div>
+        <h3>Strongest vessel candidates</h3>
+        <div class="tbl-wrap"><table id="top"><thead><tr><th>Contact</th><th>Class</th><th>Length</th><th>Contrast</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="block" aria-labelledby="how-h">
+    <h2 id="how-h">How this product was made</h2>
+    <p class="lede" id="how-lede"></p>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <section class="block" aria-labelledby="cov-h">
+    <h2 id="cov-h">Coverage over the last 90 days</h2>
+    <p class="key" id="cov-key"></p>
+    <div class="cov-grid">
+      <figure>
+        <svg class="tl" id="timeline" viewBox="0 0 640 230" role="img" aria-labelledby="tl-cap"></svg>
+        <div class="legend"><span><i class="dot" style="background:var(--c-high)"></i>Ascending pass (evening, about 18:10 local)</span><span><i class="dot" style="background:var(--c-medium)"></i>Descending pass (dawn, about 05:50 local)</span></div>
+        <figcaption id="tl-cap">Each dot is one Sentinel-1 IW scene that touches the AOI; height is the share of the AOI it covers. The ringed dot is the scene in this demo.</figcaption>
+        <details><summary>Show scenes as a table</summary><div class="tbl-wrap"><table id="scene-table"><thead><tr><th>Acquired (UTC)</th><th>Pass</th><th>Orbit</th><th>AOI cover</th><th>Product</th></tr></thead><tbody></tbody></table></div></details>
+      </figure>
+      <figure class="loc">
+        __LOCATOR_SVG__
+        <figcaption>AOI (black box), the 50 scene footprints (orange outlines; the demo scene drawn solid) and the window processed here (blue).</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="lim-h">
+    <h2 id="lim-h">What this demo does not do yet</h2>
+    <ul class="limits" id="limits"></ul>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const D = /*__DATA__*/null;
+const S = D.summary;
+const LABEL = { high: "Vessel candidate, both channels", medium: "Vessel candidate, one channel",
+                fixed: "Fixed structure", low: "Low confidence (likely sea clutter)" };
+const SHORT = { high: "Both channels", medium: "One channel", fixed: "Fixed", low: "Low" };
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (n) => Number(n).toLocaleString("en-US");
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---- Masthead
+const acq = new Date(S.acq_utc);
+const MON = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const p2 = (n) => String(n).padStart(2, "0");
+const dtg = `${p2(acq.getUTCDate())}${p2(acq.getUTCHours())}${p2(acq.getUTCMinutes())}Z ${MON[acq.getUTCMonth()]} ${String(acq.getUTCFullYear()).slice(2)}`;
+const ict = new Date(acq.getTime() + 7 * 3600e3);
+$("dtg").innerHTML = `<b>${dtg}</b> &middot; ${p2(ict.getUTCHours())}:${p2(ict.getUTCMinutes())} ICT &middot; Sentinel-1D IW &middot; ${S.pass_dir.toLowerCase()} pass &middot; relative orbit ${S.orbit_rel} &middot; VV + VH`;
+const cls = S.classes;
+const tiles = [
+  ["Vessel candidates", (cls.high || 0) + (cls.medium || 0), null],
+  ["Both channels", cls.high || 0, "high"],
+  ["One channel", cls.medium || 0, "medium"],
+  ["Fixed structures", cls.fixed || 0, "fixed"],
+  ["Open sea searched, km²", S.sea_area_km2, null],
+];
+$("tiles").innerHTML = tiles.map(([t, v, c]) => `<div class="tile"><dt>${c ? `<i class="swatch" style="color:var(--c-${c})"></i>` : ""}${t}</dt><dd>${fmt(v)}</dd></div>`).join("");
+$("caveat").innerHTML = `<strong>Dark does not mean illegal.</strong> ${esc(D.caveat)} AIS is not connected in this demo, so no contact below is labeled dark yet.`;
+
+// ---- Map
+const W = D.img.w, H = D.img.h;
+const map = L.map("map", { crs: L.CRS.Simple, minZoom: -4, maxZoom: 3, zoomSnap: 0.25, zoomDelta: 0.5,
+                          attributionControl: false, preferCanvas: true });
+const bounds = [[-H, 0], [0, W]];
+L.imageOverlay("__MAP_IMG__", bounds).addTo(map);
+map.fitBounds(bounds);
+const rend = L.canvas({ padding: 0.5, tolerance: 8 });
+const MC = { high: css("--m-high"), medium: css("--m-medium"), fixed: css("--m-fixed"), low: css("--m-low") };
+const groups = { low: L.layerGroup(), fixed: L.layerGroup(), medium: L.layerGroup(), high: L.layerGroup() };
+D.low.forEach(([x, y]) => L.circleMarker([-y, x], { renderer: rend, radius: 1.7, stroke: false, fillColor: MC.low,
+  fillOpacity: 0.85, interactive: false }).addTo(groups.low));
+const byId = {};
+D.dets.forEach((d) => {
+  const mk = L.circleMarker([-d.y, d.x], { renderer: rend, radius: 6, color: MC[d.c], weight: 1.8, fillOpacity: 0.01 });
+  mk.bindTooltip(`${d.id.slice(-4)} · ${SHORT[d.c]} · ~${d.len} m`, { direction: "top", offset: [0, -6] });
+  mk.on("click", () => select(d.id, false));
+  mk.addTo(groups[d.c]);
+  byId[d.id] = d;
+});
+["low", "fixed", "medium", "high"].forEach((k) => groups[k].addTo(map));
+const counts = { high: cls.high || 0, medium: cls.medium || 0, fixed: cls.fixed || 0, low: cls.low || 0 };
+$("toggles").innerHTML = ["high", "medium", "fixed", "low"].map((k) =>
+  `<label class="toggle"><input type="checkbox" id="tg-${k}" checked><i class="swatch" style="color:var(--c-${k})"></i>${LABEL[k]} <span class="n">${fmt(counts[k])}</span></label>`).join("");
+["high", "medium", "fixed", "low"].forEach((k) => $("tg-" + k).addEventListener("change", (e) =>
+  e.target.checked ? groups[k].addTo(map) : map.removeLayer(groups[k])));
+
+// scale bar (CRS.Simple: one image pixel = res_m metres at zoom 0)
+const Scale = L.Control.extend({ onAdd() { this.el = L.DomUtil.create("div", "scalebar"); return this.el; } });
+const scale = new Scale({ position: "bottomleft" }).addTo(map);
+function updateScale() {
+  const mpp = D.img.res_m / Math.pow(2, map.getZoom());
+  const target = 110 * mpp;
+  const steps = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
+  const d = steps.filter((s) => s <= target).pop() || 100;
+  scale.el.innerHTML = `${d >= 1000 ? d / 1000 + " km" : d + " m"}<i style="width:${(d / mpp).toFixed(0)}px"></i>`;
+}
+map.on("zoomend", updateScale); updateScale();
+
+// cursor readout: bilinear interpolation of a 9 x 9 lon/lat grid over the image
+function lonlatAt(x, y) {
+  const g = D.grid, fx = Math.min(Math.max(x / g.w * (g.nx - 1), 0), g.nx - 1.0001), fy = Math.min(Math.max(y / g.h * (g.ny - 1), 0), g.ny - 1.0001);
+  const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j;
+  const bi = (a) => a[j][i] * (1 - u) * (1 - v) + a[j][i + 1] * u * (1 - v) + a[j + 1][i] * (1 - u) * v + a[j + 1][i + 1] * u * v;
+  return [bi(g.lon), bi(g.lat)];
+}
+const dm = (v, p, n) => { const a = Math.abs(v), d = Math.floor(a); return `${d}°${((a - d) * 60).toFixed(3).padStart(6, "0")}'${v >= 0 ? p : n}`; };
+map.on("mousemove", (e) => {
+  const x = e.latlng.lng, y = -e.latlng.lat;
+  if (x < 0 || y < 0 || x > W || y > H) return;
+  const [lo, la] = lonlatAt(x, y);
+  $("readout").textContent = `${dm(la, "N", "S")}  ${dm(lo, "E", "W")}`;
+});
+
+// ---- Inspector
+let selRing = null;
+function row(k, v) { return `<dt>${k}</dt><dd>${v}</dd>`; }
+const db = (v) => (v === null || v === undefined ? "not detected" : `${v.toFixed(1)} dB`);
+function select(id, pan) {
+  const d = byId[id];
+  if (!d) return;
+  $("sel-title").innerHTML = `<span class="cls"><i class="swatch" style="color:var(--c-${d.c})"></i>${LABEL[d.c]}</span>`;
+  $("chip").src = D.chips[id] ? "data:image/png;base64," + D.chips[id] : "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+  let html = row("Contact", esc(d.id)) + row("Position", d.dms) + row("MGRS", d.mgrs) +
+    row("Length (est.)", `${d.len} m <span style="color:var(--muted)">(${d.px_n} px)</span>`) +
+    row("Peak σ⁰ VV / VH", `${db(d.vv)} / ${db(d.vh)}`) +
+    row("Contrast VV / VH", `${db(d.svv)} / ${db(d.svh)}`) +
+    row("Incidence", `${d.inc.toFixed(1)}°`) +
+    row("Seen on earlier dates", `${d.per} of ${d.perN}`);
+  if (D.has_ml && d.cnn !== undefined) html += row("CNN vessel score", d.cnn.toFixed(2));
+  html += row("AIS", "not checked (no AIS source connected)");
+  $("attrs").innerHTML = html;
+  if (selRing) map.removeLayer(selRing);
+  selRing = L.circleMarker([-d.y, d.x], { radius: 12, color: "#ffffff", weight: 2, fill: false, interactive: false }).addTo(map);
+  if (pan) map.flyTo([-d.y, d.x], Math.max(map.getZoom(), 1), { duration: 0.6 });
+  document.querySelectorAll("#top tbody tr").forEach((tr) => tr.classList.toggle("sel", tr.dataset.id === id));
+}
+const best = (d) => Math.max(d.svv ?? -99, d.svh ?? -99);
+const top = D.dets.filter((d) => d.c === "high" || d.c === "medium").sort((a, b) => best(b) - best(a)).slice(0, 12);
+document.querySelector("#top tbody").innerHTML = top.map((d) =>
+  `<tr data-id="${esc(d.id)}"><td><button type="button" data-id="${esc(d.id)}">${esc(d.id.slice(-4))}</button></td><td>${SHORT[d.c]}</td><td class="num">${d.len} m</td><td class="num">${best(d).toFixed(1)} dB</td></tr>`).join("");
+document.querySelectorAll("#top button").forEach((b) => b.addEventListener("click", () => select(b.dataset.id, true)));
+if (top.length) select(top[0].id, false);
+
+// ---- Method
+const cf = S.cfar;
+$("how-lede").textContent = `One Sentinel-1D scene, read in place over HTTPS and processed on a 4-core laptop-class machine in ${Math.round(S.runtime_main_s)} s (${Math.round(S.runtime_total_s / 60)} min including two earlier dates for the persistence test). No full-scene download, no account, open-source Python end to end.`;
+const steps = [
+  ["Search", `Listed the AWS Open Data mirror of Sentinel-1 for 90 days and kept scenes whose footprint touches the AOI: ${D.scenes.length} scenes.`],
+  ["Read", `Fetched only the needed 1024-pixel tiles of the Cloud-Optimized GeoTIFFs: a ${fmt(S.window_px[0])} x ${fmt(S.window_px[1])} px window at 10 m.`],
+  ["Calibrate", "Converted digital numbers to radar backscatter (sigma nought) with ESA calibration tables, VV and VH."],
+  ["Mask land", "Sampled ESA WorldCover 2021, dropped inland water such as shrimp ponds, and kept a 1 km shore buffer."],
+  ["Detect", `Cell-averaging CFAR: false-alarm rate ${S.pfa}, 810 m guard window, 1.6 km background ring, gamma clutter with ENL ${cf.VV.enl.toFixed(1)} (VV) and ${cf.VH.enl.toFixed(1)} (VH).`],
+  ["Fuse and grade", "Merged VV and VH objects within 30 m. Both channels = higher confidence; weak VV-only objects = likely sea clutter."],
+  ["Persistence", "Repeated the run on the same orbit 12 and 24 days earlier. Objects that recur within 50 m are fixed structures, not vessels."],
+];
+const next = [
+  ["CNN verifier (in training)", "A small network trained on AI2 Skylight expert labels from Sentinel-1A/1B re-scores every candidate. Applying it here is the 1A to 1D transfer test."],
+  ["AIS correlation (built, no data yet)", "Matcher interpolates AIS to the radar time and assigns contacts one to one. Unmatched vessel candidates become dark candidates."],
+];
+$("steps").innerHTML = steps.map(([t, s]) => `<li><b>${t}</b><span>${s}</span></li>`).join("") +
+  next.map(([t, s]) => `<li class="next"><b>${t}</b><span>${s}</span></li>`).join("");
+
+// ---- Coverage timeline
+(function timeline() {
+  const svg = $("timeline"), Wd = 640, Hd = 230, m = { l: 40, r: 14, t: 18, b: 34 };
+  const start = new Date(D.search_window[0] + "T00:00Z"), end = new Date(D.search_window[1] + "T00:00Z");
+  const x = (t) => m.l + (t - start) / (end - start) * (Wd - m.l - m.r);
+  const ymax = 50, y = (v) => Hd - m.b - v / ymax * (Hd - m.t - m.b);
+  let s = "";
+  [0, 10, 20, 30, 40, 50].forEach((v) => { s += `<line class="grid" x1="${m.l}" x2="${Wd - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`; });
+  const months = [];
+  for (let t = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1)); t <= end; t = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 1))) months.push(t);
+  months.forEach((t) => {
+    s += `<line class="axis" x1="${x(t)}" x2="${x(t)}" y1="${Hd - m.b}" y2="${Hd - m.b + 5}"/><text x="${x(t)}" y="${Hd - m.b + 18}" text-anchor="middle">${MON[t.getUTCMonth()]}</text>`;
+  });
+  s += `<line class="axis" x1="${m.l}" x2="${Wd - m.r}" y1="${Hd - m.b}" y2="${Hd - m.b}"/>`;
+  let demo = null;
+  D.scenes.forEach((sc) => {
+    const t = new Date(sc.t + "Z");
+    const c = sc.pass === "ASCENDING" ? "asc" : "desc";
+    s += `<circle class="${c}" cx="${x(t).toFixed(1)}" cy="${y(sc.cov).toFixed(1)}" r="4.5" stroke="var(--surface)" stroke-width="1.5"><title>${sc.t} UTC, ${sc.pass.toLowerCase()}, orbit ${sc.orbit}, ${sc.cov}% of AOI</title></circle>`;
+    if (sc.demo) demo = [x(t), y(sc.cov)];
+  });
+  if (demo) s += `<circle class="ring" cx="${demo[0]}" cy="${demo[1]}" r="9"/><text class="note" x="${demo[0] - 12}" y="${demo[1] - 13}" text-anchor="end">this scene</text>`;
+  svg.innerHTML = s;
+  document.querySelector("#scene-table tbody").innerHTML = D.scenes.map((sc) =>
+    `<tr><td class="mono">${sc.t}</td><td>${sc.pass.toLowerCase()}</td><td class="num">${sc.orbit}</td><td class="num">${sc.cov}%</td><td class="mono">${esc(sc.id)}</td></tr>`).join("");
+})();
+const nS1C = D.scenes.filter((s) => s.id.startsWith("S1C")).length;
+const dates = [...new Set(D.scenes.map((s) => s.t.slice(0, 10)))];
+$("cov-key").innerHTML = `<b>${D.scenes.length} scenes on ${dates.length} dates, every one from Sentinel-1D.</b> Sentinel-1C acquired ${nS1C === 0 ? "nothing" : nS1C + " scenes"} over this AOI in the window, so a usable look comes about every 4 days, alternating dawn and dusk. Any 1C imagery for the transfer study must come from other regions.`;
+
+// ---- Limits and footer
+$("limits").innerHTML = [
+  ["No AIS yet.", "The matcher is built and tested on synthetic data; the AIS source (GFW token, noncommercial terms) is pending, so nothing here is called dark."],
+  ["Baseline detector.", "CA-CFAR fires on wind streaks and slick edges in VV; those land in the low-confidence class until the CNN verifier is in place."],
+  ["Lengths are rough.", "Pixel extent at 10 m spacing: anything under about 20 m reads as 20 m, and bright hulls bloom. Use them for bins, not for identification."],
+  ["Positions shift.", "Moving vessels appear displaced along the satellite track by up to several hundred metres; AIS matching allows for it."],
+  ["Fixed versus moored.", "The persistence test flags anything that recurs on two earlier dates; a boat moored in the same spot would also be flagged."],
+  ["One snapshot.", "A single 25-second acquisition: no tracks, no behaviour, no intent."],
+].map(([b, t]) => `<li><b>${b}</b> ${t}</li>`).join("");
+$("foot").innerHTML = `<p>Contains modified Copernicus Sentinel data 2026 (${esc(S.scene_id)}), read from the AWS Open Data mirror. Land mask: ESA WorldCover 2021 v200, CC BY 4.0. Locator coastline: Natural Earth (public domain). Map viewer: Leaflet (BSD-2-Clause).</p><p>${esc(D.caveat)}</p>`;
+</script>

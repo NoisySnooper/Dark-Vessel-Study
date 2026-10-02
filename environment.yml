@@ -1,0 +1,35 @@
+# conda env create -f environment.yml && conda activate darkvessel
+# All packages from conda-forge. pytorch-cpu is the conda-forge CPU-only build.
+name: darkvessel
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - gdal>=3.8
+  - rasterio>=1.3
+  - geopandas>=0.14
+  - pyogrio
+  - shapely>=2.0
+  - pyproj
+  - numpy
+  - scipy
+  - scikit-image
+  - pandas
+  - pyarrow
+  - matplotlib
+  - pystac-client
+  - planetary-computer
+  - pytorch-cpu
+  - torchvision
+  - requests
+  - fsspec
+  - aiohttp
+  - python-dotenv
+  - pyyaml
+  - tqdm
+  - pytest
+  - jupyterlab
+  - pip
+  - pip:
+      - mgrs
+      - -e .

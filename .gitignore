@@ -1,0 +1,49 @@
+# ---- Secrets: never commit ----
+.env
+.env.*
+!.env.example
+.netrc
+*.pem
+*.key
+secrets/
+credentials*.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+build/
+dist/
+
+# ---- Data: raw and heavy files stay out of git ----
+# Small derived outputs (gpkg, csv under ~10 MB) ARE committed so they open in ArcGIS Pro.
+data/raw/
+data/cache/
+data/interim/
+data/chips/
+data/models/
+data/*_perpol.gpkg
+data/outputs/demo/
+*.SAFE/
+*.zip
+*.tar
+*.tar.gz
+*.nc
+*.h5
+*.pth
+*.pt
+*.npy
+*.npz
+# Rasters are reproducible from scripts; only small COGs under docs/ or data/outputs/small/ are kept
+*.tif
+*.tiff
+!data/outputs/small/*.tif
+
+# ---- ArcGIS Pro / OS clutter ----
+*.lock
+*.aux.xml
+.DS_Store
+Thumbs.db
