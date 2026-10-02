@@ -8,7 +8,7 @@ Updated: 2026-10-02 (UTC). The owner reviews; the assistant does the heavy lifti
 
 - **Demo page (private link, yours to share):** https://claude.ai/artifact/5VbpXaoghkKx8nwGoaEeUs (version 2). Regional map of the South China Sea with all 43,944 vessel candidates from the regional run, the 90-day Sentinel-1 coverage layer, a radar view of one Ca Mau scene, a contact inspector (radar chip, DMS and MGRS position, date-time group) and in-browser labeling with CSV export.
 - **ArcGIS Pro:** `data/detections_regional.gpkg`, `data/detections_baseline.gpkg`, `data/aoi.gpkg`, rasters in `data/outputs/small/`. Every product has an EPSG:4326 layer or file plus a UTM one (49N regional, 48N Ca Mau).
-- **Figures:** `docs/figures/coverage.png`, `docs/figures/regional_detections.png`, `docs/figures/baseline_map.png`.
+- **Figures:** `docs/figures/coverage.png`, `docs/figures/regional_detections.png`, `docs/figures/baseline_map.png`, `docs/figures/ml_1d_chips.png`.
 
 ## Scope change (2026-10-02)
 
@@ -35,7 +35,7 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 - In Vietnam the compliance stream for fishing vessels of 15 m and longer is VMS, which is not open.
 
 ### Workstream 3: GIS (`docs/scs_regional.md`, `docs/gis_baseline.md`)
-- Repo scaffold, `environment.yml` verified by a real install, secret-safe `.gitignore`, `.env.example`, walkthrough notebook, offline `pytest` suite (150 tests pass).
+- Repo scaffold, `environment.yml` verified by a real install, secret-safe `.gitignore`, `.env.example`, walkthrough notebook, offline `pytest` suite (167 tests pass in the conda environment).
 - Coverage, 90 days: 1,042 Sentinel-1C/1D IW products in 280 passes. 55 % of the AOI imaged at least once. **1.61 million km2 (45 %), the whole central sea including the Spratly area, never imaged.** On an average day Sentinel-1 images 6.3 % of the AOI.
 - Ca Mau detail scene (Sentinel-1D, 2026-09-29): 720 vessel candidates (285 in both channels), 349 fixed structures, 4,936 low-confidence objects over about 17,700 km2 of open sea.
 - Regional run, 26 September to 1 October 2026: 64 Sentinel-1C/1D scenes, 1.19 million km2 of sea tested. **43,944 vessel candidates** (16,807 in both channels), 13,560 fixed structures. Density map and rasters done (`docs/figures/regional_detections.png`).
@@ -44,8 +44,23 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 - First look for paper 1: on the 93 cells both satellites imaged, Sentinel-1C and 1D give the same candidate density (33.4 and 31.6 per 1,000 km2 per look).
 - AIS matching module (interface, synthetic generator, tests). No real AIS used.
 
-### ML stage (`docs/ml_verifier.md`)
-ML_PENDING
+### ML stage (`docs/ml_verifier.md`, `data/detections_ml.gpkg`)
+- CNN verifier: 294k parameters, VV and VH chips of 640 m. Trained from scratch on AI2 Skylight expert labels (Apache-2.0): 454 Sentinel-1A/1B scenes (334 in Southeast Asia) and 69,274 CFAR candidates.
+- Held-out test (91 scenes, 1,422 labels, 50 m rule):
+
+  | | Precision | Recall |
+  |---|---|---|
+  | CFAR alone | 0.09 | 0.80 |
+  | CFAR + CNN | **0.77** [0.75, 0.79] | 0.75 [0.73, 0.77] |
+  | CFAR + CNN, loose rule (150 m or 0.75 x length) | 0.82 | 0.92 |
+
+- Recall by AIS length: the test set has no label under 15 m and 2 at 15 to 25 m. AI2 labels cannot measure small-boat recall; that needs other truth.
+- Ca Mau Sentinel-1D scene:
+  - The CNN keeps 149 of 720 baseline candidates (27 % of both-channel ones) and nothing under 25 m.
+  - Many rejects are lines of point targets with cross-shaped sidelobes (stake nets or other fixed gear; `docs/figures/ml_1d_chips.png`).
+  - Chip backgrounds are 3.6 dB darker than the training clutter. That is either a sensor or sea-state shift, or a model that knows only large ships.
+  - There is no 1D ground truth yet; next task 2 supplies it.
+- Not applied to the regional run yet: the transfer has to be scored first.
 
 ## Blocked
 
