@@ -9,6 +9,7 @@
   "median_passes_where_imaged": 8.0,
   "typical_revisit_days_where_imaged": 8.8,
   "max_passes": 38,
+  "mean_daily_share_imaged": 0.0632,
   "aoi": "south_china_sea",
   "window": "2026-07-04 to 2026-10-02",
   "res_deg": 0.05,

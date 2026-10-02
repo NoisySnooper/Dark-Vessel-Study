@@ -20,6 +20,7 @@ Source: AWS Open Data mirror of Sentinel-1 GRD, all IW products of Sentinel-1C a
 | AOI imaged 3 / 6 / 10 or more times | 49 % / 42 % / 25 % |
 | AOI never imaged | 1,605,966 km2 (45 %) |
 | Where imaged: mean passes, typical revisit | 10.3 passes, about one every 8.8 days (maximum 38) |
+| Share of the AOI imaged on an average day | 6.3 % (pass area summed over the window, divided by 90 days and by the AOI area) |
 
 ![Coverage](figures/coverage.png)
 

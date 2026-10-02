@@ -64,4 +64,6 @@ def coverage_stats(counts: np.ndarray, aoi_mask: np.ndarray, transform, days: in
         out["median_passes_where_imaged"] = float(np.median(c))
         out["typical_revisit_days_where_imaged"] = round(days / out["mean_passes_where_imaged"], 1)
     out["max_passes"] = int(counts[aoi_mask].max()) if aoi_mask.any() else 0
+    # Pass area summed over the window, per day, as a share of the AOI: what one average day sees
+    out["mean_daily_share_imaged"] = round(float((counts[aoi_mask] * area[aoi_mask]).sum()) / days / a_total, 4)
     return out
