@@ -72,3 +72,17 @@ def write_cog(arr: np.ndarray, transform, crs: str, path: str | Path, nodata=Non
         if tags:
             dst.update_tags(**{k: str(v) for k, v in tags.items()})
     return path
+
+
+def reproject_cog(src_path: str | Path, dst_path: str | Path, dst_crs: str = "EPSG:4326", res=None,
+                  resampling: Resampling = Resampling.bilinear, zlevel: int = 9) -> Path:
+    """Copy a single-band COG into another CRS (for example the EPSG:4326 twin of a UTM product)."""
+    with rasterio.open(src_path) as src:
+        arr, nodata, tags = src.read(1), src.nodata, src.tags()
+        transform, width, height = calculate_default_transform(src.crs, dst_crs, src.width, src.height, *src.bounds,
+                                                               resolution=res)
+        fill = nodata if nodata is not None and np.isfinite(nodata) else (np.nan if arr.dtype.kind == "f" else 0)
+        dst = np.full((height, width), fill, arr.dtype)
+        reproject(arr, dst, src_transform=src.transform, src_crs=src.crs, dst_transform=transform, dst_crs=dst_crs,
+                  resampling=resampling, src_nodata=nodata, dst_nodata=nodata)
+    return write_cog(dst, transform, dst_crs, dst_path, nodata=nodata, tags=tags, zlevel=zlevel)

@@ -72,6 +72,7 @@ Observations to check, not conclusions:
 | `data/detections_baseline_perpol.gpkg` | Raw VV and VH objects (gitignored; regenerate with the script) |
 | `data/outputs/sigma0_vv_db_utm48n_20m.tif` | VV sigma0 in dB, COG, UTM 48N, 20 m (gitignored, large; regenerate) |
 | `data/outputs/small/sigma0_vv_db_utm48n_40m_u8.tif` | Same at 40 m as 8-bit COG; dB = value x 35 / 255 - 35; 0 = no data |
+| `data/outputs/small/sigma0_vv_db_4326_u8.tif` | Same 8-bit image in EPSG:4326 at 0.0004 degree (about 44 m) |
 | `docs/figures/baseline_map.png` | Quicklook map, north up, UTM 48N |
 | `docs/figures/baseline_chips.png` | Image chips of example detections by class |
 | `data/baseline_run_summary.json` | All run numbers |

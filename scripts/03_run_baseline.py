@@ -10,6 +10,7 @@ Outputs:
   data/detections_baseline.gpkg   detections_baseline_*, detections_vv_*, detections_vh_*, processing_window_*
   data/outputs/sigma0_vv_db_utm48n_20m.tif          (COG, float32 dB; gitignored, regenerate)
   data/outputs/small/sigma0_vv_db_utm48n_40m_u8.tif (COG, uint8 = round((dB + 35) * 255 / 35))
+  data/outputs/small/sigma0_vv_db_4326_u8.tif       (same, EPSG:4326, 0.0004 degree)
   docs/figures/baseline_map.png, docs/figures/baseline_chips.png
   data/baseline_run_summary.json
 """
@@ -27,7 +28,7 @@ from darkvessel.config import CRS_UTM, DARK_CAVEAT_SHORT, DATA_DIR, FIG_DIR
 from darkvessel.detect.postprocess import apply_persistence, assign_confidence, persistence
 from darkvessel.pipeline import ICT, run_baseline
 from darkvessel.products import write_detection_products
-from darkvessel.s1.export import scale_gcps, warp_to_map, window_gcps, write_cog
+from darkvessel.s1.export import reproject_cog, scale_gcps, warp_to_map, window_gcps, write_cog
 from darkvessel.viz.maps import chip_gallery, detection_map
 
 DEFAULT_SCENE = "GRD/2026/9/29/IW/DV/S1D_IW_GRDH_1SDV_20260929T111023_20260929T111053_004792_008FC8_A5CA"
@@ -96,6 +97,8 @@ u8 = np.where(np.isfinite(db40), np.clip(np.round((db40 + 35) * 255 / 35), 1, 25
 tr40 = tr20 * tr20.scale(2, 2)
 write_cog(u8, tr40, CRS_UTM, DATA_DIR / "outputs" / "small" / "sigma0_vv_db_utm48n_40m_u8.tif", nodata=0, zlevel=9,
           tags={**tags, "scaling": "dB = value * 35 / 255 - 35; 0 = no data"})
+reproject_cog(DATA_DIR / "outputs" / "small" / "sigma0_vv_db_utm48n_40m_u8.tif",
+              DATA_DIR / "outputs" / "small" / "sigma0_vv_db_4326_u8.tif", "EPSG:4326", res=0.0004)
 
 # Figures
 FIG_DIR.mkdir(parents=True, exist_ok=True)
