@@ -1,7 +1,7 @@
 """Build the self-contained HTML demo page from pipeline outputs.
 
-Inputs: data/detections_baseline.gpkg, data/baseline_run_summary.json, data/s1_scenes.csv,
-data/s1_footprints.gpkg, data/outputs/small/sigma0_vv_db_utm48n_40m_u8.tif, and optionally
+Inputs: data/detections_baseline.gpkg, data/baseline_run_summary.json, data/s1_scenes_ca_mau.csv,
+data/s1_footprints_ca_mau.gpkg, data/outputs/small/sigma0_vv_db_utm48n_40m_u8.tif, and optionally
 data/detections_ml.gpkg (CNN scores). Imagery chips are re-read from the AWS mirror.
 """
 
@@ -186,11 +186,11 @@ def build_demo(out_html: Path, land_geojson: Path, max_chips: int = 1500) -> Pat
     full = [rec(i, r) for i, r in enumerate(dets.itertuples()) if r.confidence != "low"]
     low = [[round(r.px, 1), round(r.py, 1)] for r in dets.itertuples() if r.confidence == "low"]
 
-    scenes = pd.read_csv(DATA_DIR / "s1_scenes.csv", parse_dates=["start_utc"]).sort_values("start_utc")
+    scenes = pd.read_csv(DATA_DIR / "s1_scenes_ca_mau.csv", parse_dates=["start_utc"]).sort_values("start_utc")
     scen = [{"t": s.start_utc.strftime("%Y-%m-%dT%H:%M"), "pass": s.pass_dir, "orbit": int(s.orbit_rel),
              "cov": round(float(s.aoi_coverage) * 100, 1), "id": s.product_id,
              "demo": s.product_id == summary["scene_id"]} for s in scenes.itertuples()]
-    fps = gpd.read_file(DATA_DIR / "s1_footprints.gpkg", layer="s1_footprints_4326")
+    fps = gpd.read_file(DATA_DIR / "s1_footprints_ca_mau.gpkg", layer="s1_footprints_4326")
     win = gpd.read_file(DATA_DIR / "detections_baseline.gpkg", layer="processing_window_4326").geometry.iloc[0]
     svg = locator_svg(fps, win, summary["scene_id"], land_geojson)
 
@@ -198,7 +198,7 @@ def build_demo(out_html: Path, land_geojson: Path, max_chips: int = 1500) -> Pat
     gy = np.linspace(0, h, 9)
     GX, GY = np.meshgrid(gx, gy)
     glon, glat = to_ll.transform(tr.c + GX * tr.a, tr.f + GY * tr.e)
-    search = json.loads((DATA_DIR / "s1_search_summary.json").read_text())
+    search = json.loads((DATA_DIR / "s1_search_summary_ca_mau.json").read_text())
     data = {
         "summary": summary, "search_window": [s.strip() for s in search["window"].split(" to ")],
         "img": {"w": w, "h": h, "res_m": abs(tr.a), **img_meta},

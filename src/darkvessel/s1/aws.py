@@ -38,6 +38,21 @@ _local = threading.local()
 VIETNAM_UTC_WINDOWS = ((dt.time(10, 30), dt.time(11, 35)), (dt.time(22, 30), dt.time(23, 30)))
 
 
+def utc_windows_for(lon_min: float, lon_max: float, margin_min: float = 30.0):
+    """UTC time-of-day windows in which Sentinel-1 passes over longitudes lon_min..lon_max.
+
+    Local solar time of the passes is ~18:00 (ascending) and ~06:00 (descending); UTC is
+    local time minus longitude/15 h. The margin covers swath offset, latitude and slice length.
+    """
+    def window(local_h: float):
+        a = (local_h - lon_max / 15.0) * 60 - margin_min
+        b = (local_h - lon_min / 15.0) * 60 + margin_min
+        to_t = lambda m: dt.time(int(m % 1440) // 60, int(m % 1440) % 60)  # noqa: E731
+        return to_t(a), to_t(b)
+
+    return (window(18.0), window(6.0))
+
+
 def _session() -> requests.Session:
     if not hasattr(_local, "s"):
         _local.s = requests.Session()

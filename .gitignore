@@ -47,3 +47,7 @@ data/outputs/demo/
 *.aux.xml
 .DS_Store
 Thumbs.db
+
+# Run logs
+*.log
+data/ml/build_log.txt

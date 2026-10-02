@@ -12,22 +12,42 @@ OUTPUT_DIR = DATA_DIR
 DOCS_DIR = REPO_ROOT / "docs"
 FIG_DIR = DOCS_DIR / "figures"
 
-# Output CRS pair. Both candidate AOIs sit in UTM zone 48N (102E to 108E).
+# Output CRS: EPSG:4326 plus one UTM zone per product. Vietnamese coastal work uses
+# zone 48N (102E to 108E); South China Sea-wide products use zone 49N (108E to 114E),
+# the zone at the centre of the sea. Areas are computed in an equal-area CRS.
 CRS_GEO = "EPSG:4326"
 CRS_UTM = "EPSG:32648"  # WGS 84 / UTM zone 48N
+CRS_UTM_REGIONAL = "EPSG:32649"  # WGS 84 / UTM zone 49N
+CRS_EQUAL_AREA = "EPSG:6933"  # WGS 84 / NSIDC EASE-Grid 2.0 Global (equal area)
 
-# Candidate AOIs as (west, south, east, north) in EPSG:4326.
+# AOIs: either a lon/lat box (west, south, east, north) or a union of Natural Earth
+# 10 m marine areas (public domain), matched by their `name` field.
 AOIS = {
+    "south_china_sea": {
+        "natural_earth": ["South China Sea", "Gulf of Tonkin", "Gulf of Thailand"],
+        "label": "South China Sea with the Gulf of Tonkin and Gulf of Thailand",
+        "utm": CRS_UTM_REGIONAL,
+    },
     "ca_mau": {
         "bbox": (103.5, 7.5, 106.0, 9.8),
         "label": "Ca Mau waters, Gulf of Thailand and East Sea coasts",
+        "utm": CRS_UTM,
     },
     "gulf_of_tonkin": {
         "bbox": (105.6, 19.0, 108.2, 21.6),
         "label": "Gulf of Tonkin, Vietnamese side",
+        "utm": CRS_UTM,
     },
 }
-DEFAULT_AOI = "ca_mau"
+DEFAULT_AOI = "south_china_sea"
+NE_MARINE_URL = ("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/"
+                 "geojson/ne_10m_geography_marine_polys.geojson")
+NE_LAND_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson"
+
+
+def aoi_suffix(name: str) -> str:
+    """File suffix for per-AOI products: '' for the default AOI, '_<name>' otherwise."""
+    return "" if name == DEFAULT_AOI else f"_{name}"
 
 # Rule 4 of the project brief: every vessel output must say this.
 DARK_CAVEAT = (

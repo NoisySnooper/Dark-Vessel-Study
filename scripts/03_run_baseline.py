@@ -1,4 +1,6 @@
-"""Baseline demo: one Sentinel-1D scene over Ca Mau -> CA-CFAR detections, maps, COGs.
+"""Detail demo: one Sentinel-1D scene over the Ca Mau sub-area -> CA-CFAR detections, maps, COGs.
+
+Needs data/s1_scenes_ca_mau.csv from: python scripts/02_search_scenes.py --aoi ca_mau
 
 Windowed reads only (no full-scene download). Two earlier dates on the same relative
 orbit are processed for the persistence test that separates fixed structures from vessels.
@@ -46,7 +48,7 @@ bbox = tuple(args.bbox)
 from darkvessel.s1.grd import GRDScene
 
 ref = GRDScene(args.scene)
-scenes = pd.read_csv(DATA_DIR / "s1_scenes.csv", parse_dates=["start_utc"])
+scenes = pd.read_csv(DATA_DIR / "s1_scenes_ca_mau.csv", parse_dates=["start_utc"])
 same = scenes[(scenes.orbit_rel == ref.manifest["orbit_rel"]) & (scenes.pass_dir == ref.manifest["pass_dir"])
               & (scenes.start_utc < pd.Timestamp(ref.meta["start"])) & (scenes.aoi_coverage > 0.2)]
 others_paths = same.sort_values("start_utc", ascending=False)["path"].head(args.persist).tolist()
