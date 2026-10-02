@@ -94,6 +94,18 @@ td.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; text-al
 td button { all: unset; cursor: pointer; font-family: var(--f-data); color: var(--accent); }
 td button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 tr.sel td { background: var(--accent-soft); }
+.labeler { display: grid; gap: 8px; border-top: 1px solid var(--rule); padding-top: 12px; }
+.lbl-btns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.labeler button { font: 500 13px var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule);
+                  border-radius: 6px; padding: 7px 6px; cursor: pointer; }
+.labeler button:hover { border-color: var(--accent); }
+.labeler button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.labeler button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.labeler button.ghost { background: transparent; }
+.labeler kbd { font: 11px var(--f-data); color: inherit; opacity: 0.7; }
+.lbl-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.lbl-count { font: 12px var(--f-data); color: var(--ink-2); }
+.labeler textarea { width: 100%; font: 11px var(--f-data); background: var(--bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; }
 
 /* Sections */
 section.block { display: grid; gap: 14px; border-top: 1px solid var(--rule); padding-top: 22px; }
@@ -171,6 +183,21 @@ footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 12.5px
         <div class="chiplbl"><span>VV &middot; 480 m</span><span>VH &middot; 480 m</span></div>
       </div>
       <dl class="attrs" id="attrs"></dl>
+      <div class="labeler">
+        <p class="eyebrow">Your label (kept in this browser only)</p>
+        <div class="lbl-btns" role="group" aria-label="Label this contact">
+          <button type="button" data-l="vessel" id="lb-vessel">Vessel <kbd>1</kbd></button>
+          <button type="button" data-l="structure" id="lb-structure">Structure <kbd>2</kbd></button>
+          <button type="button" data-l="clutter" id="lb-clutter">Clutter <kbd>3</kbd></button>
+          <button type="button" data-l="unsure" id="lb-unsure">Unsure <kbd>4</kbd></button>
+        </div>
+        <div class="lbl-row">
+          <button type="button" class="ghost" id="lbl-next">Next unlabeled <kbd>N</kbd></button>
+          <button type="button" class="ghost" id="lbl-copy">Copy labels as CSV</button>
+          <span class="lbl-count" id="lbl-count"></span>
+        </div>
+        <textarea id="lbl-out" rows="4" hidden aria-label="Labels as CSV"></textarea>
+      </div>
       <div>
         <h3>Strongest vessel candidates</h3>
         <div class="tbl-wrap"><table id="top"><thead><tr><th>Contact</th><th>Class</th><th>Length</th><th>Contrast</th></tr></thead><tbody></tbody></table></div>
@@ -315,7 +342,42 @@ function select(id, pan) {
   selRing = L.circleMarker([-d.y, d.x], { radius: 12, color: "#ffffff", weight: 2, fill: false, interactive: false }).addTo(map);
   if (pan) map.flyTo([-d.y, d.x], Math.max(map.getZoom(), 1), { duration: 0.6 });
   document.querySelectorAll("#top tbody tr").forEach((tr) => tr.classList.toggle("sel", tr.dataset.id === id));
+  current = id;
+  if (typeof refreshLabelUI === "function") refreshLabelUI();
 }
+// ---- Labeling (per-viewer, localStorage; export by copying CSV)
+const LKEY = "dv-labels-" + S.scene_id;
+let labels = {};
+try { labels = JSON.parse(localStorage.getItem(LKEY) || "{}") || {}; } catch (e) { labels = {}; }
+let current = null;
+function saveLabels() { try { localStorage.setItem(LKEY, JSON.stringify(labels)); } catch (e) { /* storage blocked: keep in memory */ } }
+function refreshLabelUI() {
+  ["vessel", "structure", "clutter", "unsure"].forEach((l) => $("lb-" + l).setAttribute("aria-pressed", String(current && labels[current] === l)));
+  const n = Object.keys(labels).length;
+  $("lbl-count").textContent = `${n} labeled`;
+}
+function setLabel(l) { if (!current) return; labels[current] = l; saveLabels(); refreshLabelUI(); }
+document.querySelectorAll(".lbl-btns button").forEach((b) => b.addEventListener("click", () => setLabel(b.dataset.l)));
+const queue = D.dets.filter((d) => d.c !== "low").map((d) => d.id);
+function nextUnlabeled() { const id = queue.find((q) => !labels[q] && q !== current) || queue.find((q) => !labels[q]); if (id) select(id, true); }
+$("lbl-next").addEventListener("click", nextUnlabeled);
+$("lbl-copy").addEventListener("click", () => {
+  const rows = ["det_id,label,confidence,lat,lon,length_est_m"].concat(Object.entries(labels).map(([id, l]) => {
+    const d = byId[id] || {}; return [id, l, d.c, d.lat, d.lon, d.len].join(",");
+  }));
+  const csv = rows.join("\n");
+  const out = $("lbl-out");
+  out.value = csv; out.hidden = false;
+  const fallback = () => { out.focus(); out.select(); $("lbl-count").textContent = "Select-all is ready: copy with Ctrl/Cmd+C"; };
+  try { navigator.clipboard.writeText(csv).then(() => { $("lbl-count").textContent = `Copied ${rows.length - 1} labels`; }, fallback); } catch (e) { fallback(); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("textarea, input")) return;
+  const k = { "1": "vessel", "2": "structure", "3": "clutter", "4": "unsure" }[e.key];
+  if (k) setLabel(k);
+  if (e.key === "n" || e.key === "N") nextUnlabeled();
+});
+
 const best = (d) => Math.max(d.svv ?? -99, d.svh ?? -99);
 const top = D.dets.filter((d) => d.c === "high" || d.c === "medium").sort((a, b) => best(b) - best(a)).slice(0, 12);
 document.querySelector("#top tbody").innerHTML = top.map((d) =>
