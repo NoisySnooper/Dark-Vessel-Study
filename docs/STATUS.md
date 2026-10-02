@@ -66,6 +66,10 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
   - There is no 1D ground truth yet; next task 2 supplies it.
 - Not applied to the regional run yet: the transfer has to be scored first.
 
+### Paper 1 groundwork (`docs/paper1_design.md`)
+- Noise floor from the products' own annotation: Sentinel-1C and 1D are 1.4 dB (VV) and 1.8 dB (VH) below Sentinel-1A (2022) at every incidence angle, and 1C and 1D match each other (`docs/figures/nesz_by_satellite.png`). This explains about half of the darker 1D chip backgrounds.
+- Labeling design: a fixed random sample per class, plus every CNN-accepted Ca Mau contact (149, enough to detect a 10-point precision drop). The demo page queues them, and `scripts/12_score_labels.py` turns your CSV into per-class shares and CNN precision and recall with intervals.
+
 ## Blocked
 
 | Blocker | Effect | Fix (owner action) |
@@ -89,7 +93,7 @@ Worked around: OpenAlex via its public S3 snapshot; Sentinel-1 via the AWS Open 
 ## Next 3 tasks (smallest first, each fits a 5 h week)
 
 1. **Unblock the environment (about 1 h).** In the cloud environment settings, set network access to Full or allow the hosts in the Blocked table. Add the four keys as environment secrets. Then tell me. I will close the main UNVERIFIED items: SJR and quartiles, the Scopus and hijacked-journal screens, DOI resolution, a CDSE STAC cross-check of the scene list, and a GFW AIS pull for the regional window.
-2. **Label 200 contacts on the demo page (about 3 h).** Open the page and press N: it steps through a fixed random sample per class, each with a radar chip. Press 1 to 4 (vessel, structure, clutter, unsure). Do about 100 in each view. Press "Copy labels as CSV" and paste the result into `data/labels/owner_2026-10.csv`, or send it to me. These are the first Sentinel-1C/1D labels. They score the transfer for paper 1 and train the next verifier.
+2. **Label about 370 contacts on the demo page (about 3 h).** Open the page and press N: it steps through the labeling queue, each contact with a radar chip. Press 1 to 4 (vessel, structure, clutter, unsure). In the Ca Mau view, label the whole queue (384 contacts, including all 149 the CNN accepts). In the regional view, label about 100. Press "Copy labels as CSV" and paste the result into `data/labels/owner_2026-10.csv`, or send it to me. These are the first Sentinel-1C/1D labels. They score the transfer for paper 1 (`docs/paper1_design.md`, sections 3 and 4) and train the next verifier.
 3. **Make three decisions (about 4 h with reading).** Read this file, `docs/scs_regional.md`, the gap analysis at the end of `docs/bibliometrics.md` and the short answer in `docs/journals.md`. Then decide:
    - (a) AIS source: GFW (noncommercial) for the papers, plus a commercial quote for Viettel.
    - (b) Letter venue: IGARSS 2027 or GRSL. The IGARSS 2027 deadline is not published yet. The 2026 deadline was 10 January 2026 (UNVERIFIED), so plan for early January 2027.
