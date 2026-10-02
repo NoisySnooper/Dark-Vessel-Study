@@ -43,15 +43,16 @@ def _work(args):
         return sid, 0, 0, repr(e)
 
 
-def run(days: int, workers: int, pfa: float, max_scenes: int | None):
+def run(days: int, workers: int, pfa: float, max_scenes: int | None, min_overlap_km2: float = 2000.0):
     CACHE.mkdir(parents=True, exist_ok=True)
     sc = pd.read_csv(DATA_DIR / "s1_scenes.csv", parse_dates=["start_utc"])
     end = sc.start_utc.max().normalize() + pd.Timedelta(days=1)
-    sel = sc[sc.start_utc >= end - pd.Timedelta(days=days)].sort_values("start_utc", ascending=False)
+    sel = sc[(sc.start_utc >= end - pd.Timedelta(days=days)) & (sc.aoi_overlap_km2 >= min_overlap_km2)]
+    sel = sel.sort_values("start_utc", ascending=False)
     todo = [p for p in sel.path if not (CACHE / f"{p.rsplit('/', 1)[-1]}.parquet").exists()]
     if max_scenes:
         todo = todo[:max_scenes]
-    print(f"{len(sel)} scenes in the last {days} days, {len(todo)} to process", flush=True)
+    print(f"{len(sel)} scenes in the last {days} days with >= {min_overlap_km2:g} km2 AOI overlap, {len(todo)} to process", flush=True)
     t0 = time.time()
     with ProcessPoolExecutor(workers) as ex:
         futs = [ex.submit(_work, (p, pfa)) for p in todo]
