@@ -1,4 +1,6 @@
-# Workstream 3: scene search and CA-CFAR baseline, Ca Mau
+# Workstream 3 detail: Ca Mau sub-area, scene search and CA-CFAR baseline
+
+The project AOI is now the whole South China Sea (see `docs/scs_regional.md`). This document covers the first, detailed run over the Ca Mau sub-area, which the demo page keeps as its scene-detail view.
 
 > **"Dark" does not mean illegal.** A dark detection only means no AIS position was matched to it. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. No AIS was connected for this run, so nothing here is labeled dark.
 
@@ -10,11 +12,11 @@ The brief asked for a STAC search on Microsoft Planetary Computer or Copernicus 
 
 ## 2. Area of interest
 
-`data/aoi.gpkg`, layers `aoi_4326` and `aoi_utm48n`: Ca Mau waters, both coasts, 103.5 to 106.0 E, 7.5 to 9.8 N, 69,946 km2. The Gulf of Tonkin alternative (105.6 to 108.2 E, 19.0 to 21.6 N) is in layer `aoi_candidates_*` for comparison. Both sit in UTM zone 48N (EPSG:32648). Script: `scripts/01_make_aoi.py`.
+Ca Mau waters, both coasts, 103.5 to 106.0 E, 7.5 to 9.8 N, 69,989 km2 (equal-area); layer `aoi_candidates_*` of `data/aoi.gpkg`. Detail products use UTM zone 48N (EPSG:32648). Script: `scripts/01_make_aoi.py --aoi ca_mau`.
 
 ## 3. Sentinel-1C/1D scenes over the AOI, last 90 days
 
-Script `scripts/02_search_scenes.py`; outputs `data/s1_footprints.gpkg` (layers `s1_footprints_4326`, `s1_footprints_utm48n`), `data/s1_scenes.csv`, `data/s1_search_summary.json`.
+Script `scripts/02_search_scenes.py --aoi ca_mau`; outputs `data/s1_footprints_ca_mau.gpkg` (layers `s1_footprints_4326`, `s1_footprints_utm48n`), `data/s1_scenes_ca_mau.csv`, `data/s1_search_summary_ca_mau.json`.
 
 | Item | Result |
 |---|---|
@@ -29,7 +31,7 @@ Script `scripts/02_search_scenes.py`; outputs `data/s1_footprints.gpkg` (layers 
 
 Check on the search itself: the search pre-filters product names by time of day before fetching footprints. Re-running one full 12-day repeat cycle (2026-09-18 to 2026-09-29) with no pre-filter returned the same 7 products, all Sentinel-1D.
 
-Finding that matters for the planned letter: in this 90-day window, Sentinel-1C acquired no IW scenes over the AOI, at least in the AWS mirror (not yet cross-checked against Copernicus Data Space, which is blocked here). A 1A to 1C/1D transfer study over Vietnam therefore has 1D imagery only; 1C test imagery must come from other regions. Whether this reflects the Sentinel-1 observation scenario is UNVERIFIED.
+Finding that matters for the planned letter: in this 90-day window, Sentinel-1C acquired no IW scenes over the Ca Mau sub-area, at least in the AWS mirror (not yet cross-checked against Copernicus Data Space, which is blocked here). Over the wider South China Sea, 1C did acquire 90 passes (`docs/scs_regional.md`), so 1C test imagery is available inside the region. Whether the Ca Mau gap reflects the Sentinel-1 observation scenario is UNVERIFIED.
 
 ## 4. Baseline detector on one scene
 
@@ -43,22 +45,23 @@ Processing, in order:
 3. **Sea mask.** ESA WorldCover 2021 v200 (10 m) sampled on an 80 m grid. Open sea is WorldCover code 0 and nearshore water code 80; only water connected to open sea is kept, which drops inland water such as shrimp ponds. A 1 km shore buffer is removed. 75.1 % of the window was testable sea.
 4. **CA-CFAR** on VV and VH separately. Gamma clutter with the equivalent number of looks estimated from the image (VV 5.10, VH 5.45), false-alarm rate 1e-6 (threshold multiplier 4.64 VV, 4.46 VH), guard window 81 px (810 m, longer than a 400 m ship), background window 161 px. Pixels whose background ring is less than half valid are not tested.
 5. **Objects.** Detected pixels within 1 px are grouped; objects of 2 to 4,000 px kept. Length = extent along the principal axis times 10 m (a test caught the ellipse-moment method overstating rectangles by about 15 %).
-6. **Fusion and grading.** VV and VH objects within 30 m are one detection. high = both channels; medium = VH only, or VV only with peak-to-background contrast of 12 dB or more and 3 px or more; low = other VV-only objects.
-7. **Persistence.** The same box was processed on the two previous dates of the same orbit (2026-09-17, 2026-09-05). A detection with a match within 50 m on both dates is reclassed as a fixed structure.
+6. **Fusion and grading.** VV and VH objects within 30 m are one detection. high = both channels; medium = VH only, or VV only with peak-to-background contrast of 12 dB or more and 3 px or more; low = other VV-only objects, and any object longer than 450 m (no vessel is that long; these are structure rows or artefacts).
+7. **Persistence.** The same box was processed on the two previous dates of the same orbit (2026-09-17, 2026-09-05). A vessel candidate with any detection (any class: a structure can come back weak) within 50 m on both dates is reclassed as a fixed structure. With well under one clutter object per km2, a chance match within 50 m on both dates is negligible.
 
 ### Results
 
 | Class | Count | Meaning |
 |---|---:|---|
-| high | 302 | Vessel candidate seen in VV and VH |
-| medium | 477 | Vessel candidate seen in one channel |
-| fixed | 331 | Recurs on both earlier dates: structures, or vessels moored in the same place |
-| low | 4,895 | VV-only weak objects, concentrated on wind streaks and slick edges: mostly sea clutter |
+| high | 285 | Vessel candidate seen in VV and VH |
+| medium | 435 | Vessel candidate seen in one channel |
+| fixed | 349 | Recurs on both earlier dates: structures, or vessels moored in the same place |
+| low | 4,936 | VV-only weak objects, concentrated on wind streaks and slick edges (mostly sea clutter), plus objects longer than 450 m |
 
 Raw objects before grading: VV 5,571, VH 1,012, fused 6,005 (VV only 4,993; both 578; VH only 434). The two persistence dates produced 2,228 and 5,511 fused objects; the VV clutter count swings with sea state, which is why the low class exists.
 
 Observations to check, not conclusions:
 - Most fixed detections form straight rows near the Ca Mau east coast. That pattern fits nearshore wind turbines or fixed stake-net fishing gear. Identity is UNVERIFIED: no infrastructure database was consulted.
+- Several straight rows of both-channel detections along the north-east shore did not recur on both earlier dates, so they stay vessel candidates. Fixed gear on intertidal flats may show only at some tide levels (this coast has a large tidal range), which would defeat a same-time-of-day persistence test. Hypothesis, UNVERIFIED.
 - The VH image shows bright rectangular bands that look like radio-frequency interference (RFI). The scene's own RFI annotation (`annotation/rfi/rfi-iw-vh.xml`) reports `rfiDetected = false` in all 20 noise-sensing reports and no mitigation applied. So either the interference fell outside the noise-sensing windows or the bands are something else. Cause unresolved.
 
 ### Products

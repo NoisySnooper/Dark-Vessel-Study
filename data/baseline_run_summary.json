@@ -1,0 +1,66 @@
+{
+  "scene_id": "S1D_IW_GRDH_1SDV_20260929T111023_20260929T111053_004792_008FC8_A5CA",
+  "platform": "SENTINEL-1D",
+  "acq_utc": "2026-09-29T11:10:23+00:00",
+  "acq_local_ict": "2026-09-29T18:10:23+07:00",
+  "pass_dir": "ASCENDING",
+  "orbit_rel": 26,
+  "detector": "ca_cfar_v0",
+  "pfa": 1e-06,
+  "guard_px": 81,
+  "background_px": 161,
+  "land_buffer_m": 1000.0,
+  "enl_vv": 5.09719458751532,
+  "enl_vh": 5.45388226173664,
+  "ais_status": "not_checked: no AIS source connected",
+  "bbox": [
+    104.7,
+    8.0,
+    105.9,
+    9.2
+  ],
+  "window_px": [
+    15361,
+    15313
+  ],
+  "sea_area_km2": 17683,
+  "classes": {
+    "low": 4936,
+    "medium": 435,
+    "fixed": 349,
+    "high": 285
+  },
+  "n_vessel_candidates": 720,
+  "cfar": {
+    "VV": {
+      "enl": 5.09719458751532,
+      "alpha": 4.635489201477849,
+      "n_det_px": 47495,
+      "n_tested_px": 174471271,
+      "n_objects": 5571
+    },
+    "VH": {
+      "enl": 5.45388226173664,
+      "alpha": 4.463134525207216,
+      "n_det_px": 25440,
+      "n_tested_px": 174471271,
+      "n_objects": 1012
+    }
+  },
+  "persistence_scenes": [
+    "GRD/2026/9/17/IW/DV/S1D_IW_GRDH_1SDV_20260917T111023_20260917T111053_004617_0089BE_C1F7",
+    "GRD/2026/9/5/IW/DV/S1D_IW_GRDH_1SDV_20260905T111023_20260905T111052_004442_0083B4_A1C0"
+  ],
+  "length_est_m_vessels": {
+    "count": 720.0,
+    "mean": 60.2,
+    "std": 65.2,
+    "min": 20.0,
+    "25%": 20.0,
+    "50%": 38.3,
+    "75%": 61.0,
+    "max": 449.5
+  },
+  "runtime_main_s": 148.4,
+  "runtime_total_s": 543.1
+}
