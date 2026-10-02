@@ -14,6 +14,7 @@ import base64
 import hashlib
 import io
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -208,12 +209,24 @@ def label_queue(dets: pd.DataFrame, rates: dict, census: pd.Series | None = None
     return q.det_id.tolist()
 
 
+def _chip_retry(scene, row, col, tries: int = 3):
+    """One chip; transient read errors are retried, then the chip is skipped (the page shows none)."""
+    for k in range(tries):
+        try:
+            return chip_png(scene, row, col)
+        except Exception as e:  # noqa: BLE001 (network reads: retry anything, then give up)
+            if k == tries - 1:
+                print("chip skipped:", repr(e)[:120], flush=True)
+                return None
+            time.sleep(2 * (k + 1))
+
+
 def _chips_for(dets: pd.DataFrame, scene_of, ids: list[str]) -> dict:
     keep = dets[dets.det_id.isin(ids)]
     jobs = [(r.det_id, scene_of(r), r.row, r.col) for r in keep.itertuples()]
     with ThreadPoolExecutor(8) as ex:
-        out = ex.map(lambda j: (j[0], chip_png(j[1], j[2], j[3])), jobs)
-        return dict(out)
+        out = ex.map(lambda j: (j[0], _chip_retry(j[1], j[2], j[3])), jobs)
+        return {k: v for k, v in out if v is not None}
 
 
 def _top_ids(dets: pd.DataFrame, n: int = 12) -> list[str]:
