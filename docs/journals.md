@@ -90,11 +90,11 @@ To upgrade a cell that is still a snippet: open the cited page, confirm the valu
 | Sensors | MDPI | 0.802 (SJR 2025), Q1* | gold, 3137 | yes: Communication, limit not retrieved | 1 | 1 | P |
 | Journal of Marine Science and Engineering | MDPI | 0.605 (SJR 2025), Q2* | gold, 3137 | yes: Communication, limit not retrieved | 1 | 2 | P |
 | elib (German Aerospace Center) | Deutsches Zentrum für Luft- und Raumfahrt e. V. (DLR) | NOT RETRIEVED, n/r | not applicable, n/r | NOT RETRIEVED | 0 | 0 | P |
-| IET conference proceedings. | Institution of Engineering and Technology | NOT RETRIEVED, n/r | NOT RETRIEVED, n/r | NOT RETRIEVED | ? | ? | P |
+| IET conference proceedings. | Institution of Engineering and Technology | NOT RETRIEVED, n/r | subscription or hybrid, n/r | NOT RETRIEVED | ? | ? | P |
 | DOAJ (DOAJ: Directory of Open Access Journals) | NOT RETRIEVED | NOT RETRIEVED, n/r | not applicable, n/r | NOT RETRIEVED | 0 | 0 | U |
 | Zenodo (CERN European Organization for Nuclear Research) | European Organization for Nuclear Research | NOT RETRIEVED, n/r | not applicable, n/r | NOT RETRIEVED | 0 | 0 | P |
 | arXiv (Cornell University) | Cornell University | NOT RETRIEVED, n/r | not applicable, n/r | NOT RETRIEVED | 0 | 0 | P |
-| IEEE Transactions on Aerospace and Electronic Systems | IEEE | NOT RETRIEVED, n/r | NOT RETRIEVED, 2645 | NOT RETRIEVED | ? | ? | P |
+| IEEE Transactions on Aerospace and Electronic Systems | IEEE | NOT RETRIEVED, n/r | hybrid, 2645 | NOT RETRIEVED | ? | ? | P |
 <!-- journals-table:end -->
 
 ## Integrity screening
