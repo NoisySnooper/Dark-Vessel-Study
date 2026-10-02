@@ -348,3 +348,22 @@ def test_openalex_script_reads_issns_and_ids_from_the_seed(opts):
     script = load_script("journals_openalex.py")
     issns, ids = script.venue_keys(opts.seed)
     assert issns == {A_PRINT, A_ONLINE, B_ONLINE, C_PRINT} and ids == {"S1", "S2", "S3", "S4"}
+
+
+def test_openalex_flags_give_an_inferred_model_only_when_the_seed_has_none():
+    cases = [
+        (True, True, 3000, "gold"),
+        (False, False, 2645, "hybrid"),
+        (False, False, 0, "subscription or hybrid (undetermined)"),
+    ]
+    for is_oa, doaj, apc, expected in cases:
+        oa = openalex.parse_cache_row(oa_row("S9", "X", "Fake", A_PRINT, is_oa, doaj, apc, 10))
+        blank = seed_row(key="x", venue="X", oa_model="NOT RETRIEVED | added from the scan")
+        cell = build.oa_model_cell(blank, oa)
+        value, prov = build.split_cell(cell)
+        assert value == expected and "UNVERIFIED (inferred)" in prov and "VERIFIED flags" in prov
+        # a researched value in the seed is never replaced
+        researched = seed_row(key="x", venue="X", oa_model="hybrid | VERIFIED (page opened)", oa_evidence="publisher page")
+        assert build.split_cell(build.oa_model_cell(researched, oa))[0] == "hybrid"
+    assert build.inferred_oa_model(None) is None
+    assert build.split_cell(build.oa_model_cell(seed_row(key="x", venue="X"), None))[0] == "NOT RETRIEVED"

@@ -28,6 +28,19 @@ OA = {
 }
 
 
+def build_oa_row(openalex_id, name, publisher, issns, is_oa, doaj, apc, h):
+    """A cache row as written by openalex.write_cache (strings), enough for the build."""
+    return {
+        "openalex_id": openalex_id, "display_name": name, "issn_l": issns.split(";")[0], "issns": issns,
+        "host_organization_name": publisher, "type": "journal", "is_oa": str(is_oa), "is_in_doaj": str(doaj),
+        "is_in_doaj_since_year": "", "apc_usd": str(apc or ""),
+        "apc_prices_json": f'[{{"price": {apc}, "currency": "USD"}}]' if apc else "",
+        "apc_usd_by_year_json": f'[{{"year": 2025, "price": {apc}}}]' if apc else "",
+        "h_index": str(h), "two_year_mean_citedness": "1.5", "works_count": "1000", "cited_by_count": "5000",
+        "homepage_url": "", "updated_date": "2026-09-23", "snapshot_date": "2026-09-23",
+    }
+
+
 def write_top(path, header, rows):
     with open(path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh, lineterminator="\n")
@@ -125,10 +138,10 @@ def test_skeleton_rows_hold_identity_and_mark_everything_else_not_retrieved():
     row = topvenues.skeleton_seed_row(venue, oa_row, used)
     assert list(row) == build.SEED_COLUMNS and row["key"] not in {"dj"} and row["key"] in used
     assert row["venue"] == "Delta Journal of Maritime Sensing" and row["issn_print"] == C_PRINT and row["issn_online"] == B_ONLINE
-    assert row["oa_model"] == "gold" and "UNVERIFIED (inferred)" in row["oa_evidence"]
+    assert row["oa_model"].startswith("NOT RETRIEVED") and row["apc_note"] == ""  # the build infers the model from OpenAlex
     assert row["fit_letter"].startswith("?:") and row["review_time"].startswith("NOT RETRIEVED")
     plain = topvenues.skeleton_seed_row({"name": "", "openalex_id": "S6", "issns": []}, None, used)
-    assert plain["oa_model"] == "NOT RETRIEVED" and plain["key"]
+    assert plain["oa_model"].startswith("NOT RETRIEVED") and plain["key"]
 
 
 def test_skeleton_rows_flow_through_the_build_as_partial_or_unverified(tmp_path):
@@ -137,6 +150,13 @@ def test_skeleton_rows_flow_through_the_build_as_partial_or_unverified(tmp_path)
     rows = build.build_rows([skeleton], {})
     assert rows[0]["verification_status"] == "UNVERIFIED"  # no OpenAlex row, so even the publisher is unknown
     assert rows[0]["scopus_discontinued_check"].startswith("NOT CHECKED")
+    assert rows[0]["apc_usd"].startswith("NOT RETRIEVED | no APC in the OpenAlex snapshot; no other source consulted")
+    # with an OpenAlex row the publisher, APC and model are filled in, the model as an inference, and the row is PARTIAL
+    oa = {"S5": build_oa_row("S5", "Delta Journal of Maritime Sensing", "Fake IEEE", C_PRINT, False, False, 2645, 228)}
+    filled = build.build_rows([skeleton], oa)[0]
+    assert filled["publisher"].startswith("Fake IEEE | VERIFIED") and filled["verification_status"] == "PARTIAL"
+    assert filled["oa_model"].startswith("hybrid | VERIFIED flags") and "UNVERIFIED (inferred)" in filled["oa_model"]
+    assert filled["apc_usd"].startswith("2645 (optional, hybrid) | VERIFIED") and "NOT RETRIEVED" not in filled["apc_usd"]
     seed_path = tmp_path / "seed.csv"
     with open(seed_path, "w", newline="", encoding="utf-8") as fh:
         csv.DictWriter(fh, fieldnames=build.SEED_COLUMNS, lineterminator="\n").writeheader()
