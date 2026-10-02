@@ -29,7 +29,7 @@ Hosts, grouped by what they unlock:
 - Night lights and NASA data: `eogdata.mines.edu`, `payneinstitute.mines.edu`, `urs.earthdata.nasa.gov`, `ladsweb.modaps.eosdis.nasa.gov`, `search.asf.nasa.gov`, `datapool.asf.alaska.edu`
 - Other: `planetarycomputer.microsoft.com`, `earth-search.aws.element84.com`, `huggingface.co`, `zenodo.org`, `www.ncei.noaa.gov`
 
-The research agent working on extra data sources will add any further hosts to `docs/data_additions.md`.
+Hosts for optional extra sources (Black Marble, SDGSAT-1, scatterometer winds, other SAR programmes, Vietnamese portals) are listed in `docs/data_additions.md`, section "Hosts the owner would need to allow". None of them is needed for the core pipeline.
 
 ## 2. Apply for accounts (45 min, then waiting)
 

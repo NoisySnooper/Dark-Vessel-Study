@@ -1,0 +1,113 @@
+{
+ "objects": 162386,
+ "with_wind": 161260,
+ "with_cloud_top": 111804,
+ "deep_convection_threshold_k": 220.0,
+ "by_group": [
+  {
+   "group": "clutter_zone",
+   "n": 52820,
+   "deep_convection_share": 0.39,
+   "deep_convection_ci": [
+    0.386,
+    0.394
+   ],
+   "cloud_free_share": 0.171,
+   "wind_median_ms": 3.4
+  },
+  {
+   "group": "fixed",
+   "n": 25224,
+   "deep_convection_share": 0.21,
+   "deep_convection_ci": [
+    0.205,
+    0.215
+   ],
+   "cloud_free_share": 0.426,
+   "wind_median_ms": 3.7
+  },
+  {
+   "group": "high",
+   "n": 29228,
+   "deep_convection_share": 0.234,
+   "deep_convection_ci": [
+    0.229,
+    0.239
+   ],
+   "cloud_free_share": 0.404,
+   "wind_median_ms": 3.8
+  },
+  {
+   "group": "medium",
+   "n": 49387,
+   "deep_convection_share": 0.291,
+   "deep_convection_ci": [
+    0.287,
+    0.295
+   ],
+   "cloud_free_share": 0.314,
+   "wind_median_ms": 4.2
+  },
+  {
+   "group": "near_fixed",
+   "n": 5727,
+   "deep_convection_share": 0.166,
+   "deep_convection_ci": [
+    0.156,
+    0.176
+   ],
+   "cloud_free_share": 0.607,
+   "wind_median_ms": 3.6
+  }
+ ],
+ "shared_cells_background_vs_wind": {
+  "linear_fits": {
+   "S1C_bg_vv_db": {
+    "slope_db_per_ms": 0.712,
+    "intercept_db": -23.39,
+    "n": 10306
+   },
+   "S1C_bg_vh_db": {
+    "slope_db_per_ms": -0.113,
+    "intercept_db": -27.36,
+    "n": 10306
+   },
+   "S1D_bg_vv_db": {
+    "slope_db_per_ms": 0.467,
+    "intercept_db": -21.71,
+    "n": 15913
+   },
+   "S1D_bg_vh_db": {
+    "slope_db_per_ms": -0.059,
+    "intercept_db": -27.54,
+    "n": 15913
+   }
+  },
+  "wind_matched_difference": {
+   "(0, 2]": {
+    "vv_1d_minus_1c": 1.44,
+    "vh_1d_minus_1c": -0.98
+   },
+   "(2, 4]": {
+    "vv_1d_minus_1c": 1.38,
+    "vh_1d_minus_1c": 0.95
+   },
+   "(4, 6]": {
+    "vv_1d_minus_1c": 2.39,
+    "vh_1d_minus_1c": 0.86
+   },
+   "(6, 8]": {
+    "vv_1d_minus_1c": -2.59,
+    "vh_1d_minus_1c": -1.14
+   },
+   "(8, 10]": {
+    "vv_1d_minus_1c": -6.06,
+    "vh_1d_minus_1c": -3.23
+   }
+  },
+  "wind_median_ms": {
+   "S1C": 3.4,
+   "S1D": 3.3
+  }
+ }
+}
