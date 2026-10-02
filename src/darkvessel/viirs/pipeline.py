@@ -49,7 +49,7 @@ class SeaGrid:
         return out
 
 
-def find_aoi_granules(sat: str, day, aoi_geom, start_utc="16:00", end_utc="21:00", workers: int = 8) -> list[str]:
+def find_aoi_granules(sat: str, day, aoi_geom, start_utc="16:00", end_utc="21:00", workers: int = 6) -> list[str]:
     """Descending (night) DNB granules of one UTC day whose outline touches the AOI.
 
     Reads every third outline first (a pass over the AOI spans about 6 granules), then the

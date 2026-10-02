@@ -109,7 +109,7 @@ def run(start: dt.date, end: dt.date, workers: int):
             return pair, [], repr(e)
 
     jobs = []
-    with ThreadPoolExecutor(4) as ex:  # granule search is metadata reads: threads, not processes
+    with ThreadPoolExecutor(3) as ex:  # granule search is metadata reads: threads, not processes
         for (day, sat), keys, err in ex.map(index, pairs):
             if err:
                 print(f"index {day} {sat} failed: {err}", flush=True)

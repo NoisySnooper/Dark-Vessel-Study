@@ -42,3 +42,18 @@ def test_fill_values_are_ignored():
     rad[100, 100] += 20 * NW
     det = spike_detect(rad, sea)
     assert list(zip(det.row, det.col)) == [(100, 100)]
+
+
+def test_weather_grid_sampling_picks_the_containing_cell():
+    from rasterio.transform import from_origin
+
+    from darkvessel.weather import sample_grid
+
+    arr = np.arange(721 * 1440, dtype=float).reshape(721, 1440)
+    for origin in (-180.125, -0.125):  # GDAL may present GFS as -180..180 or 0..360
+        tr = from_origin(origin, 90.125, 0.25, 0.25)
+        v = sample_grid(arr, tr, np.array([114.5, -70.0]), np.array([6.4, -10.1]))
+        col = int(np.floor((np.mod(114.5 - origin, 360)) / 0.25))
+        assert v[0] == arr[int(np.floor((90.125 - 6.4) / 0.25)), col]
+        col2 = int(np.floor((np.mod(-70.0 - origin, 360)) / 0.25))
+        assert v[1] == arr[int(np.floor((90.125 + 10.1) / 0.25)), col2]

@@ -7,18 +7,17 @@ Products used:
   VIIRS-JRR-CloudMask/YYYY/MM/DD/JRR-CloudMask_v3r2_<sat2>_s<start>_e<end>_c<created>.nc       cloud mask
 A granule is about 85 s of data: 768 rows x 4064 columns of about 742 m pixels, about 570 km along track
 and 3,000 km across. The night pass over the South China Sea is near 01:30 local time (about 17:00 to
-20:00 UTC). Only the datasets needed are read, through fsspec range requests.
+20:00 UTC). Only the datasets needed are read, through HTTP range requests (RangeFile).
 """
 
 from __future__ import annotations
 
 import datetime as dt
-import os
+import io
 import re
 from dataclasses import dataclass
 from urllib.parse import quote
 
-import fsspec
 import h5py
 import numpy as np
 
@@ -65,15 +64,56 @@ def geo_keys(sat: str, day: dt.date, start_utc: str = "16:00", end_utc: str = "2
     return sorted(k for k in keys if t0 <= granule_start(k) < t1)
 
 
-_fs, _fs_pid = None, None
+class RangeFile(io.RawIOBase):
+    """Read-only file over HTTP range requests, in cached blocks: what h5py needs to read a remote file.
+
+    Plain synchronous requests (one session per thread, retries in darkvessel.s1.aws._get), so many
+    threads can read many files at once without sharing an async event loop.
+    """
+
+    def __init__(self, url: str, block: int = 256 * 1024):
+        super().__init__()
+        self.url, self.block, self.pos, self.cache = url, block, 0, {}
+        r = aws._get(url, headers={"Range": "bytes=0-0"})
+        self.size = int(r.headers["Content-Range"].split("/")[-1])
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def tell(self):
+        return self.pos
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        self.pos = {io.SEEK_SET: offset, io.SEEK_CUR: self.pos + offset, io.SEEK_END: self.size + offset}[whence]
+        return self.pos
+
+    def _blocks(self, start: int, end: int) -> bytes:
+        b0, b1 = start // self.block, (end - 1) // self.block
+        missing = [b for b in range(b0, b1 + 1) if b not in self.cache]
+        if missing:  # one request for the whole missing span
+            lo, hi = missing[0] * self.block, min(self.size, (missing[-1] + 1) * self.block) - 1
+            data = aws._get(self.url, headers={"Range": f"bytes={lo}-{hi}"}).content
+            for b in range(missing[0], missing[-1] + 1):
+                off = (b - missing[0]) * self.block
+                self.cache[b] = data[off:off + self.block]
+        buf = b"".join(self.cache[b] for b in range(b0, b1 + 1))
+        return buf[start - b0 * self.block:end - b0 * self.block]
+
+    def readinto(self, b):
+        n = min(len(b), max(0, self.size - self.pos))
+        if n == 0:
+            return 0
+        b[:n] = self._blocks(self.pos, self.pos + n)
+        self.pos += n
+        return n
 
 
 def _open(sat: str, key: str, block: int):
-    """Ranged-read file handle; one HTTP filesystem per process (the async client is not fork-safe)."""
-    global _fs, _fs_pid
-    if _fs is None or _fs_pid != os.getpid():
-        _fs, _fs_pid = fsspec.filesystem("https", skip_instance_cache=True), os.getpid()
-    return _fs.open(f"{bucket_url(sat)}/{key}", block_size=block)
+    """Remote HDF5/NetCDF file handle for h5py."""
+    return RangeFile(f"{bucket_url(sat)}/{key}", block=min(block, 1024 * 1024))
 
 
 def gring(sat: str, geo_key: str) -> tuple[np.ndarray, np.ndarray, int]:
