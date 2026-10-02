@@ -183,8 +183,12 @@ _AIS_LONG = _c(r"automatic[\s-]+identification[\s-]+systems?")
 _FUSE = _c(r"\b(?:fusion|fus(?:e|ed|es|ing)|match|correlat|associat|integrat|combin)\w*")
 _MARITIME_ANY = _c(r"\b(?:ships?|vessels?|boats?|maritime|marine|sea|seas|ocean|oceans|fishing|ports?|shipping|coastal)\b")
 
-_DARK = _c(
+_DARK_PHRASE_LOOSE = (
     r"\bdark[\s-]+(?:vessels?|ships?|fleets?|fishing|boats?|targets?|shipping|trawlers?|activit(?:y|ies)|maritime)\b"
+)
+# strict: no "dark target" (MODIS Dark Target aerosol retrieval, dark infrared targets) and no "dark activity"
+_DARK_PHRASE_STRICT = r"\bdark[\s-]+(?:vessels?|ships?|fleets?|fishing|boats?|shipping|trawlers?)\b"
+_DARK_REST = (
     r"|\bnon[\s-]?broadcast\w*"
     r"|(?-i:\bAIS)[\s-]+(?:gaps?|disabl\w+|dark\w*|silen\w+|outages?|(?:switch|turn|shut)\w*[\s-]+off)\b"
     r"|\bgaps?\s+in\s+(?:the\s+)?(?:(?-i:AIS)|automatic[\s-]+identification[\s-]+systems?)\b"
@@ -193,10 +197,25 @@ _DARK = _c(
     r"(?:(?-i:AIS)|automatic[\s-]+identification[\s-]+systems?)\b"
     r"|(?-i:\bAIS)\s+(?:\w+\s+){0,2}?(?:disabled|(?:switched|turned|shut)\s+off)\b"
 )
+_DARK = _c(_DARK_PHRASE_LOOSE + _DARK_REST)
+_DARK_STRICT = _c(_DARK_PHRASE_STRICT + _DARK_REST)
 _MARITIME_STRONG = _c(
     r"\b(?:ships?|boats?|fishing|fisher(?:y|ies|men|man)|maritime|shipping|automatic[\s-]+identification[\s-]+systems?)\b"
     r"|(?-i:\bAIS\b)"
 )
+# strict dark vessels: context outside the dark phrase itself. Plain "vessel" does not count
+# (liquid vessels, blood vessels) and neither does the abbreviation AIS in a medical text
+# (acute ischaemic stroke).
+_MARITIME_CTX = _c(
+    r"\b(?:ships?|boats?|fishing|fisher(?:y|ies|men|man)|maritime|marine|oceans?|seas?|offshore|coastal|shipping|"
+    r"trawl\w*|fleets?|ports?|satellites?|radar|SAR|sentinel|tankers?|cargo|sanctions?|"
+    r"automatic[\s-]+identification[\s-]+systems?)\b"
+)
+_AIS_ABBR_ANY = re.compile(r"\bAIS\b")
+
+# strict SAR and AIS fusion: the abbreviation AIS also means Antarctic Ice Sheet, Amery Ice Shelf and
+# acute ischaemic stroke, so it needs a ship-like word in the text
+_SHIP_CTX = _c(r"\b(?:ships?|vessels?|boats?|maritime|shipping|fishing|ports?|fleets?|trawlers?|tankers?)\b")
 
 _XVIEW3 = _c(r"\bxview[\s-]*3")
 
@@ -207,6 +226,11 @@ _IUU = _c(
     r"|\bfishing[\s-]+(?:effort|activit(?:y|ies)|vessels?|boats?|fleets?)\b"
 )
 _RS_IUU = _c(r"\bsatellites?\b|remote[\s-]*sens\w*|\bVIIRS\b|\bsentinel\b|\bimagery\b|night[\s-]*(?:time[\s-]*)?lights?\b")
+# strict: satellite telemetry of animals is not remote sensing of fishing
+_ANIMAL_TELEMETRY = _c(
+    r"\bpop-?up\s+satellite\b|\bsatellite[\s-]+(?:tags?|tagged|tagging|telemetry|transmitters?|collars?|linked)\b"
+    r"|\bsatellite[\s-]+tracking\s+of\s+(?:\w+\s+){1,3}(?:sharks?|turtles?|whales?|seals?|seabirds?|birds?|penguins?|tuna|rays?)\b"
+)
 
 _SMALL_CRAFT = _c(
     r"\bsmall(?:[\s-]*(?:sized?|scale))?[\s-]+(?:vessels?|boats?|ships?|fishing)\b"
@@ -272,14 +296,19 @@ def _t_sar_ship_detection(text: str, low: str, strict: bool) -> bool:
 def _t_dark_vessels(text: str, low: str, strict: bool) -> bool:
     if not (_any(low, ("dark", "broadcast")) or _gate("AIS" in text or ("automatic" in low and "identification" in low))):
         return False
+    if strict:
+        if not _DARK_STRICT.search(text):
+            return False
+        t = _strip_nonmaritime_vessels(text)
+        rest = _DARK_STRICT.sub(" ", t)
+        if _MARITIME_CTX.search(rest):
+            return True
+        return bool(_AIS_ABBR_ANY.search(rest)) and not _MEDICAL.search(text)
     if not _DARK.search(text):
         return False
-    t = _strip_nonmaritime_vessels(text) if strict else text
-    if _MARITIME_STRONG.search(t):
+    if _MARITIME_STRONG.search(text):
         return True
-    if _VESSEL.search(t):
-        return not (strict and _MEDICAL.search(text))
-    return False
+    return bool(_VESSEL.search(text))
 
 
 def _t_sar_ais_fusion(text: str, low: str, strict: bool) -> bool:
@@ -292,7 +321,7 @@ def _t_sar_ais_fusion(text: str, low: str, strict: bool) -> bool:
     if _AIS_LONG.search(text):
         return True
     if _AIS_ABBR.search(text):
-        return (not strict) or bool(_MARITIME_ANY.search(text))
+        return (not strict) or bool(_SHIP_CTX.search(_strip_nonmaritime_vessels(text)))
     return False
 
 
@@ -305,7 +334,8 @@ def _t_iuu_remote_sensing(text: str, low: str, strict: bool) -> bool:
         return False
     if not _IUU.search(text):
         return False
-    return bool(_RS_IUU.search(text)) or has_sar_term(text, strict)
+    rs_text = _ANIMAL_TELEMETRY.sub(" ", text) if strict else text
+    return bool(_RS_IUU.search(rs_text)) or has_sar_term(text, strict)
 
 
 def _t_small_vessel(text: str, low: str, strict: bool) -> bool:
@@ -324,7 +354,8 @@ def _t_small_vessel(text: str, low: str, strict: bool) -> bool:
 def _t_viirs_boats(text: str, low: str, strict: bool) -> bool:
     if not _any(low, ("viirs", "night", "low light", "low-light", "visible infrared", "visible-infrared")):
         return False
-    return bool(_VIIRS.search(text)) and bool(_VIIRS_CRAFT.search(text))
+    craft_text = _strip_nonmaritime_vessels(text) if strict else text
+    return bool(_VIIRS.search(text)) and bool(_VIIRS_CRAFT.search(craft_text))
 
 
 _TESTS = {

@@ -127,3 +127,9 @@ def test_a_full_source_list_is_reduced_to_its_inactive_rows():
     assert index.screen([B_ONLINE], []).status == MATCH_ISSN
     only_discontinued = [{"Source Title": "Alpha Journal of Testing", "ISSN": "11111119", "Status": "Discontinued"}]
     assert ListIndex(entries_from_records(only_discontinued, "discontinued")).screen([A_PRINT], []).status == MATCH_ISSN
+
+
+def test_type_and_id_columns_are_not_read_as_titles():
+    records = [{"Sourcerecord ID": "123", "Source Title": "Alpha Journal of Testing", "Print-ISSN": "11111119", "Source Type": "Journal"}]
+    entry = entries_from_records(records, "discontinued")[0]
+    assert entry.titles == ("Alpha Journal of Testing",)

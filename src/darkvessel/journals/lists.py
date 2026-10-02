@@ -30,7 +30,7 @@ MATCH_ISSN = "MATCH_ISSN"
 MATCH_TITLE = "MATCH_TITLE"
 
 _TITLE_HEADER = re.compile(r"title|journal|name|source", re.IGNORECASE)
-_NOT_TITLE_HEADER = re.compile(r"url|link|web|site|issn|publisher|country|reason|date|year|note|status|id\b", re.IGNORECASE)
+_NOT_TITLE_HEADER = re.compile(r"url|link|web|site|issn|publisher|country|reason|date|year|note|status|type|id\b", re.IGNORECASE)
 _URL_HEADER = re.compile(r"url|link|web|site", re.IGNORECASE)
 _INFO_HEADER = {
     "discontinued": re.compile(r"reason|discontinu|last|year|date|status|publisher", re.IGNORECASE),

@@ -1,0 +1,95 @@
+{
+ "years": [
+  2015,
+  2026
+ ],
+ "types_kept": [
+  "article",
+  "conference-paper",
+  "review",
+  "preprint"
+ ],
+ "text_searched": "title + reconstructed abstract (OpenAlex abstract_inverted_index)",
+ "themes": {
+  "sar_ship_detection": {
+   "label": "SAR ship detection",
+   "query": "SAR term AND (ship|vessel|boat) AND (detect|recogni|classif|segment)"
+  },
+  "dark_vessels": {
+   "label": "Dark vessels",
+   "query": "(dark vessel/ship/fleet/fishing/boat/target | non-broadcasting | AIS gap/disabling | going dark) AND maritime term (vessel|ship|boat|fishing|AIS|maritime); medical 'dark vessel' excluded"
+  },
+  "sar_ais_fusion": {
+   "label": "SAR and AIS fusion",
+   "query": "(AIS | automatic identification system) AND SAR term AND (fusion|fuse|match|correlat|associat|integrat|combin)"
+  },
+  "xview3": {
+   "label": "xView3",
+   "query": "xView3 | xView-3 | xView 3"
+  },
+  "iuu_remote_sensing": {
+   "label": "IUU and fishing by remote sensing",
+   "query": "(IUU | illegal fishing | unreported and unregulated | fishing effort | fishing vessel/boat/fleet | fishing activity) AND (satellite | remote sensing | SAR | VIIRS | Sentinel | imagery | night light)"
+  },
+  "small_vessel": {
+   "label": "Small vessels",
+   "query": "(small vessel/boat/ship/fishing | small target + maritime term | artisanal | small-scale fish*) AND detect* AND (SAR | satellite | remote sensing | imagery | radar)"
+  },
+  "viirs_boats": {
+   "label": "VIIRS boats",
+   "query": "(VIIRS | day/night band | night-time light | nighttime light | low light imaging) AND (boat|fishing|vessel|ship)"
+  }
+ },
+ "scan_prefilter_re2": "(?i)(?:\\b(?:ships?|vessels?|boats?|fishing|fisher(?:y|ies|men|man|s)|maritime|artisanal|ais|iuu)\\b|unreported|xview|automatic[\\s-]*identification)",
+ "modes": {
+  "loose": "used during the scan; bare SAR accepted; no medical or search-and-rescue guards",
+  "strict": "used for the corpus; adds guards: bare SAR rejected next to search and rescue, specific absorption rate, structure-activity or Special Administrative Region; blood and other non-maritime vessels ignored; dark-vessel phrases need maritime context outside the phrase and exclude dark targets and medical text; AIS abbreviation in SAR and AIS fusion needs a ship-like word; animal satellite telemetry is not remote sensing of fishing; artisanal needs a fishing or boat context; small target needs a maritime term"
+ },
+ "sea_vietnam": {
+  "sea_country_codes": [
+   "VN",
+   "TH",
+   "MY",
+   "ID",
+   "PH",
+   "SG",
+   "KH",
+   "LA",
+   "MM",
+   "BN",
+   "TL"
+  ],
+  "text_places": [
+   "Vietnam",
+   "Tonkin",
+   "Mekong",
+   "Ca Mau",
+   "Gulf of Thailand",
+   "South China Sea",
+   "Spratly",
+   "Paracel",
+   "Malacca",
+   "Sulu",
+   "Celebes",
+   "Java Sea",
+   "Andaman",
+   "Indonesia",
+   "Philippines",
+   "Malaysia",
+   "Thailand",
+   "Cambodia",
+   "Myanmar",
+   "Brunei",
+   "Singapore",
+   "Timor-Leste",
+   "East Sea (Vietnam)"
+  ],
+  "vn_text_places": [
+   "Vietnam",
+   "Tonkin",
+   "Ca Mau",
+   "East Sea (Vietnam)",
+   "Mekong Delta"
+  ]
+ }
+}

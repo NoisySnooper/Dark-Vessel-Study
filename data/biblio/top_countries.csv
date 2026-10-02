@@ -1,0 +1,51 @@
+country_code,country,n_papers,pct_of_corpus,pct_of_papers_with_country_data
+CN,China,2355,51.71,60.68
+US,United States,276,6.06,7.11
+GB,United Kingdom,184,4.04,4.74
+IT,Italy,156,3.43,4.02
+IN,India,151,3.32,3.89
+ID,Indonesia,132,2.9,3.4
+DE,Germany,123,2.7,3.17
+KR,South Korea,118,2.59,3.04
+CA,Canada,110,2.42,2.83
+AU,Australia,95,2.09,2.45
+JP,Japan,89,1.95,2.29
+FR,France,68,1.49,1.75
+ES,Spain,54,1.19,1.39
+BR,Brazil,40,0.88,1.03
+RU,Russia,39,0.86,1.0
+DK,Denmark,33,0.72,0.85
+ZA,South Africa,30,0.66,0.77
+GR,Greece,29,0.64,0.75
+NO,Norway,24,0.53,0.62
+TR,Turkey,23,0.51,0.59
+NL,Netherlands,23,0.51,0.59
+TW,Taiwan,20,0.44,0.52
+NZ,New Zealand,19,0.42,0.49
+IR,Iran,17,0.37,0.44
+VN,Vietnam,16,0.35,0.41
+MY,Malaysia,15,0.33,0.39
+SA,Saudi Arabia,15,0.33,0.39
+EG,Egypt,15,0.33,0.39
+PT,Portugal,15,0.33,0.39
+RO,Romania,14,0.31,0.36
+SE,Sweden,14,0.31,0.36
+PK,Pakistan,14,0.31,0.36
+BE,Belgium,14,0.31,0.36
+HK,Hong Kong,13,0.29,0.33
+FI,Finland,13,0.29,0.33
+DZ,Algeria,12,0.26,0.31
+PH,Philippines,11,0.24,0.28
+PL,Poland,11,0.24,0.28
+BD,Bangladesh,10,0.22,0.26
+SG,Singapore,9,0.2,0.23
+CH,Switzerland,8,0.18,0.21
+OM,Oman,8,0.18,0.21
+CY,Cyprus,8,0.18,0.21
+MX,Mexico,7,0.15,0.18
+UA,Ukraine,7,0.15,0.18
+AE,United Arab Emirates,7,0.15,0.18
+MO,Macao,7,0.15,0.18
+LU,Luxembourg,7,0.15,0.18
+AT,Austria,6,0.13,0.15
+LK,Sri Lanka,6,0.13,0.15

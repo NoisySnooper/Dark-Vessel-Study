@@ -3,7 +3,7 @@
   "manifest_url": "https://openalex.s3.amazonaws.com/data/parquet/sources/manifest.json",
   "record_count": 256981,
   "part_files": 196,
-  "rows_kept": 23,
+  "rows_kept": 29,
   "retrieved": "2026-10-02",
   "note": "Rows cut from the OpenAlex sources snapshot for the shortlisted venues only."
 }

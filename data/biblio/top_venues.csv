@@ -1,0 +1,51 @@
+venue,venue_type,source_id,issn,n_papers,cited_by_sum,first_year,last_year,pct_of_corpus
+(no source recorded),,,,1143,5376,2015,2026,25.1
+Remote Sensing,journal,S43295729,2072-4292,422,13358,2015,2026,9.27
+IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing,journal,S117727964,1939-1404,252,6055,2015,2026,5.53
+IEEE Transactions on Geoscience and Remote Sensing,journal,S111326731,0196-2892,186,8265,2015,2026,4.08
+IEEE Geoscience and Remote Sensing Letters,journal,S126920919,1545-598X,185,4947,2015,2026,4.06
+elib (German Aerospace Center),repository,S4377196266,,77,33,2015,2026,1.69
+IET conference proceedings.,journal,S4404663355,2732-4494,72,45,2021,2026,1.58
+Sensors,journal,S101949793,1424-8220,68,1676,2015,2026,1.49
+DOAJ (DOAJ: Directory of Open Access Journals),repository,S4306401280,,61,320,2015,2026,1.34
+Zenodo (CERN European Organization for Nuclear Research),repository,S4306400562,,57,16,2016,2026,1.25
+IEEE Access,journal,S2485537415,2169-3536,56,2378,2018,2026,1.23
+arXiv (Cornell University),repository,S4306400194,2331-8422,47,76,2016,2026,1.03
+International Journal of Remote Sensing,journal,S117411352,0143-1161,38,504,2015,2026,0.83
+IEEE Transactions on Aerospace and Electronic Systems,journal,S193624734,0018-9251,35,733,2017,2026,0.77
+Journal of Marine Science and Engineering,journal,S2736865057,2077-1312,35,395,2020,2026,0.77
+IGARSS 2022 - 2022 IEEE International Geoscience and Remote Sensing Symposium,conference,S4363604196,,35,253,2022,2022,0.77
+Frontiers in Marine Science,journal,S2596539584,2296-7745,28,543,2018,2026,0.61
+Journal of Applied Remote Sensing,journal,S78067151,1931-3195,28,197,2015,2026,0.61
+Applied Sciences,journal,S4210205812,2076-3417,26,193,2017,2026,0.57
+IOP Conference Series Earth and Environmental Science,conference,S4210195883,1755-1315,26,77,2016,2026,0.57
+Remote Sensing Letters,journal,S2494614724,2150-704X,24,312,2015,2026,0.53
+IEEE Sensors Journal,journal,S189694085,1530-437X,21,245,2019,2026,0.46
+"The international archives of the photogrammetry, remote sensing and spatial information sciences/International archives of the photogrammetry, remote sensing and spatial information sciences",journal,S2737215817,1682-1750,20,111,2015,2026,0.44
+Journal of Physics Conference Series,journal,S4210187594,1742-6588,20,67,2016,2026,0.44
+Electronics,journal,S4210202905,2079-9292,19,113,2019,2026,0.42
+ISPRS Journal of Photogrammetry and Remote Sensing,journal,S173339282,0924-2716,18,729,2015,2026,0.4
+Preprints.org,repository,S6309402219,,17,45,2018,2026,0.37
+2021 CIE International Conference on Radar (Radar),conference,S4363607721,,17,17,2021,2021,0.37
+Lecture notes in computer science,book series,S106296714,0302-9743,16,15,2020,2026,0.35
+Scientific Reports,journal,S196734849,2045-2322,15,151,2019,2026,0.33
+Digital Commons - USU (Utah State University),repository,S4377196327,,14,12,2017,2026,0.31
+PLoS ONE,journal,S202381698,1932-6203,13,640,2015,2025,0.29
+International Journal of Applied Earth Observation and Geoinformation,journal,S4210179989,0303-2434,13,213,2022,2026,0.29
+Signal Image and Video Processing,journal,S156904493,1863-1703,13,153,2016,2025,0.29
+"Proceedings of SPIE, the International Society for Optical Engineering/Proceedings of SPIE",journal,S183492911,0277-786X,13,64,2015,2017,0.29
+Lecture notes in electrical engineering,book series,S4210179954,1876-1100,13,15,2019,2026,0.29
+Canadian Journal of Remote Sensing,journal,S85837164,0703-8992,12,263,2015,2025,0.26
+The Journal of Engineering,journal,S2764687066,2051-3305,12,62,2019,2019,0.26
+Figshare,repository,S4377196282,,12,0,2015,2025,0.26
+Florida International University Digital Commons (Florida International University),repository,S4306401637,,11,100,2016,2025,0.24
+ICES Journal of Marine Science,journal,S200038611,1054-3139,9,246,2016,2025,0.2
+IEEE Signal Processing Letters,journal,S120629676,1070-9908,9,105,2019,2026,0.2
+2022 IEEE Radar Conference (RadarConf22),conference,S4363608006,,9,78,2022,2022,0.2
+IEEE Journal on Miniaturization for Air and Space Systems,journal,S4210203714,2576-3164,9,76,2022,2026,0.2
+Sustainability,journal,S10134376,2071-1050,9,69,2018,2026,0.2
+Ocean Engineering,journal,S76910236,0029-8018,9,39,2025,2026,0.2
+National Remote Sensing Bulletin,journal,S2764468969,1007-4619,9,38,2016,2024,0.2
+IEEE Journal of Oceanic Engineering,journal,S132957497,0364-9059,8,368,2016,2025,0.18
+Ecological Indicators,journal,S194154261,1470-160X,8,80,2020,2026,0.18
+SSRN Electronic Journal,repository,S4210172589,1556-5068,8,3,2024,2026,0.18
