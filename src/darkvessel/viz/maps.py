@@ -17,7 +17,7 @@ CLASS_STYLE = {
     "high": {"color": SERIES_DARK[0], "label": "Vessel candidate, both channels"},
     "medium": {"color": SERIES_DARK[1], "label": "Vessel candidate, one channel"},
     "fixed": {"color": SERIES_DARK[2], "label": "Fixed structure (recurs on other dates)"},
-    "low": {"color": MUTED, "label": "Low confidence (VV only, likely sea clutter)"},
+    "low": {"color": MUTED, "label": "Low confidence (weak VV-only clutter, or longer than 450 m)"},
 }
 
 
@@ -27,7 +27,7 @@ def _scale_bar(ax, x0, y0, length_km, color="white"):
 
 
 def detection_map(db_utm, transform, sea_utm, dets_utm, title, subtitle, footer, out_png,
-                  vmin=None, vmax=None, aoi_utm=None):
+                  vmin=None, vmax=None, aoi_utm=None, utm_label="WGS 84 / UTM 48N"):
     """North-up UTM map: sigma0 (dB) backdrop, land in flat fill, detections by class."""
     apply_matplotlib_style()
     h, w = db_utm.shape
@@ -38,8 +38,8 @@ def detection_map(db_utm, transform, sea_utm, dets_utm, title, subtitle, footer,
     vmin = np.percentile(finite, 2) if vmin is None else vmin
     vmax = np.percentile(finite, 99.7) if vmax is None else vmax
 
-    fig = plt.figure(figsize=(10, 10.6))
-    ax = fig.add_axes([0.06, 0.12, 0.9, 0.76])
+    fig = plt.figure(figsize=(10, 11.2))
+    ax = fig.add_axes([0.07, 0.19, 0.88, 0.7])
     ax.set_facecolor("#0d0d0d")
     ax.imshow(np.ma.masked_invalid(np.where(sea_utm, db_utm, np.nan)), cmap="gray", vmin=vmin, vmax=vmax,
               extent=extent, interpolation="nearest")
@@ -64,7 +64,7 @@ def detection_map(db_utm, transform, sea_utm, dets_utm, title, subtitle, footer,
     ax.set_xticks(ax.get_xticks()[1:-1])
     ax.set_xticklabels([f"{x/1000:.0f}" for x in ax.get_xticks()], fontsize=8)
     ax.set_yticklabels([f"{y/1000:.0f}" for y in ax.get_yticks()], fontsize=8)
-    ax.set_xlabel("Easting, km (WGS 84 / UTM 48N)", fontsize=9)
+    ax.set_xlabel(f"Easting, km ({utm_label})", fontsize=9)
     ax.set_ylabel("Northing, km", fontsize=9)
     span = (right - left) / 1000
     bar = 10 if span > 60 else 5
@@ -73,11 +73,11 @@ def detection_map(db_utm, transform, sea_utm, dets_utm, title, subtitle, footer,
                 fontsize=12, fontweight="bold")
     ax.annotate("", xy=(0.95, 0.935), xytext=(0.95, 0.87), xycoords="axes fraction",
                 arrowprops={"arrowstyle": "-|>", "color": "white", "lw": 1.5})
-    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(0, -0.07), ncol=2, fontsize=9,
+    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(0, -0.075), ncol=2, fontsize=9,
               labelcolor=INK_2, handletextpad=0.4, columnspacing=1.5)
-    fig.text(0.06, 0.965, title, fontsize=15, color=INK, fontweight="bold", va="top")
-    fig.text(0.06, 0.93, subtitle, fontsize=10, color=INK_2, va="top")
-    fig.text(0.06, 0.012, footer, fontsize=7.5, color=INK_2, va="bottom", wrap=True)
+    fig.text(0.07, 0.965, title, fontsize=15, color=INK, fontweight="bold", va="top")
+    fig.text(0.07, 0.932, subtitle, fontsize=10, color=INK_2, va="top")
+    fig.text(0.07, 0.012, footer, fontsize=7.5, color=INK_2, va="bottom", wrap=True)
     fig.savefig(out_png, dpi=160)
     plt.close(fig)
     return out_png

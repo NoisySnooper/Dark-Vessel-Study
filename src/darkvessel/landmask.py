@@ -44,9 +44,12 @@ def read_worldcover(bounds: tuple[float, float, float, float], factor: int = 8):
             srcs.append(rasterio.open(f"/vsicurl/{WORLDCOVER_URL}/{name}"))
         except rasterio.errors.RasterioIOError:
             continue
-    if not srcs:
-        raise FileNotFoundError("No WorldCover tiles for these bounds")
     res = WC_RES_DEG * factor
+    if not srcs:
+        # WorldCover has no tiles over open ocean: everything here is sea (code 0).
+        west, south, east, north = bounds
+        w, h = max(1, int(np.ceil((east - west) / res))), max(1, int(np.ceil((north - south) / res)))
+        return np.zeros((h, w), np.uint8), rasterio.transform.from_origin(west, north, res, res)
     arr, transform = merge(srcs, bounds=bounds, res=(res, res), nodata=0, resampling=rasterio.enums.Resampling.mode)
     for s in srcs:
         s.close()

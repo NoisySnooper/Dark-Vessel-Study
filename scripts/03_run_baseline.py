@@ -23,7 +23,6 @@ import numpy as np
 import pandas as pd
 from rasterio.warp import Resampling
 
-from darkvessel.aoi import aoi_geometry
 from darkvessel.config import CRS_UTM, DARK_CAVEAT_SHORT, DATA_DIR, FIG_DIR
 from darkvessel.detect.postprocess import apply_persistence, assign_confidence, persistence
 from darkvessel.pipeline import ICT, run_baseline
@@ -56,13 +55,13 @@ others = []
 cache_dir = DATA_DIR / "cache" / "persistence"
 cache_dir.mkdir(parents=True, exist_ok=True)
 for p in others_paths:
-    key = cache_dir / f"{p.rsplit('/', 1)[-1]}_{'_'.join(f'{v:g}' for v in bbox)}_{args.pfa:g}.parquet"
+    # v2 cache: all classes kept (a structure can come back weak on one date)
+    key = cache_dir / f"v2_{p.rsplit('/', 1)[-1]}_{'_'.join(f'{v:g}' for v in bbox)}_{args.pfa:g}.parquet"
     if key.exists():
         others.append(gpd.read_parquet(key))
         continue
     o = run_baseline(p, bbox, pfa=args.pfa, keep_sigma=())
     keep = assign_confidence(o["detections"])
-    keep = keep[keep.confidence != "low"]
     keep.to_parquet(key)
     others.append(keep)
     del o
@@ -95,7 +94,7 @@ db40 = 10 * np.log10(lin40)
 sea40 = sea_utm[:H2:2, :W2:2] > 0.5
 u8 = np.where(np.isfinite(db40), np.clip(np.round((db40 + 35) * 255 / 35), 1, 255), 0).astype(np.uint8)
 tr40 = tr20 * tr20.scale(2, 2)
-write_cog(u8, tr40, CRS_UTM, DATA_DIR / "outputs" / "small" / "sigma0_vv_db_utm48n_40m_u8.tif", nodata=0,
+write_cog(u8, tr40, CRS_UTM, DATA_DIR / "outputs" / "small" / "sigma0_vv_db_utm48n_40m_u8.tif", nodata=0, zlevel=9,
           tags={**tags, "scaling": "dB = value * 35 / 255 - 35; 0 = no data"})
 
 # Figures
@@ -103,7 +102,6 @@ FIG_DIR.mkdir(parents=True, exist_ok=True)
 acq_utc = pd.Timestamp(meta["acq_utc"])
 acq_ict = acq_utc.tz_convert(ICT)
 dets_utm = dets.to_crs(CRS_UTM)
-aoi_utm = gpd.GeoSeries([aoi_geometry("ca_mau")], crs="EPSG:4326").to_crs(CRS_UTM).iloc[0]
 area_km2 = float(main["sea_ok_d"].sum() * (10 * main["mask_factor"]) ** 2 / 1e6)
 n_vessel = int(dets.confidence.isin(["high", "medium"]).sum())
 title = f"{n_vessel} vessel candidates off Ca Mau, {acq_ict:%d %b %Y %H:%M} local time"
@@ -111,9 +109,8 @@ subtitle = (f"Sentinel-1D IW GRD, {meta['pass_dir'].lower()} pass, relative orbi
             f"VV backdrop. CA-CFAR baseline over {area_km2:,.0f} km2 of open sea.")
 footer = (f"Contains modified Copernicus Sentinel data 2026. Land: ESA WorldCover 2021 v200 (CC BY 4.0). "
           f"Scene {meta['scene_id']}. CA-CFAR PFA {args.pfa:g}, guard 81 px, background 161 px, 1 km shore buffer. "
-          f"Fixed = recurs on {len(others)} earlier same-orbit dates.\nAIS not checked. {DARK_CAVEAT_SHORT}")
-detection_map(db40, tr40, sea40, dets_utm, title, subtitle, footer, FIG_DIR / "baseline_map.png",
-              aoi_utm=aoi_utm)
+          f"Fixed = recurs on {len(others)} earlier same-orbit dates. Low = weak VV-only or longer than 450 m.\nAIS not checked. {DARK_CAVEAT_SHORT}")
+detection_map(db40, tr40, sea40, dets_utm, title, subtitle, footer, FIG_DIR / "baseline_map.png")
 chip_gallery(scene, dets, ["high", "medium", "fixed", "low"], FIG_DIR / "baseline_chips.png",
              title="What the detector found: 800 m x 800 m chips, VV (left) and VH (right)",
              footer=f"Contains modified Copernicus Sentinel data 2026. {meta['scene_id']}. Length = crude major-axis "

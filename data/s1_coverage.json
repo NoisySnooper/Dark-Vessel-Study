@@ -1,0 +1,25 @@
+{
+  "aoi_area_km2_grid": 3596834,
+  "share_imaged_ge_1": 0.5535,
+  "share_imaged_ge_3": 0.491,
+  "share_imaged_ge_6": 0.4174,
+  "share_imaged_ge_10": 0.2512,
+  "area_never_imaged_km2": 1605966,
+  "mean_passes_where_imaged": 10.27,
+  "median_passes_where_imaged": 8.0,
+  "typical_revisit_days_where_imaged": 8.8,
+  "max_passes": 38,
+  "aoi": "south_china_sea",
+  "window": "2026-07-04 to 2026-10-02",
+  "res_deg": 0.05,
+  "n_products": 1042,
+  "n_passes": 280,
+  "passes_by_mission": {
+    "S1D": 190,
+    "S1C": 90
+  },
+  "passes_by_direction": {
+    "DESCENDING": 141,
+    "ASCENDING": 139
+  }
+}

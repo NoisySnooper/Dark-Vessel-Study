@@ -90,7 +90,7 @@ ax.legend(handles=handles, title=f"Passes in {days} days", loc="lower right", fo
 pct = lambda v: f"{100 * v:.0f}%"  # noqa: E731
 fig.text(0.07, 0.965, "Where Sentinel-1 looked: South China Sea" if args.aoi == "south_china_sea" else f"Sentinel-1 coverage: {AOIS[args.aoi]['label']}",
          fontsize=15, color=INK, fontweight="bold", va="top")
-fig.text(0.07, 0.93, f"Sentinel-1C/1D IW passes per {args.res:g} degree cell, {start} to {end}. "
+fig.text(0.07, 0.93, f"Sentinel-1C/1D IW passes per {args.res:g} degree cell, {start} to {end}.\n"
          f"{pct(stats['share_imaged_ge_1'])} of the AOI imaged at least once; "
          f"{stats['area_never_imaged_km2'] / 1e6:.2f} million km2 never imaged.", fontsize=10, color=INK_2, va="top")
 fig.text(0.07, 0.015, "Footprints: AWS Open Data mirror of Sentinel-1 GRD (contains modified Copernicus Sentinel data 2026). "

@@ -57,14 +57,15 @@ def warp_to_map(arr: np.ndarray, gcps, res_m: float = 20.0, dst_crs: str = CRS_U
     return dst, transform
 
 
-def write_cog(arr: np.ndarray, transform, crs: str, path: str | Path, nodata=None, tags: dict | None = None):
-    """Write a single-band COG (deflate, internal overviews)."""
+def write_cog(arr: np.ndarray, transform, crs: str, path: str | Path, nodata=None, tags: dict | None = None,
+              zlevel: int = 6):
+    """Write a single-band COG (deflate, internal overviews). `zlevel` 1-9 trades speed for size."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     profile = {
         "driver": "COG", "width": arr.shape[1], "height": arr.shape[0], "count": 1,
         "dtype": arr.dtype, "crs": crs, "transform": transform, "nodata": nodata,
-        "compress": "DEFLATE", "predictor": 3 if arr.dtype.kind == "f" else 2, "blocksize": 512,
+        "compress": "DEFLATE", "predictor": 3 if arr.dtype.kind == "f" else 2, "blocksize": 512, "level": zlevel,
     }
     with rasterio.open(path, "w", **profile) as dst:
         dst.write(arr, 1)
