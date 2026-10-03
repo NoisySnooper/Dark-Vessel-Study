@@ -334,6 +334,16 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
             rho = spearmanr(sar[both], dens[both])[0] if both.sum() > 10 else np.nan
             summary["density_rank_correlation_viirs_vs_sar"] = {"spearman_rho": round(float(rho), 3), "cells": int(both.sum()),
                                                                "note": "0.25 degree cells observed by both; different hours and targets"}
+    # Single-pixel ("sharp") lights against particle-hit noise: noise would ignore where the other lights are
+    cell = (np.floor(det.lat / 0.5)).astype(int).astype(str) + "_" + (np.floor(det.lon / 0.5)).astype(int).astype(str)
+    tab = pd.crosstab(cell, det.sharp.astype(bool))
+    if tab.shape[1] == 2:
+        tab.columns = ["broad", "sharp"]
+        summary["sharp_check_0p5deg"] = {"spearman_sharp_vs_broad": round(float(spearmanr(tab.broad, tab.sharp)[0]), 3),
+                                         "sharp_in_cells_without_broad": int(tab[tab.broad == 0].sharp.sum()),
+                                         "sharp_total": int(tab.sharp.sum()),
+                                         "radiance_median_sharp_nw": round(float(det[det.sharp.astype(bool)].radiance_nw.median()), 2),
+                                         "radiance_median_broad_nw": round(float(det[~det.sharp.astype(bool)].radiance_nw.median()), 2)}
     if len(nights) >= 5:
         pn = per_night.copy()
         pn["clear_lit"] = [int(((g["class"] == "lit_vessel_candidate") & (g.quality == "clear")).sum())
