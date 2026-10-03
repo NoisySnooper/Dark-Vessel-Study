@@ -401,6 +401,18 @@ def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
     }
 
 
+def optical_summary() -> dict | None:
+    """Shares of sampled objects with a bright object in a clear Sentinel-2 view (scripts/19_optical_check.py)."""
+    path = DATA_DIR / "optical_check.json"
+    if not path.exists():
+        return None
+    d = json.loads(path.read_text())
+    by = {g["group"]: g for g in d["by_group"]}
+    return {"window": d["window"], "threshold_dn": d["threshold_nir_contrast_dn"],
+            **{k: {"share": by[k]["optical_object_share"], "n": by[k]["clear_view"],
+                   "veg": by[k].get("vegetated_share_of_objects")} for k in ("fixed", "high", "medium", "control") if k in by}}
+
+
 def weather_shares() -> dict | None:
     """Share of objects under deep convection by group, from data/weather_context.json (scripts/16)."""
     path = DATA_DIR / "weather_context.json"
@@ -460,7 +472,7 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
                                               "km2": int(r.tested_km2)}) for g, r in zip(proc.geometry, proc.itertuples())]),
         "cols": cols, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
         "n_low": int(summary["classes"].get("low", 0)),
-        "passes": pass_list, "label_check": label_check(), "queue": queue, "viirs": viirs_data(), "weather": weather_shares(),
+        "passes": pass_list, "label_check": label_check(), "queue": queue, "viirs": viirs_data(), "weather": weather_shares(), "optical": optical_summary(),
         "queue_rule": {"hash": "sha1(det_id)[:8] / 2^32 < rate", "rates": QUEUE_RATES},
     }
     return data, chips
@@ -476,6 +488,7 @@ def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: 
         data, det_img = saved["data"], saved["det_img"]
         if refresh_viirs:
             data["regional"]["viirs"] = viirs_data()
+            data["regional"]["optical"] = optical_summary()
             cache.write_text(json.dumps({"data": data, "det_img": det_img}, separators=(",", ":")))
     else:
         reg, chips_r = regional_data(max_chips_regional)
