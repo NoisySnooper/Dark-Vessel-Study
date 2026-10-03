@@ -51,5 +51,16 @@ Imagery is read with HTTP range requests from the AWS Open Data mirror of Sentin
 ## Outputs for ArcGIS Pro
 Every vector product is a GeoPackage with two layers per dataset: `<name>_4326` (WGS 84) and `<name>_utm49n` (EPSG:32649, regional products) or `<name>_utm48n` (EPSG:32648, Ca Mau detail). Rasters are Cloud-Optimized GeoTIFFs in EPSG:4326 plus the same UTM zone. No maritime boundaries or claim lines are drawn.
 
+| Product | What it holds |
+|---|---|
+| `data/detections_regional.gpkg` | Radar vessel candidates, 12-day regional run, with the scenes processed |
+| `data/structures_regional.gpkg` | Fixed structures from the persistence test |
+| `data/detections_baseline.gpkg`, `data/detections_ml.gpkg` | Ca Mau scene: all detections, and CNN scores |
+| `data/viirs_lights.gpkg` | VIIRS night lights: recurring-light sites, lit vessel candidates of the darkest nights, granule outlines, per-night table |
+| `data/outputs/small/s1_passes_*.tif` | Sentinel-1 passes per cell in 90 days |
+| `data/outputs/small/s1_look_prob_{1,7,30}d_*.tif` | Chance of a Sentinel-1 look within 1, 7 and 30 days, percent |
+| `data/outputs/small/vessel_density_regional_*.tif` | Radar vessel candidates per 1,000 km2 per look |
+| `data/outputs/small/viirs_lit_density_*.tif` | Clear-sky lit vessel candidates per 1,000 km2 per satellite pass |
+
 ## Data credits
 Contains modified Copernicus Sentinel data 2026. Land mask: ESA WorldCover 2021 v200 (CC BY 4.0). Training labels: AI2 Skylight vessel-detection-sentinels (Apache-2.0). Night lights: VIIRS Day/Night Band SDR, geolocation and JRR cloud mask from NOAA JPSS on the AWS Open Data Registry. Wind: NOAA GFS 0.25 degree. Cloud tops: Himawari-9 AHI (JMA, distributed by NOAA). Offshore platforms and turbines: Satlas marine infrastructure (AI2, ODC-BY). AOI and land: Natural Earth (public domain). Sources and licence checks: `docs/data_landscape.md` and `docs/data_additions.md`.
