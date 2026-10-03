@@ -56,9 +56,15 @@ def list_items(tile: str, start: dt.date, end: dt.date) -> list[dict]:
             if start <= day <= end:
                 meta = aws._get(f"{BUCKET}/{p}{item}.json").json()
                 pr = meta["properties"]
-                baseline = float(pr.get("s2:processing_baseline", "0") or 0)
+                # reflectance = DN x scale + offset, from the item's own raster:bands (offset -0.1 = -1,000 DN from
+                # processing baseline 04.00 on); older items without the field fall back on the baseline
+                rb = (meta.get("assets", {}).get("nir", {}).get("raster:bands") or [{}])[0]
+                if "offset" in rb and rb.get("scale"):
+                    dn_offset = int(round(rb["offset"] / rb["scale"]))
+                else:
+                    dn_offset = -1000 if float(pr.get("s2:processing_baseline", "0") or 0) >= 4.0 else 0
                 out.append({"item": item, "date": day, "datetime": pr["datetime"], "cloud": float(pr.get("eo:cloud_cover", 100.0)),
-                            "base": f"{BUCKET}/{p}", "dn_offset": -1000 if baseline >= 4.0 else 0})
+                            "base": f"{BUCKET}/{p}", "dn_offset": dn_offset})
     return sorted(out, key=lambda r: r["cloud"])
 
 
