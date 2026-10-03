@@ -66,7 +66,8 @@ Every vector product is a GeoPackage with two layers per dataset: `<name>_4326` 
 | `data/outputs/small/s1_passes_*.tif` | Sentinel-1 passes per cell in 90 days |
 | `data/outputs/small/s1_look_prob_{1,7,30}d_*.tif` | Chance of a Sentinel-1 look within 1, 7 and 30 days, percent |
 | `data/outputs/small/vessel_density_regional_*.tif` | Radar vessel candidates per 1,000 km2 per look |
-| `data/outputs/small/viirs_lit_density_*.tif` | Clear-sky lit vessel candidates per 1,000 km2 per satellite pass |
+| `data/outputs/small/viirs_lit_density_*.tif` | Clear-sky lit vessel candidates per 1,000 km2 of searched sea per satellite pass |
+| `data/outputs/small/viirs_lit_density_clear_*.tif` | The same per 1,000 km2 of clear sea (cloud masks), the fair basis across nights and areas |
 
 ## Data credits
 Contains modified Copernicus Sentinel data 2026 (Sentinel-1 GRD and Sentinel-2 L2A from the AWS Open Data mirrors). Land mask: ESA WorldCover 2021 v200 (CC BY 4.0). Training labels: AI2 Skylight vessel-detection-sentinels (Apache-2.0). Night lights: VIIRS Day/Night Band SDR, geolocation and JRR cloud mask from NOAA JPSS on the AWS Open Data Registry. Wind: NOAA GFS 0.25 degree. Cloud tops: Himawari-9 AHI (JMA, distributed by NOAA). Offshore platforms and turbines: Satlas marine infrastructure (AI2, ODC-BY). AOI and land: Natural Earth (public domain). Sources and licence checks: `docs/data_landscape.md` and `docs/data_additions.md`.
