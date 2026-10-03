@@ -34,3 +34,15 @@ def test_ndvi_at_peak_uses_the_offset():
     assert abs(s2.ndvi_at_peak(nir, red, -1000) - (0.35 / 0.45)) < 1e-6
     nir[15, 15], red[15, 15] = 1000 + 3000, 1000 + 2800   # white hull or concrete: flat spectrum
     assert s2.ndvi_at_peak(nir, red, -1000) < 0.1
+
+
+def test_satlas_distance_uses_given_points():
+    import geopandas as gpd
+
+    from darkvessel.satlas import distance_m
+
+    pts = gpd.GeoDataFrame(geometry=gpd.points_from_xy([110.0, 111.0], [10.0, 10.0]), crs="EPSG:4326")
+    d = distance_m([110.0, 110.01, 111.0], [10.0, 10.0, 10.009], pts)
+    assert d[0] < 1
+    assert abs(d[1] - 1095) < 15          # 0.01 degree of longitude at 10 N
+    assert abs(d[2] - 1001) < 15          # 0.009 degree of latitude
