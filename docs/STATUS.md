@@ -1,6 +1,6 @@
 # Status
 
-Updated: 2026-10-02 (UTC). The owner reviews; the assistant does the heavy lifting.
+Updated: 2026-10-03 (UTC). The owner reviews; the assistant does the heavy lifting.
 
 > **"Dark" does not mean illegal.** It only means no AIS position was matched to a radar detection. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. No AIS is connected yet, so nothing in this repo is labeled dark.
 
@@ -12,7 +12,23 @@ Updated: 2026-10-02 (UTC). The owner reviews; the assistant does the heavy lifti
   - a contact inspector (radar chip, DMS and MGRS position, date-time group);
   - in-browser labeling with CSV export.
 - **ArcGIS Pro:** `data/detections_regional.gpkg` (vessel candidates), `data/structures_regional.gpkg` (fixed structures), `data/detections_baseline.gpkg` (Ca Mau), `data/aoi.gpkg`, rasters in `data/outputs/small/`. Every product has an EPSG:4326 layer or file plus a UTM one (49N regional, 48N Ca Mau).
-- **Figures:** `docs/figures/coverage.png`, `docs/figures/regional_detections.png`, `docs/figures/baseline_map.png`, `docs/figures/ml_1d_chips.png`.
+- **Figures:** `docs/figures/coverage.png`, `docs/figures/look_probability.png`, `docs/figures/regional_detections.png`, `docs/figures/viirs_lights.png`, `docs/figures/optical_check.png`, `docs/figures/optical_examples.png`, `docs/figures/baseline_map.png`, `docs/figures/ml_1d_chips.png`, `docs/figures/nesz_by_satellite.png`.
+- **Run everything:** `make test`, `make regional`, `make context`, `make demo OUT=page.html` (`Makefile`).
+
+## Documents
+
+| File | What it holds |
+|---|---|
+| `docs/OWNER_ACTIONS.md` | What only you can do, in order, with time estimates |
+| `docs/scs_regional.md` | South China Sea: coverage, look probability, 12-day regional detection, weather, optical and Satlas checks |
+| `docs/viirs_lights.md` | VIIRS night lights: method, results, limits |
+| `docs/optical_check.md` | Sentinel-2 check of the radar classes |
+| `docs/ml_verifier.md` | CNN verifier model card |
+| `docs/gis_baseline.md` | Ca Mau scene detail and the CA-CFAR baseline |
+| `docs/paper1_design.md`, `docs/paper1_manuscript.md` | Transfer letter: design, power analysis, manuscript skeleton |
+| `docs/paper2_design.md` | Flagship paper: the miss budget |
+| `docs/bibliometrics.md`, `docs/journals.md` | Literature scan, gap analysis, venues |
+| `docs/data_landscape.md`, `docs/data_additions.md` | Data sources with licences and access tests |
 
 ## Scope change (2026-10-02)
 
@@ -39,7 +55,7 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 - In Vietnam the compliance stream for fishing vessels of 15 m and longer is VMS, which is not open.
 
 ### Workstream 3: GIS (`docs/scs_regional.md`, `docs/gis_baseline.md`)
-- Repo scaffold, `environment.yml` verified by a real install, secret-safe `.gitignore`, `.env.example`, walkthrough notebook, offline `pytest` suite (167 tests pass in the conda environment).
+- Repo scaffold, `environment.yml` verified by a real install, secret-safe `.gitignore`, `.env.example`, walkthrough notebook, offline `pytest` suite (185 tests pass in the conda environment).
 - Coverage, 90 days: 1,042 Sentinel-1C/1D IW products in 280 passes. 55 % of the AOI imaged at least once. **1.61 million km2 (45 %), the whole central sea including the Spratly area, never imaged.** On an average day Sentinel-1 images 6.3 % of the AOI.
 - Ca Mau detail scene (Sentinel-1D, 2026-09-29): 720 vessel candidates (285 in both channels), 349 fixed structures, 4,936 low-confidence objects over about 17,700 km2 of open sea.
 - Regional run over one 12-day repeat cycle, 20 September to 1 October 2026: 119 Sentinel-1C/1D scenes, 2.38 million km2 of sea tested. **78,615 vessel candidates** (29,228 in both channels) and 25,224 fixed structures. Density map and rasters are done (`docs/figures/regional_detections.png`).
@@ -76,6 +92,14 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 - Added now, with no owner action:
   - VIIRS Day/Night Band lights at sea, every night, over the whole AOI including the central sea that Sentinel-1 never imaged (`scripts/15_viirs_lights.py`, run in progress);
   - GFS 10 m wind and Himawari-9 cloud tops at each radar object (`scripts/16_weather_context.py`). 39 % of the objects the clutter rule removes sit under deep convection, against 23 % of the both-channel candidates it keeps.
+
+### Added 2026-10-03: more sensors, same pipeline
+- **When does Sentinel-1 look?** Chance of a look within 1, 7 and 30 days for every 0.05 degree cell (`scripts/17_look_probability.py`): AOI mean 6.3 %, 34 % and 50 %; 42 % of the AOI is looked at within every 30-day window and 45 % never (`docs/scs_regional.md`, `docs/figures/look_probability.png`).
+- **Sentinel-2 optical check** (`scripts/19_optical_check.py`, `docs/optical_check.md`): on a random sample with a clear Sentinel-2 view, 37 % of fixed structures show a bright object at the spot (54 % near Satlas platforms), against 2.2 % of both-channel candidates, 1.5 % of one-channel candidates and 1 % of open sea. The persistence test finds things that stay put; the vessel classes are not structures in disguise.
+- **Satlas check** (`scripts/20_satlas_check.py`): the fixed class has a structure within 250 m of 72 % of the Satlas platform and turbine points in the tested sea (88 % of turbines, 62 % of platforms).
+- **VIIRS night lights** over the whole AOI, every night (`scripts/15_viirs_lights.py`, `docs/viirs_lights.md`): 27-night run in progress; results follow in this file.
+- **Run harness:** `Makefile` with the pipeline in dependency order.
+- **Paper 2 design** (`docs/paper2_design.md`): the miss budget (coverage, detection by length, fleet composition, lit activity), what is measured and what each term still needs.
 
 ### Paper 1 groundwork (`docs/paper1_design.md`)
 - Noise floor from the products' own annotation: Sentinel-1C and 1D are 1.4 dB (VV) and 1.8 dB (VH) below Sentinel-1A (2022) at every incidence angle, and 1C and 1D match each other (`docs/figures/nesz_by_satellite.png`). This explains about half of the darker 1D chip backgrounds.
@@ -138,8 +162,8 @@ Literature and venues
 - 2025 and 2026 publication counts will rise as OpenAlex indexing catches up; the lag was not measured (`docs/bibliometrics.md`).
 
 Project hypotheses
-- What the fixed structures off Ca Mau are (no infrastructure database consulted) and why low-confidence objects cluster on the shallow shelf (`docs/gis_baseline.md`).
+- What the fixed structures off Ca Mau are, and why low-confidence objects cluster on the shallow shelf (`docs/gis_baseline.md`). Regionally, Sentinel-2 confirms a bright object at 37 % of a fixed-structure sample, including platforms, small islets and anchorages (`docs/optical_check.md`); the Ca Mau stake-net reading is still by eye.
 - The rule AI2 used to attach AIS attributes to its labels is undocumented (`docs/ml_verifier.md`).
-- The false hot spots were identified as rain cells and aquaculture rafts by eye from the radar image; no weather or aquaculture data was checked (`docs/scs_regional.md`).
+- The false hot spots were identified as rain cells and aquaculture rafts by eye from the radar image. Weather is now checked (39 % of clutter-flagged objects under deep convection against 23 % of kept candidates, Himawari-9); aquaculture is not checked against any data (`docs/scs_regional.md`).
 - The clutter-zone rule may also remove very dense fleets of small boats; its cost was measured only on AI2 labels, which hold few such fleets (`docs/scs_regional.md`).
 - The lines of point targets the CNN rejects off Ca Mau look like stake nets or other fixed gear; not verified (`docs/ml_verifier.md`).
