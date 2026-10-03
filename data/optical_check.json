@@ -1,0 +1,134 @@
+{
+ "window": "2026-09-15 to 2026-10-02",
+ "points": 4100,
+ "tiles": 296,
+ "threshold_nir_contrast_dn": 446.0,
+ "threshold_rule": "99th percentile of control contrasts (clear views)",
+ "by_group": [
+  {
+   "group": "fixed",
+   "sampled": 1500,
+   "clear_view": 1072,
+   "clear_share": 0.715,
+   "optical_object_share": 0.371,
+   "optical_object_ci": [
+    0.343,
+    0.401
+   ],
+   "contrast_median_dn": 160.0,
+   "vegetated_share_of_objects": 0.219
+  },
+  {
+   "group": "high",
+   "sampled": 800,
+   "clear_view": 643,
+   "clear_share": 0.804,
+   "optical_object_share": 0.022,
+   "optical_object_ci": [
+    0.013,
+    0.036
+   ],
+   "contrast_median_dn": 32.0,
+   "vegetated_share_of_objects": 0.143
+  },
+  {
+   "group": "medium",
+   "sampled": 800,
+   "clear_view": 609,
+   "clear_share": 0.761,
+   "optical_object_share": 0.015,
+   "optical_object_ci": [
+    0.008,
+    0.028
+   ],
+   "contrast_median_dn": 40.0,
+   "vegetated_share_of_objects": 0.111
+  },
+  {
+   "group": "control",
+   "sampled": 1000,
+   "clear_view": 751,
+   "clear_share": 0.751,
+   "optical_object_share": 0.011,
+   "optical_object_ci": [
+    0.005,
+    0.021
+   ],
+   "contrast_median_dn": 40.0,
+   "vegetated_share_of_objects": 0.375
+  }
+ ],
+ "by_group_satlas_1km": [
+  {
+   "group": "fixed",
+   "near_satlas_1km": true,
+   "clear_view": 345,
+   "optical_object_share": 0.542,
+   "optical_object_ci": [
+    0.489,
+    0.594
+   ]
+  },
+  {
+   "group": "fixed",
+   "near_satlas_1km": false,
+   "clear_view": 727,
+   "optical_object_share": 0.29,
+   "optical_object_ci": [
+    0.258,
+    0.324
+   ]
+  },
+  {
+   "group": "high",
+   "near_satlas_1km": true,
+   "clear_view": 17,
+   "optical_object_share": 0.118,
+   "optical_object_ci": [
+    0.033,
+    0.343
+   ]
+  },
+  {
+   "group": "high",
+   "near_satlas_1km": false,
+   "clear_view": 626,
+   "optical_object_share": 0.019,
+   "optical_object_ci": [
+    0.011,
+    0.033
+   ]
+  },
+  {
+   "group": "medium",
+   "near_satlas_1km": true,
+   "clear_view": 23,
+   "optical_object_share": 0.043,
+   "optical_object_ci": [
+    0.008,
+    0.21
+   ]
+  },
+  {
+   "group": "medium",
+   "near_satlas_1km": false,
+   "clear_view": 586,
+   "optical_object_share": 0.014,
+   "optical_object_ci": [
+    0.007,
+    0.027
+   ]
+  },
+  {
+   "group": "control",
+   "near_satlas_1km": false,
+   "clear_view": 751,
+   "optical_object_share": 0.011,
+   "optical_object_ci": [
+    0.005,
+    0.021
+   ]
+  }
+ ],
+ "caveat": "Dark = no AIS match. Not evidence of illegal activity. Sentinel-2 sees objects of roughly 10 m and larger in daylight; small stake nets and low rafts can be missed, so the fixed-class share is a lower bound on its precision. A vessel candidate with an optical object may be anchored or may be a structure in the wrong class."
+}
