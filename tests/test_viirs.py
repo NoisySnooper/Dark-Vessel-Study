@@ -101,3 +101,56 @@ def test_demo_viirs_layer_picks_dark_night_and_packs_columns(tmp_path, monkeypat
     assert v["persistent"]["n"] == 2
     infra = _decode(v["persistent"]["colz"]["infra"])  # km, NaN when not available
     assert np.isclose(np.nanmax(infra), 0.45) and np.isnan(infra).sum() == 1
+
+
+def test_light_sites_link_nearby_lights_only():
+    import pandas as pd
+
+    from darkvessel.viirs.pipeline import light_sites
+
+    d = 0.0027  # about 300 m of latitude
+    lights = pd.DataFrame({
+        "lat": [10.0, 10.0 + d, 10.0 + 2 * d, 10.5, 10.5],     # a chain of three within 300 m steps, and a separate pair
+        "lon": [110.0, 110.0, 110.0, 110.0, 110.0005],
+        "night": ["n1", "n2", "n3", "n1", "n1"],
+        "radiance_nw": [10.0, 20.0, 30.0, 5.0, 7.0],
+        "satlas_infra_m": [900.0, 400.0, np.nan, 5e4, 6e4],
+    })
+    s = light_sites(lights).sort_values("lat").reset_index(drop=True)
+    assert len(s) == 2
+    assert s.n_lights.tolist() == [3, 2] and s.nights.tolist() == [3, 1]
+    assert s.radiance_max_nw.tolist() == [30.0, 7.0] and s.satlas_infra_m.tolist() == [400.0, 5e4]
+
+
+def test_demo_viirs_layer_reads_lean_file(tmp_path, monkeypatch):
+    import geopandas as gpd
+    import pandas as pd
+    import pyogrio
+
+    from darkvessel.viz import demo
+
+    path = tmp_path / "viirs_lights.gpkg"
+    lights = pd.DataFrame({"light_id": ["a", "b", "c"], "satellite": ["S-NPP", "NOAA-21", "S-NPP"],
+                           "time_utc": ["2026-09-12T17:40:00Z", "2026-09-12T19:05:00Z", "2026-09-14T18:00:00Z"],
+                           "night": ["2026-09-12", "2026-09-12", "2026-09-14"], "lat": [9.0, 9.1, 9.2], "lon": [107.0] * 3,
+                           "radiance_nw": [20.0, 30.0, 40.0], "quality": ["clear", "under_cloud", "clear"],
+                           "class": ["lit_vessel_candidate"] * 3, "nights_seen_500m": [1, 1, 2],
+                           "moon_illum_pct": [3.0, 3.0, 20.0], "satlas_infra_m": [np.nan] * 3})
+    gpd.GeoDataFrame(lights, geometry=gpd.points_from_xy(lights.lon, lights.lat), crs="EPSG:4326").to_file(
+        path, layer="viirs_lights_4326", driver="GPKG")
+    sites = pd.DataFrame({"site_id": ["VS00000"], "lat": [7.5], "lon": [108.0], "n_lights": [12], "nights": [9],
+                          "radiance_med_nw": [300.0], "radiance_max_nw": [900.0], "satlas_infra_m": [120.0]})
+    gpd.GeoDataFrame(sites, geometry=gpd.points_from_xy(sites.lon, sites.lat), crs="EPSG:4326").to_file(
+        path, layer="viirs_sites_4326", driver="GPKG")
+    pyogrio.write_dataframe(pd.DataFrame({"night": ["2026-09-12", "2026-09-14", "2026-09-26"],
+                                          "moon_illum_pct_median": [3.0, 20.0, 99.0],
+                                          "lit_candidates_clear": [1, 1, 50], "lit_candidates": [2, 1, 60]}),
+                            path, layer="viirs_nights", driver="GPKG")
+    monkeypatch.setattr(demo, "DATA_DIR", tmp_path)
+
+    v = demo.viirs_data()
+    assert v["night"] == "2026-09-12" and v["one"]["n"] == 2 and v["nights"] == 3   # the full moon night is never shown
+    assert v["persistent"]["n"] == 1
+    assert _decode(v["persistent"]["colz"]["ns"]).tolist() == [9.0]
+    assert np.isclose(_decode(v["persistent"]["colz"]["infra"])[0], 0.12)
+    assert _decode(v["one"]["colz"]["q"]).tolist() == [0.0, 1.0]

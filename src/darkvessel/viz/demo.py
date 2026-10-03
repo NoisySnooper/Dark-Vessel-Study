@@ -322,25 +322,38 @@ VIIRS_SATS = ["S-NPP", "NOAA-20", "NOAA-21"]
 
 
 def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
-    """VIIRS lights at sea for the page: every light of one dark night, plus the recurring lights.
+    """VIIRS lights at sea for the page: every lit vessel candidate of one dark night, plus the recurring lights.
 
-    The night shown is the one with the most clear-sky lights among nights with the moon at most
-    `max_moon_pct` illuminated (lit fishing and detection both suffer under a bright moon); recurring
-    lights are thinned to one point per 0.005 degree. Source: data/viirs_lights.gpkg (scripts/15).
+    Reads the committed lean file data/viirs_lights.gpkg (scripts/15_viirs_lights.py --merge). The night shown is
+    the one with the most clear-sky lit candidates among nights with the moon at most `max_moon_pct` lit (lit
+    fishing and detection both suffer under a bright moon); the merge always puts that night in the lean file.
+    Recurring lights come from the viirs_sites layer; older files without it fall back to the persistent lights
+    in the lights layer, thinned to one point per 0.005 degree.
     """
     path = DATA_DIR / "viirs_lights.gpkg"
     if not path.exists():
         return None
+    layers = set(pyogrio.list_layers(path)[:, 0])
     d = pyogrio.read_dataframe(path, layer="viirs_lights_4326", read_geometry=False,
                                columns=["light_id", "satellite", "time_utc", "night", "lat", "lon", "radiance_nw",
                                         "quality", "class", "nights_seen_500m", "moon_illum_pct", "satlas_infra_m"])
-    per = d[d.quality == "clear"].groupby("night").agg(n=("light_id", "size"), moon=("moon_illum_pct", "median"))
+    lit = d[d["class"] == "lit_vessel_candidate"]
+    if "viirs_nights" in layers:
+        per = pyogrio.read_dataframe(path, layer="viirs_nights").set_index("night").rename(
+            columns={"moon_illum_pct_median": "moon", "lit_candidates_clear": "n"})
+    else:
+        per = lit[lit.quality == "clear"].groupby("night").agg(n=("light_id", "size"), moon=("moon_illum_pct", "median"))
     dark = per[per.moon <= max_moon_pct]
     night = (dark if len(dark) else per).n.idxmax()
-    one = d[(d.night == night) & (d["class"] == "lit_vessel_candidate")].reset_index(drop=True)
-    pers = d[d["class"] == "persistent_light"].copy()
-    pers["k"] = (pers.lat / 0.005).round().astype(int).astype(str) + "_" + (pers.lon / 0.005).round().astype(int).astype(str)
-    pers = pers.sort_values("nights_seen_500m", ascending=False).drop_duplicates("k").reset_index(drop=True)
+    one = lit[lit.night == night].reset_index(drop=True)
+    if "viirs_sites_4326" in layers:
+        pers = pyogrio.read_dataframe(path, layer="viirs_sites_4326", read_geometry=False,
+                                      columns=["lat", "lon", "nights", "radiance_max_nw", "satlas_infra_m"]).rename(
+            columns={"nights": "nights_seen_500m", "radiance_max_nw": "radiance_nw"})
+    else:
+        pers = d[d["class"] == "persistent_light"].copy()
+        pers["k"] = (pers.lat / 0.005).round().astype(int).astype(str) + "_" + (pers.lon / 0.005).round().astype(int).astype(str)
+        pers = pers.sort_values("nights_seen_500m", ascending=False).drop_duplicates("k").reset_index(drop=True)
     t = pd.to_datetime(one.time_utc, utc=True)
 
     def pack(df, extra):
@@ -353,7 +366,7 @@ def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
 
     sats = one.satellite.map({s: i for i, s in enumerate(VIIRS_SATS)}).fillna(255).to_numpy("<u1")
     mins = ((t - t.dt.normalize()).dt.total_seconds() // 60).to_numpy("<u2")
-    nights = sorted(d.night.unique())
+    nights = sorted(per.index)
     summary = DATA_DIR / "viirs_summary.json"
     rule = json.loads(summary.read_text())["persistent_rule_nights"] if summary.exists() else max(3, int(np.ceil(0.3 * len(nights))))
     # distance to the nearest Satlas point in units of 10 m (decodes to km); 65535 = not available
@@ -368,7 +381,7 @@ def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
                                    "sat": _b64col(sats, "u8"), "min": _b64col(mins, "u16")})},
         "persistent": {"n": int(len(pers)), "cols": ["lat", "lon", "rad", "ns", "infra"],
                        "colz": pack(pers, {"infra": _b64col(infra, "u16", 100, 65535)})},
-        "lights_total": int(len(d)), "persistent_total": int((d["class"] == "persistent_light").sum()),
+        "lights_shown": int(len(one)), "recurring_shown": int(len(pers)),
     }
 
 

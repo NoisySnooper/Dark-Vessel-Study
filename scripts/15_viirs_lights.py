@@ -4,8 +4,11 @@ Night passes (about 01:30 local) are found from granule outlines, read from the 
 AWS, and searched for point lights over open sea (src/darkvessel/viirs). Each granule is checkpointed
 in data/cache/viirs/. --merge separates recurring lights from the rest and writes the products:
 
-  data/viirs_lights.gpkg            lights at sea, EPSG:4326 and UTM 49N (layers viirs_lights_*),
-                                    plus viirs_granules_* (granule outlines) and about
+  data/viirs_lights_all.gpkg        every light at sea, EPSG:4326 and UTM 49N (viirs_lights_*), granule outlines
+                                    (viirs_granules_*) and about. Large: gitignored, rebuilt by --merge from the cache.
+  data/viirs_lights.gpkg            committed lean file: recurring-light sites (viirs_sites_*), the lit vessel
+                                    candidates of the darkest nights up to LEAN_MAX_LIGHTS (viirs_lights_*, fewer
+                                    fields), granule outlines, a per-night table (viirs_nights) and about
   data/outputs/small/viirs_lit_density_4326.tif / _utm49n.tif
                                     mean lights per night per 1,000 km2 (persistent lights excluded), 0.25 degree
   data/viirs_summary.json, docs/figures/viirs_lights.png
@@ -43,6 +46,9 @@ from darkvessel.aoi import aoi_gdf, natural_earth_land
 from darkvessel.config import CRS_UTM_REGIONAL, DARK_CAVEAT, DARK_CAVEAT_SHORT, DATA_DIR, DEFAULT_AOI
 
 FIG_DIR = Path(__file__).resolve().parents[1] / "docs" / "figures"
+LEAN_MAX_LIGHTS = 50_000  # keeps the committed GeoPackage near 30 MB (two CRS layers)
+LEAN_COLS = ["light_id", "satellite", "time_utc", "night", "lat", "lon", "radiance_nw", "spike_nw", "isolation", "quality",
+             "class", "nights_seen_500m", "moon_illum_pct", "satlas_infra_m", "s1_passes_90d", "caveat", "geometry"]
 
 CACHE = DATA_DIR / "cache" / "viirs"
 SATS = ("S-NPP", "NOAA-20", "NOAA-21")
@@ -208,14 +214,15 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
     det["night"] = det.night.astype(str)
     g = gpd.GeoDataFrame(det, geometry=gpd.points_from_xy(det.lon, det.lat), crs="EPSG:4326")
 
-    out = DATA_DIR / "viirs_lights.gpkg"
-    if out.exists():
-        out.unlink()
-    write_dual_crs(g, out, "viirs_lights", utm_crs=CRS_UTM_REGIONAL, spatial_index=False)
+    full, lean = DATA_DIR / "viirs_lights_all.gpkg", DATA_DIR / "viirs_lights.gpkg"
+    for p in (full, lean):
+        if p.exists():
+            p.unlink()
+    write_dual_crs(g, full, "viirs_lights", utm_crs=CRS_UTM_REGIONAL, spatial_index=False)
     gran = gpd.GeoDataFrame(
         [{k: m[k] for k in ("granule", "satellite", "start_utc", "moon_illum_pct", "lunar_zenith_deg", "n_lights")} for m in metas],
         geometry=[Polygon(zip(m["ring_lon"], m["ring_lat"])) for m in metas], crs="EPSG:4326")
-    write_dual_crs(gran, out, "viirs_granules", utm_crs=CRS_UTM_REGIONAL)
+    write_dual_crs(gran, full, "viirs_granules", utm_crs=CRS_UTM_REGIONAL)
     about = {"caveat_full": DARK_CAVEAT + " A VIIRS light at sea is not proof of a vessel: platforms, flares and island "
              "lights also shine, and a lit vessel is not a dark vessel.",
              "detector": "spike detector after Elvidge et al. 2015 (src/darkvessel/viirs/detect.py): 7 x 7 median background, "
@@ -225,7 +232,52 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
              "data_credit": "VIIRS DNB SDR, DNB GEO and JRR Cloud Mask from NOAA JPSS on the AWS Open Data Registry "
                             "(noaa-nesdis-snpp-pds, noaa-nesdis-n20-pds, noaa-nesdis-n21-pds); Natural Earth (public domain); "
                             "Satlas marine infrastructure (AI2, ODC-BY)"}
-    pyogrio.write_dataframe(pd.DataFrame([about]), out, layer="about", driver="GPKG")
+    pyogrio.write_dataframe(pd.DataFrame([about]), full, layer="about", driver="GPKG")
+
+    # Lean file. Nights: the showcase night (most clear-sky lit candidates among nights with the moon at most
+    # 30 % lit), then the others from the darkest moon up, while the total stays under LEAN_MAX_LIGHTS.
+    lit = det["class"] == "lit_vessel_candidate"
+    nightly = det.assign(clear_lit=lit & (det.quality == "clear")).groupby("night").agg(
+        moon=("moon_illum_pct", "median"), clear_lit=("clear_lit", "sum"), lit=("class", lambda c: int((c == "lit_vessel_candidate").sum())))
+    dark = nightly[nightly.moon <= 30]
+    showcase = (dark if len(dark) else nightly).clear_lit.idxmax()
+    keep, total = [], 0
+    for n in [showcase] + [n for n in nightly.sort_values("moon").index if n != showcase]:
+        if keep and total + nightly.loc[n, "lit"] > LEAN_MAX_LIGHTS:
+            break
+        keep.append(n)
+        total += int(nightly.loc[n, "lit"])
+    write_dual_crs(g.loc[lit & det.night.isin(keep), LEAN_COLS], lean, "viirs_lights", utm_crs=CRS_UTM_REGIONAL, spatial_index=False)
+    from darkvessel.viirs.pipeline import light_sites
+
+    sites = light_sites(det[det["class"] == "persistent_light"], link_m=persist_radius_m)
+    if len(sites):
+        sites.insert(0, "site_id", [f"VS{i:05d}" for i in range(len(sites))])
+        sites = sites.drop(columns="site")
+        sr = np.floor((sites.lat.to_numpy() - ptr.f) / ptr.e).astype(int)
+        sc = np.floor((sites.lon.to_numpy() - ptr.c) / ptr.a).astype(int)
+        ins = (sr >= 0) & (sr < passes.shape[0]) & (sc >= 0) & (sc < passes.shape[1])
+        sp = np.full(len(sites), -1, int)
+        sp[ins] = passes[sr[ins], sc[ins]]
+        sites["s1_passes_90d"] = np.where(sp == 65535, -1, sp)
+        sites["likely"] = np.where(sites.satlas_infra_m <= 1000, "platform or turbine (Satlas point within 1 km)",
+                                   "other recurring light: platform, flare, island or navigation light, or anchorage")
+        sites[["lat", "lon"]] = sites[["lat", "lon"]].round(5)
+        sites["radiance_med_nw"], sites["radiance_max_nw"] = sites.radiance_med_nw.round(2), sites.radiance_max_nw.round(2)
+        sites["caveat"] = DARK_CAVEAT_SHORT + " A recurring light is most likely a structure, not a vessel."
+        write_dual_crs(gpd.GeoDataFrame(sites, geometry=gpd.points_from_xy(sites.lon, sites.lat), crs="EPSG:4326"),
+                       lean, "viirs_sites", utm_crs=CRS_UTM_REGIONAL)
+    write_dual_crs(gran, lean, "viirs_granules", utm_crs=CRS_UTM_REGIONAL)
+    nights_tab = nightly.reset_index().rename(columns={"moon": "moon_illum_pct_median", "lit": "lit_candidates",
+                                                       "clear_lit": "lit_candidates_clear"})
+    nights_tab["night"] = nights_tab.night.astype(str)
+    nights_tab["in_lean_file"] = nights_tab.night.isin([str(n) for n in keep])
+    pyogrio.write_dataframe(nights_tab, lean, layer="viirs_nights", driver="GPKG")
+    about_lean = dict(about, lean_subset=f"viirs_lights_*: lit vessel candidates of {len(keep)} of {len(nights)} nights (darkest moon "
+                      f"first, showcase night {showcase}), {total:,} lights with fewer fields; viirs_sites_*: {len(sites):,} recurring-light "
+                      "sites (persistent lights linked within the persistence radius). Every light is in data/viirs_lights_all.gpkg, "
+                      "rebuilt by scripts/15_viirs_lights.py --merge.")
+    pyogrio.write_dataframe(pd.DataFrame([about_lean]), lean, layer="about", driver="GPKG")
 
     # Mean lights per night per 1,000 km2 of observed sea (persistent lights excluded), clear-sky lights only
     aoi = aoi_gdf(DEFAULT_AOI).geometry.iloc[0]
@@ -262,6 +314,8 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
                "near_satlas_1km": int((det.satlas_infra_m <= 1000).sum()) if det.satlas_infra_m.notna().any() else None,
                "persistent_near_satlas_1km_share": round(float((det[det["class"] == "persistent_light"].satlas_infra_m <= 1000).mean()), 3)
                if det.satlas_infra_m.notna().any() and (det["class"] == "persistent_light").any() else None,
+               "showcase_night": str(showcase), "lean_nights": [str(n) for n in keep], "lean_lights": total,
+               "sites": int(len(sites)), "sites_near_satlas_1km": int((sites.satlas_infra_m <= 1000).sum()) if len(sites) else 0,
                "per_night": per_night.to_dict(orient="records")}
     from scipy.stats import spearmanr
 

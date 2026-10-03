@@ -114,3 +114,28 @@ def detect_granule(gran: access.Granule, sea: SeaGrid) -> pd.DataFrame:
     det = det[clear | strong].copy()
     det["quality"] = np.where(det.cloud_mask.isin([0, 1]), "clear", "under_cloud")
     return det.reset_index(drop=True)
+
+
+def light_sites(lights: pd.DataFrame, link_m: float = 500.0) -> pd.DataFrame:
+    """Group recurring lights into sites: lights linked within `link_m` form one site (single linkage).
+
+    Returns one row per site: median position, number of lights, distinct nights, median and maximum
+    radiance, and the smallest Satlas distance among its lights (if the column is present).
+    """
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+
+    if lights.empty:
+        return pd.DataFrame(columns=["site", "lat", "lon", "n_lights", "nights", "radiance_med_nw", "radiance_max_nw"])
+    lat0 = np.radians(float(lights.lat.median()))
+    xy = np.c_[np.radians(lights.lon.to_numpy()) * R_KM * 1000 * np.cos(lat0), np.radians(lights.lat.to_numpy()) * R_KM * 1000]
+    pairs = cKDTree(xy).query_pairs(link_m, output_type="ndarray")
+    n = len(lights)
+    graph = coo_matrix((np.ones(len(pairs)), (pairs[:, 0], pairs[:, 1])), shape=(n, n)) if len(pairs) else coo_matrix((n, n))
+    _, label = connected_components(graph, directed=False)
+    g = lights.assign(site=label).groupby("site")
+    out = g.agg(lat=("lat", "median"), lon=("lon", "median"), n_lights=("lat", "size"), nights=("night", "nunique"),
+                radiance_med_nw=("radiance_nw", "median"), radiance_max_nw=("radiance_nw", "max"))
+    if "satlas_infra_m" in lights:
+        out["satlas_infra_m"] = g.satlas_infra_m.min()
+    return out.reset_index()

@@ -476,7 +476,7 @@ function selectLight(d) {
       row("Moon", `${Math.round(V.moon_pct)} % lit`) + row("Nights with a light within 500 m", `${d.ns} of ${V.nights}`);
   } else {
     const km = d.infra;
-    html += row("Nights with a light within 500 m", `${d.ns} of ${V.nights}`) + row("Radiance, one night", `${fmt(d.rad)} nW cm⁻² sr⁻¹`) +
+    html += row("Nights with a light at this site", `${d.ns} of ${V.nights}`) + row("Brightest radiance", `${fmt(d.rad)} nW cm⁻² sr⁻¹`) +
       row("Nearest Satlas platform or turbine", km === null ? "n/a" : km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`) +
       row("Likely", km !== null && km <= 1 ? "platform or turbine" : "platform, flare, island or navigation light, or an anchorage");
   }
