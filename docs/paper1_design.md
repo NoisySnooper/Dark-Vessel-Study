@@ -1,6 +1,6 @@
 # Paper 1 design: does a Sentinel-1A-trained vessel detector transfer to Sentinel-1C and 1D?
 
-Date: 2026-10-02. Status: design and preliminary measurements. Target: IEEE GRSL (letter) or IGARSS 2027 (4-page paper); the owner chooses (`docs/STATUS.md`, next task 3). Venue facts are in `docs/journals.md` and are mostly UNVERIFIED.
+Date: 2026-10-02. Status: design and preliminary measurements. A manuscript skeleton with the measured parts written out is in `docs/paper1_manuscript.md` (2026-10-03). Target: IEEE GRSL (letter) or IGARSS 2027 (4-page paper); the owner chooses (`docs/STATUS.md`, next task 3). Venue facts are in `docs/journals.md` and are mostly UNVERIFIED.
 
 > "Dark" does not mean illegal. This paper measures detection, not intent. A radar contact without an AIS match is a lead for review; many lawful vessels carry no AIS.
 
