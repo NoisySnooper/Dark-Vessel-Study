@@ -470,6 +470,7 @@ def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: 
                 "has_ml": "cnn" in det}
         cache.parent.mkdir(parents=True, exist_ok=True)
         cache.write_text(json.dumps({"data": data, "det_img": det_img}, separators=(",", ":")))
+    data["built"] = time.strftime("%Y-%m-%d", time.gmtime())
     html = TEMPLATE.read_text()
     leaflet_css = Path(__file__).with_name("leaflet-1.9.4.css").read_text()
     html = (html.replace("/*__LEAFLET_CSS__*/", leaflet_css)

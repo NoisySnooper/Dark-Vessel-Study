@@ -151,7 +151,7 @@ footer { border-top: 1px solid var(--rule); padding-top: 16px; font-size: 12.5px
 <div class="page">
   <header class="mast">
     <div class="mast-id">
-      <p class="eyebrow">Dark Vessel Study &middot; pipeline demo v1</p>
+      <p class="eyebrow" id="eyebrow">Dark Vessel Study &middot; pipeline demo</p>
       <h1>Vessel contacts in the South China Sea</h1>
       <p class="dtg" id="dtg"></p>
     </div>
@@ -275,6 +275,7 @@ if (R.colz) decodeCols(R);
 const RD = expand(R, "r"), XD = expand(X, "x");
 
 // ---- Masthead
+if (D.built) $("eyebrow").textContent = `Dark Vessel Study · pipeline demo · built ${D.built} UTC`;
 const RS = R.summary, cov = R.coverage;
 $("dtg").innerHTML = `Detections: <b>${dtgOf(RS.date_range[0])}</b> to <b>${dtgOf(RS.date_range[1])}</b> &middot; ${RS.scenes} Sentinel-1C/1D scenes &middot; coverage: ${R.search_window[0]} to ${R.search_window[1]}`;
 { const dd = (iso) => { const t = new Date(iso); return `${t.getUTCDate()} ${MON[t.getUTCMonth()].charAt(0)}${MON[t.getUTCMonth()].slice(1).toLowerCase()}`; };
