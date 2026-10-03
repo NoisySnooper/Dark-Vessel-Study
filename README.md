@@ -14,11 +14,13 @@ See `docs/STATUS.md` for what is done, what is blocked, and the next tasks. Acti
 ```
 src/darkvessel/      package: s1/ (search, read, calibrate), detect/ (CFAR, post-processing),
                      ais/ (matching), viirs/ (night lights), weather.py (GFS wind, Himawari-9 cloud tops),
+                     s2.py (Sentinel-2 on AWS), satlas.py (offshore infrastructure points),
                      landmask.py, pipeline.py, viz/, io.py, config.py
 scripts/             01 AOI, 02 scene search, 03 Ca Mau baseline, 04-06 ML verifier,
                      07 demo page, 08 coverage, 09 regional detection, 10 regional density,
                      11 clutter-rule check, 12 label scoring, 13 noise floor, 14 CNN on shared 1C/1D sea,
-                     15 VIIRS night lights, 16 weather context, 17 look probability
+                     15 VIIRS night lights, 16 weather context, 17 look probability,
+                     18 VIIRS and radar of one night, 19 Sentinel-2 optical check
 tests/               offline unit tests (pytest)
 data/                small derived outputs (GeoPackage, CSV) are committed; raw data is gitignored
 docs/                reports, figures, status
@@ -43,6 +45,8 @@ python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01   # VIIRS 
 python scripts/15_viirs_lights.py --merge      # data/viirs_lights.gpkg, density COGs, docs/figures/viirs_lights.png
 python scripts/16_weather_context.py           # GFS wind and Himawari-9 cloud tops at every regional object
 python scripts/17_look_probability.py          # chance of a Sentinel-1 look within 1, 7 and 30 days per cell
+python scripts/18_viirs_radar_pair.py --pass <S1 product prefix> --night <date> --tag <name>   # one night, two sensors
+python scripts/19_optical_check.py             # Sentinel-2 check of the radar classes (and --gallery for example chips)
 pytest                                         # offline tests
 # ML (scripts 04-06, 14) needs PyTorch: use the conda environment from environment.yml
 ```
@@ -57,10 +61,11 @@ Every vector product is a GeoPackage with two layers per dataset: `<name>_4326` 
 | `data/structures_regional.gpkg` | Fixed structures from the persistence test |
 | `data/detections_baseline.gpkg`, `data/detections_ml.gpkg` | Ca Mau scene: all detections, and CNN scores |
 | `data/viirs_lights.gpkg` | VIIRS night lights: recurring-light sites, lit vessel candidates of the darkest nights, granule outlines, per-night table |
+| `data/optical_check.gpkg` | Sentinel-2 optical check of a random sample of fixed structures, vessel candidates and open-sea controls |
 | `data/outputs/small/s1_passes_*.tif` | Sentinel-1 passes per cell in 90 days |
 | `data/outputs/small/s1_look_prob_{1,7,30}d_*.tif` | Chance of a Sentinel-1 look within 1, 7 and 30 days, percent |
 | `data/outputs/small/vessel_density_regional_*.tif` | Radar vessel candidates per 1,000 km2 per look |
 | `data/outputs/small/viirs_lit_density_*.tif` | Clear-sky lit vessel candidates per 1,000 km2 per satellite pass |
 
 ## Data credits
-Contains modified Copernicus Sentinel data 2026. Land mask: ESA WorldCover 2021 v200 (CC BY 4.0). Training labels: AI2 Skylight vessel-detection-sentinels (Apache-2.0). Night lights: VIIRS Day/Night Band SDR, geolocation and JRR cloud mask from NOAA JPSS on the AWS Open Data Registry. Wind: NOAA GFS 0.25 degree. Cloud tops: Himawari-9 AHI (JMA, distributed by NOAA). Offshore platforms and turbines: Satlas marine infrastructure (AI2, ODC-BY). AOI and land: Natural Earth (public domain). Sources and licence checks: `docs/data_landscape.md` and `docs/data_additions.md`.
+Contains modified Copernicus Sentinel data 2026 (Sentinel-1 GRD and Sentinel-2 L2A from the AWS Open Data mirrors). Land mask: ESA WorldCover 2021 v200 (CC BY 4.0). Training labels: AI2 Skylight vessel-detection-sentinels (Apache-2.0). Night lights: VIIRS Day/Night Band SDR, geolocation and JRR cloud mask from NOAA JPSS on the AWS Open Data Registry. Wind: NOAA GFS 0.25 degree. Cloud tops: Himawari-9 AHI (JMA, distributed by NOAA). Offshore platforms and turbines: Satlas marine infrastructure (AI2, ODC-BY). AOI and land: Natural Earth (public domain). Sources and licence checks: `docs/data_landscape.md` and `docs/data_additions.md`.
