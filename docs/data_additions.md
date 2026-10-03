@@ -85,6 +85,8 @@ Row B08 already lists 4,666 Satlas platform and turbine points inside the AOI (s
 
 ## Ranked shortlist
 
+**Added to the pipeline on 2026-10-03:** N01 and N02 (`scripts/15_viirs_lights.py`, `docs/viirs_lights.md`); W01 10 m wind and W04 cloud-top temperature from the L2 cloud height product (`scripts/16_weather_context.py`); B01 Sentinel-2 L2A from `docs/data_landscape.md` (`scripts/19_optical_check.py`, `docs/optical_check.md`); B08 Satlas points, as a distance on every VIIRS light and in the optical check (`src/darkvessel/satlas.py`). The rest of the list is still open.
+
 **Add now (open, anonymous, commercial use allowed, tested today).**
 
 1. N01 NOAA JPSS VIIRS DNB SDR and geolocation, with N02 cloud mask. A nightly lit-boat layer over the whole AOI; the only addition that covers the unimaged central sea.
