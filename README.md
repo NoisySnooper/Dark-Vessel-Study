@@ -18,7 +18,7 @@ src/darkvessel/      package: s1/ (search, read, calibrate), detect/ (CFAR, post
 scripts/             01 AOI, 02 scene search, 03 Ca Mau baseline, 04-06 ML verifier,
                      07 demo page, 08 coverage, 09 regional detection, 10 regional density,
                      11 clutter-rule check, 12 label scoring, 13 noise floor, 14 CNN on shared 1C/1D sea,
-                     15 VIIRS night lights, 16 weather context
+                     15 VIIRS night lights, 16 weather context, 17 look probability
 tests/               offline unit tests (pytest)
 data/                small derived outputs (GeoPackage, CSV) are committed; raw data is gitignored
 docs/                reports, figures, status
@@ -26,6 +26,7 @@ notebooks/           exploration
 ```
 
 ## Run
+The `Makefile` runs everything in dependency order: `make test`, `make regional`, `make context` (weather and VIIRS), `make camau`, `make demo OUT=page.html`, or `make all`. Each script checkpoints, so a rerun skips finished work. Step by step:
 ```bash
 conda env create -f environment.yml && conda activate darkvessel
 python scripts/01_make_aoi.py                  # data/aoi.gpkg
@@ -41,6 +42,7 @@ python scripts/13_nesz_compare.py              # noise floor of 1A, 1C and 1D fr
 python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01   # VIIRS lights per granule (checkpointed)
 python scripts/15_viirs_lights.py --merge      # data/viirs_lights.gpkg, density COGs, docs/figures/viirs_lights.png
 python scripts/16_weather_context.py           # GFS wind and Himawari-9 cloud tops at every regional object
+python scripts/17_look_probability.py          # chance of a Sentinel-1 look within 1, 7 and 30 days per cell
 pytest                                         # offline tests
 # ML (scripts 04-06, 14) needs PyTorch: use the conda environment from environment.yml
 ```
