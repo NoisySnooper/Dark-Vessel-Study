@@ -54,6 +54,7 @@ viirs: coverage
 	$(PY) scripts/15_viirs_lights.py --retry
 	$(PY) scripts/15_viirs_lights.py --clear
 	$(PY) scripts/15_viirs_lights.py --merge
+	$(PY) scripts/21_viirs_regions.py
 
 optical: merge
 	$(PY) scripts/19_optical_check.py
