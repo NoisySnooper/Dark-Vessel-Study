@@ -1,0 +1,83 @@
+{
+ "satlas_points_in_tested_sea": 5189,
+ "by_category": [
+  {
+   "category": "all",
+   "points": 5189,
+   "fixed_within_250m": 0.716,
+   "fixed_within_250m_ci": [
+    0.703,
+    0.728
+   ],
+   "any_object_within_250m": 0.752,
+   "any_object_within_250m_ci": [
+    0.74,
+    0.763
+   ],
+   "fixed_within_500m": 0.73,
+   "fixed_within_500m_ci": [
+    0.718,
+    0.742
+   ],
+   "any_object_within_500m": 0.781,
+   "any_object_within_500m_ci": [
+    0.77,
+    0.792
+   ]
+  },
+  {
+   "category": "offshore_platform",
+   "points": 3204,
+   "fixed_within_250m": 0.615,
+   "fixed_within_250m_ci": [
+    0.599,
+    0.632
+   ],
+   "any_object_within_250m": 0.671,
+   "any_object_within_250m_ci": [
+    0.655,
+    0.687
+   ],
+   "fixed_within_500m": 0.634,
+   "fixed_within_500m_ci": [
+    0.617,
+    0.651
+   ],
+   "any_object_within_500m": 0.715,
+   "any_object_within_500m_ci": [
+    0.699,
+    0.73
+   ]
+  },
+  {
+   "category": "offshore_wind_turbine",
+   "points": 1985,
+   "fixed_within_250m": 0.877,
+   "fixed_within_250m_ci": [
+    0.862,
+    0.891
+   ],
+   "any_object_within_250m": 0.881,
+   "any_object_within_250m_ci": [
+    0.866,
+    0.895
+   ],
+   "fixed_within_500m": 0.885,
+   "fixed_within_500m_ci": [
+    0.87,
+    0.898
+   ],
+   "any_object_within_500m": 0.888,
+   "any_object_within_500m_ci": [
+    0.874,
+    0.901
+   ]
+  }
+ ],
+ "fixed_within_500m_of_satlas": {
+  "share": 0.369,
+  "n": 25224,
+  "count": 9320
+ },
+ "note": "Satlas points are predictions with scores, not truth; only platforms and turbines. Fixed structures far from Satlas points include aquaculture, stake nets, islets and anchorages, outside Satlas' scope."
+}

@@ -170,6 +170,17 @@ Both are NOAA open data on AWS, read by byte range.
 - The vessel classes are not structures in disguise: their optical rate is close to open sea, as expected for things that move.
 - The example chips (`docs/figures/optical_examples.png`) show what "fixed" holds besides platforms: small vegetated islets missing from the land mask, and anchorages where a ship sits on every pass. The first are correctly fixed but not structures; the second is the moored-ship case listed under the limits.
 
+**Fixed structures against Satlas.** `scripts/20_satlas_check.py` compares the fixed class with the Satlas platform and wind-turbine points (AI2 predictions from Sentinel-2, ODC-BY) inside the sea the run tested (`data/satlas_check.json`):
+
+| Satlas category | Points in tested sea | Fixed structure within 250 m | Any radar object within 250 m |
+|---|---|---|---|
+| Offshore platform | 3,204 | 61.5 % | 67.1 % |
+| Offshore wind turbine | 1,985 | 87.7 % | 88.1 % |
+| All | 5,189 | 71.6 % | 75.2 % |
+
+- The persistence test recovers most turbines and about three in five platforms. A platform it misses may have had no earlier pass of the same orbit to compare with, may be too small or dark at C band, or may be a Satlas false positive; the check cannot tell which.
+- 36.9 % of the 25,224 fixed structures lie within 500 m of a Satlas point. The rest are outside Satlas' scope (aquaculture, stake nets, islets, anchorages), so this is not a precision; the Sentinel-2 check above is the closer one.
+
 **Products.**
 - `data/detections_regional.gpkg` (36 MB):
   - `detections_regional_4326` and `_utm49n`: 78,615 vessel candidates. Columns:

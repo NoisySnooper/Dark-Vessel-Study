@@ -58,6 +58,7 @@ viirs: coverage
 optical: merge
 	$(PY) scripts/19_optical_check.py
 	$(PY) scripts/19_optical_check.py --gallery
+	$(PY) scripts/20_satlas_check.py
 
 context: weather viirs optical
 

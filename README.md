@@ -20,7 +20,7 @@ scripts/             01 AOI, 02 scene search, 03 Ca Mau baseline, 04-06 ML verif
                      07 demo page, 08 coverage, 09 regional detection, 10 regional density,
                      11 clutter-rule check, 12 label scoring, 13 noise floor, 14 CNN on shared 1C/1D sea,
                      15 VIIRS night lights, 16 weather context, 17 look probability,
-                     18 VIIRS and radar of one night, 19 Sentinel-2 optical check
+                     18 VIIRS and radar of one night, 19 Sentinel-2 optical check, 20 Satlas check
 tests/               offline unit tests (pytest)
 data/                small derived outputs (GeoPackage, CSV) are committed; raw data is gitignored
 docs/                reports, figures, status
@@ -47,6 +47,7 @@ python scripts/16_weather_context.py           # GFS wind and Himawari-9 cloud t
 python scripts/17_look_probability.py          # chance of a Sentinel-1 look within 1, 7 and 30 days per cell
 python scripts/18_viirs_radar_pair.py --pass <S1 product prefix> --night <date> --tag <name>   # one night, two sensors
 python scripts/19_optical_check.py             # Sentinel-2 check of the radar classes (and --gallery for example chips)
+python scripts/20_satlas_check.py              # fixed structures against Satlas platforms and turbines
 pytest                                         # offline tests
 # ML (scripts 04-06, 14) needs PyTorch: use the conda environment from environment.yml
 ```
