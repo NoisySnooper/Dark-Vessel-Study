@@ -384,12 +384,14 @@ def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
     summary = DATA_DIR / "viirs_summary.json"
     summ = json.loads(summary.read_text()) if summary.exists() else {}
     rule = summ.get("persistent_rule_nights", max(3, int(np.ceil(0.3 * len(nights)))))
+    rule_text = ("on 30 % of the nights its area was clear, and at least 3" if summ.get("persistent_rule_cloud_aware")
+                 else f"on {rule} or more of {len(nights)} nights")
     # distance to the nearest Satlas point in units of 10 m (decodes to km); 65535 = not available
     infra = pers.satlas_infra_m.to_numpy(float) / 10
     infra = np.where(np.isfinite(infra), np.clip(np.round(infra), 0, 65534), 65535).astype("<u2")
     return {
         "night": str(night), "moon_pct": float(per.loc[night, "moon"]), "nights": len(nights),
-        "night_range": [str(nights[0]), str(nights[-1])], "sats": VIIRS_SATS, "rule": int(rule),
+        "night_range": [str(nights[0]), str(nights[-1])], "sats": VIIRS_SATS, "rule": int(rule), "rule_text": rule_text,
         "window_utc_min": [int(mins.min()), int(mins.max())] if len(one) else [0, 0],
         "one": {"n": int(len(one)), "cols": ["lat", "lon", "rad", "ns", "q", "sat", "min"],
                 "colz": pack(one, {"q": _b64col((one.quality != "clear").to_numpy("<u1"), "u8"),

@@ -422,7 +422,7 @@ function buildToggles() {
 function keyR() {
   let h = `<span>Passes in 90 days:</span>` + R.cov_legend.map((l, i) => `<span><i style="background:${i === 0 ? "var(--map-unimaged)" : l.color}"></i>${l.label}</span>`).join("");
   if (V && mapR.hasLayer(viirsLayer)) h += `<span class="vkey"><span><i class="vdot"></i>Light at sea, night of ${V.night}, ${hhmm(V.window_utc_min[0] + 420)} to ${hhmm(V.window_utc_min[1] + 420)} UTC+7, moon ${Math.round(V.moon_pct)} % lit</span>` +
-    `<span><i class="vring"></i>Recurring light: same spot on ${V.rule} or more of ${V.nights} nights</span><span>Lights are hours away from any radar pass and are not matched to radar contacts.</span></span>`;
+    `<span><i class="vring"></i>Recurring light: same spot ${V.rule_text || `on ${V.rule} or more of ${V.nights} nights`}</span><span>Lights are hours away from any radar pass and are not matched to radar contacts.</span></span>`;
   $("covkey").innerHTML = h;
 }
 function setView(v) {
@@ -574,7 +574,7 @@ const steps = [
 if (R.weather) steps.push(["Weather context", `GFS 10 m wind of the nearest hour and Himawari-9 cloud-top temperature of the nearest 10 minutes at every contact (shown in the inspector). Clutter-flagged objects lie under deep convection (cloud tops below 220 K) ${Math.round(R.weather.clutter * 100)} % of the time, both-channel candidates ${Math.round(R.weather.high * 100)} %.`]);
 if (R.optical && R.optical.fixed) { const O = R.optical, pc = (v) => Math.round(v * 100);
   steps.push(["Optical check", `Sentinel-2 views from ${O.window}: ${pc(O.fixed.share)} % of ${fmt(O.fixed.n)} sampled fixed structures show a bright object at the spot, against ${pc(O.high.share)} % of both-channel and ${pc(O.medium.share)} % of one-channel candidates and ${pc(O.control.share)} % of open sea. Fixed objects stay put; vessels move on.`]); }
-if (V) steps.push(["Night lights", `VIIRS Day/Night Band night passes of ${V.sats.join(", ")} on ${V.nights} nights, ${V.night_range[0]} to ${V.night_range[1]}. Point lights over open sea are found as spikes above the local background (after Elvidge et al. 2015), screened with the VIIRS cloud mask, and called recurring when a light returns to the same spot on ${V.rule} or more nights.`]);
+if (V) steps.push(["Night lights", `VIIRS Day/Night Band night passes of ${V.sats.join(", ")} on ${V.nights} nights, ${V.night_range[0]} to ${V.night_range[1]}. Point lights over open sea are found as spikes above the local background (after Elvidge et al. 2015), screened with the VIIRS cloud mask, and called recurring when a light returns to the same spot ${V.rule_text || `on ${V.rule} or more nights`}.`]);
 const next = [
   ["CNN verifier (trained, under test on 1D)", "A small network trained on AI2 Skylight expert labels from Sentinel-1A/1B. On held-out 1A/1B scenes it lifts precision from 9 % to 77 % for a recall drop from 80 % to 75 %. On the Ca Mau 1D scene it keeps 149 of 720 candidates and nothing under 25 m, because its labels are mostly large ships. Scores show in the Ca Mau inspector; your labels decide whether it transfers."],
   ["AIS correlation (built, no data yet)", "Matcher interpolates AIS to the radar time and assigns contacts one to one. Unmatched candidates become dark candidates."],

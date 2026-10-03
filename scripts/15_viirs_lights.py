@@ -50,7 +50,7 @@ from darkvessel.config import CRS_UTM_REGIONAL, DARK_CAVEAT, DARK_CAVEAT_SHORT, 
 FIG_DIR = Path(__file__).resolve().parents[1] / "docs" / "figures"
 LEAN_MAX_LIGHTS = 50_000  # keeps the committed GeoPackage near 30 MB (two CRS layers)
 LEAN_COLS = ["light_id", "satellite", "time_utc", "night", "lat", "lon", "radiance_nw", "spike_nw", "isolation", "quality",
-             "class", "nights_seen_500m", "moon_illum_pct", "satlas_infra_m", "s1_passes_90d", "caveat", "geometry"]
+             "class", "nights_seen_500m", "clear_nights_cell", "moon_illum_pct", "satlas_infra_m", "s1_passes_90d", "caveat", "geometry"]
 
 CACHE = DATA_DIR / "cache" / "viirs"
 SATS = ("S-NPP", "NOAA-20", "NOAA-21")
@@ -246,7 +246,29 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
     nb = tree.query_ball_point(xy, persist_radius_m)
     det["nights_seen_500m"] = [len(set(night_code[j])) for j in nb]
     need = max(3, int(np.ceil(persist_frac * len(nights))))
-    det["class"] = np.where(det.nights_seen_500m >= need, "persistent_light", "lit_vessel_candidate")
+    # Cloud-aware rule when the clear-sky counts exist (--clear): a light must recur on persist_frac of the nights on
+    # which its 0.25 degree cell was mostly clear (at least half the searched sea), and on at least 3 nights.
+    # A platform under a cloudy patch is then not mistaken for a boat because it was hidden on most nights.
+    tr25, shape25 = _grid()
+    clear_paths = [CACHE / f"{m['granule']}.clear.npz" for m in metas]
+    cloud_aware = bool(metas) and float(np.mean([pth.exists() for pth in clear_paths])) >= 0.9
+    if cloud_aware:
+        g_night = night_of(pd.to_datetime(pd.Series([m["start_utc"] for m in metas]), utc=True)).astype(str).tolist()
+        per_night_clear = {}
+        for gn, pth in zip(g_night, clear_paths):
+            if pth.exists():
+                z = np.load(pth)
+                arr = per_night_clear.setdefault(gn, np.zeros(shape25[0] * shape25[1]))
+                np.maximum.at(arr, z["cells"], z["clear_n"] / np.maximum(z["sea_n"], 1))
+        clear_nights = np.sum([a >= 0.5 for a in per_night_clear.values()], axis=0)
+        r = np.clip(np.floor((det.lat.to_numpy() - tr25.f) / tr25.e).astype(int), 0, shape25[0] - 1)
+        c = np.clip(np.floor((det.lon.to_numpy() - tr25.c) / tr25.a).astype(int), 0, shape25[1] - 1)
+        det["clear_nights_cell"] = clear_nights[r * shape25[1] + c].astype(int)
+        need_i = np.maximum(3, np.ceil(persist_frac * det.clear_nights_cell)).astype(int)
+    else:
+        det["clear_nights_cell"] = -1
+        need_i = np.full(len(det), need)
+    det["class"] = np.where(det.nights_seen_500m >= need_i, "persistent_light", "lit_vessel_candidate")
 
     # Distance to Satlas offshore infrastructure (platforms, turbines), if reachable
     try:
@@ -293,7 +315,9 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
              "detector": "spike detector after Elvidge et al. 2015 (src/darkvessel/viirs/detect.py): 7 x 7 median background, "
                          "local noise 15 x 15, spike >= 5 x noise and >= 1.5 nW cm-2 sr-1, peak >= 2 x background, isolation >= 2",
              "cloud_screening": "VIIRS JRR cloud mask: clear or probably clear kept; under cloud kept only if spike >= 5 nW and isolation >= 8",
-             "persistent_light": f"lights within {persist_radius_m:.0f} m on at least {need} of {len(nights)} nights",
+             "persistent_light": (f"lights within {persist_radius_m:.0f} m on at least {persist_frac:.0%} of the nights on which the "
+                                  "0.25 degree cell was mostly clear (column clear_nights_cell), and on at least 3 nights"
+                                  if cloud_aware else f"lights within {persist_radius_m:.0f} m on at least {need} of {len(nights)} nights"),
              "data_credit": "VIIRS DNB SDR, DNB GEO and JRR Cloud Mask from NOAA JPSS on the AWS Open Data Registry "
                             "(noaa-nesdis-snpp-pds, noaa-nesdis-n20-pds, noaa-nesdis-n21-pds); Natural Earth (public domain); "
                             "Satlas marine infrastructure (AI2, ODC-BY)"}
@@ -419,7 +443,7 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
         per_night["lit_per_1000km2_clear"] = (1000 * per_night.clear_lit / per_night.clear_sea_km2.where(per_night.clear_sea_km2 > 0)).round(3)
     summary = {"nights": [str(n) for n in nights], "granules": len(metas), "lights": int(len(det)),
                "classes": det["class"].value_counts().to_dict(), "quality": det.quality.value_counts().to_dict(),
-               "persistent_rule_nights": need, "sharp_single_pixel": int(det.sharp.sum()),
+               "persistent_rule_nights": need, "persistent_rule_cloud_aware": cloud_aware, "sharp_single_pixel": int(det.sharp.sum()),
                "near_satlas_1km": int((det.satlas_infra_m <= 1000).sum()) if det.satlas_infra_m.notna().any() else None,
                "persistent_near_satlas_1km_share": round(float((det[det["class"] == "persistent_light"].satlas_infra_m <= 1000).mean()), 3)
                if det.satlas_infra_m.notna().any() and (det["class"] == "persistent_light").any() else None,
@@ -460,7 +484,8 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
                                       "aoi_mean_lit_per_1000km2_clear_per_pass": round(float(dens_clear[dens_clear >= 0].mean()), 3)}
     (DATA_DIR / "viirs_summary.json").write_text(json.dumps(summary, indent=1, default=str))
     print(json.dumps({k: v for k, v in summary.items() if k != "per_night"}, indent=1, default=str))
-    figure(det, dens if dens_clear is None else dens_clear, tr, aoi, need, nights, per_night, clear_basis=dens_clear is not None)
+    rule_label = f"{persist_frac:.0%} of clear nights, 3+" if cloud_aware else f"{need}+ of {len(nights)} nights"
+    figure(det, dens if dens_clear is None else dens_clear, tr, aoi, rule_label, nights, per_night, clear_basis=dens_clear is not None)
 
 
 def figure(det, dens, tr, aoi, need, nights, per_night, clear_basis=False):
@@ -512,7 +537,7 @@ def figure(det, dens, tr, aoi, need, nights, per_night, clear_basis=False):
     ax.grid(True, zorder=0)
     handles = [Patch(facecolor=c, edgecolor="none", label=l) for c, l in zip(colors, labels)]
     handles.append(Line2D([], [], linestyle="none", marker="o", markersize=5, markerfacecolor=SERIES_EXTENDED[3], markeredgecolor=INK,
-                          markeredgewidth=0.5, label=f"recurring light ({need}+ of {len(nights)} nights)"))
+                          markeredgewidth=0.5, label=f"recurring light ({need})"))
     handles.append(Line2D([], [], color=INK, linewidth=1.1, linestyle="--", label="never imaged by Sentinel-1 (90 days)"))
     basis = "clear sea" if clear_basis else "sea"
     ax.legend(handles=handles, title=f"Lit vessel candidates per\n1,000 km2 of {basis} per pass", loc="lower right", fontsize=9,
