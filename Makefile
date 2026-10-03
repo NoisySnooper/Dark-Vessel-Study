@@ -3,7 +3,7 @@
 #
 #   make test          offline tests
 #   make regional      AOI, scene search, coverage, 12-day regional detection, density, look probability
-#   make context       weather at each radar object, VIIRS night lights (27 nights)
+#   make context       weather at each radar object, VIIRS night lights (27 nights), Sentinel-2 optical check
 #   make camau         Ca Mau detail scene and the CNN verifier scores
 #   make demo          self-contained demo page (OUT=path/to/page.html)
 #   make all           everything above
@@ -16,7 +16,7 @@ DAYS ?= 12
 VIIRS_START ?= 2026-09-05
 VIIRS_END ?= 2026-10-01
 
-.PHONY: all test regional context camau demo aoi search coverage detect merge density look weather viirs
+.PHONY: all test regional context camau demo aoi search coverage detect merge density look weather viirs optical
 
 all: regional context camau demo
 
@@ -52,9 +52,14 @@ weather: merge
 viirs: coverage
 	$(PY) scripts/15_viirs_lights.py --start $(VIIRS_START) --end $(VIIRS_END)
 	$(PY) scripts/15_viirs_lights.py --retry
+	$(PY) scripts/15_viirs_lights.py --clear
 	$(PY) scripts/15_viirs_lights.py --merge
 
-context: weather viirs
+optical: merge
+	$(PY) scripts/19_optical_check.py
+	$(PY) scripts/19_optical_check.py --gallery
+
+context: weather viirs optical
 
 # CNN weights are not in git (data/models/ is ignored): build the training set from AI2 labels and train once.
 data/models/verifier_v0.pt:
