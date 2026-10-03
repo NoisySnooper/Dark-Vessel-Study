@@ -452,12 +452,17 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
     return data, chips
 
 
-def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: int = 400, reuse: bool = False) -> Path:
-    """Write the page. reuse=True takes the data saved by the previous build (template-only changes)."""
+def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: int = 400, reuse: bool = False,
+               refresh_viirs: bool = False) -> Path:
+    """Write the page. reuse=True takes the data saved by the previous build (template-only changes);
+    refresh_viirs=True then also reloads the VIIRS layer from data/viirs_lights.gpkg (no chip refetch)."""
     cache = Path(out_html).with_suffix(".data.json")
     if reuse and cache.exists():
         saved = json.loads(cache.read_text())
         data, det_img = saved["data"], saved["det_img"]
+        if refresh_viirs:
+            data["regional"]["viirs"] = viirs_data()
+            cache.write_text(json.dumps({"data": data, "det_img": det_img}, separators=(",", ":")))
     else:
         reg, chips_r = regional_data(max_chips_regional)
         det, det_img, chips_d = camau_data(max_chips_detail)
