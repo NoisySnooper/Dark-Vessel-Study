@@ -30,7 +30,8 @@ Access and licence facts are in `docs/data_additions.md` (N01, N02) and `docs/da
 5. **Screen cloud.** Lights where the VIIRS cloud mask says clear or probably clear are kept. Under probable or certain cloud a light is kept only if its spike is at least 5 nW cm-2 sr-1 and its isolation at least 8, because boat lights shine through thin cloud while moonlit cloud texture makes weak, poorly isolated spikes. Each light carries `quality` = clear or under_cloud.
 6. **Separate recurring lights.** A light is `persistent_light` when lights fall within 500 m of it on at least max(3, 30 % of the nights processed); everything else is `lit_vessel_candidate`. Recurring lights are platforms, flares, island and navigation lights, and anchorages. Each light also carries the distance to the nearest Satlas platform or turbine (`satlas_infra_m`).
 7. **Compare with the radar.** Each light carries `s1_passes_90d`, the number of Sentinel-1 IW passes over its 0.05 degree cell in the 90-day window (0 = never imaged). The density raster below is compared with the radar vessel density on the same 0.25 degree grid (Spearman rank correlation over cells observed by both).
-8. **Density.** Clear-sky lit vessel candidates per 1,000 km2 per satellite pass, 0.25 degree cells; a cell's number of passes is the number of granule outlines that cover it.
+8. **Clear sea.** For every granule the VIIRS cloud mask is read again on its own grid, and the clear and probably clear pixels over searched sea are counted per 0.25 degree cell (`--clear`). Lights under thick cloud never reach the sensor, so the clear sea seen is the fair denominator.
+9. **Density.** Clear-sky lit vessel candidates on 0.25 degree cells, two ways: per 1,000 km2 of searched sea per satellite pass (`viirs_lit_density_*`), and per 1,000 km2 of clear searched sea per pass (`viirs_lit_density_clear_*`). Nightly rates per satellite use the clear sea that satellite saw that night.
 
 ## Outputs (ArcGIS Pro ready)
 
@@ -38,11 +39,11 @@ Access and licence facts are in `docs/data_additions.md` (N01, N02) and `docs/da
   - `viirs_lights_4326`, `viirs_lights_utm49n`: one point per light. Fields: `light_id`, `satellite`, `time_utc`, `night` (local evening date, UTC+7), `granule`, `radiance_nw`, `background_nw`, `spike_nw`, `snr`, `isolation`, `neighbour_share`, `sharp`, `moon_illum_pct`, `lunar_zenith_deg`, `cloud_mask` (-1 = no mask value within 2 km), `quality`, `nights_seen_500m`, `class`, `satlas_infra_m`, `s1_passes_90d`, `caveat`.
   - `viirs_granules_4326`, `viirs_granules_utm49n`: granule outlines with time, moon and light count.
   - `about`: caveat, detector settings, cloud rule, persistence rule, data credits.
-- `data/outputs/small/viirs_lit_density_4326.tif` and `_utm49n.tif`: COG, float32, nodata -1.
+- `data/outputs/small/viirs_lit_density_4326.tif` and `_utm49n.tif`: per km2 of searched sea per pass; `viirs_lit_density_clear_4326.tif` and `_utm49n.tif`: per km2 of clear searched sea per pass. COG, float32, nodata -1.
 - `data/viirs_summary.json`: counts, rules, per-night and per-satellite table, radar checks.
 - `docs/figures/viirs_lights.png`: density map with recurring lights, lights per night against the moon.
 
-Rerun: `python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01 --workers 3`, then `--retry` if any granule failed, then `--merge`.
+Rerun: `python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01 --workers 3`, then `--retry` if any granule failed, `--clear`, and `--merge`.
 
 ## Results
 
@@ -53,7 +54,7 @@ RESULTS PENDING (the 27-night run is in progress).
 - **A light is not a vessel, and a lit vessel is not a dark vessel.** Platforms, flares and island lights recur and are separated by the persistence rule, but a platform seen on fewer than the threshold nights, a new platform or a lit boat moored on the same spot every night can land in the wrong class.
 - **Unlit and dimly lit boats are invisible.** VIIRS counts boats that use lights at night (light-luring fisheries above all). It says nothing about unlit boats, so it bounds lit activity, not the fleet.
 - **Different time from the radar.** VIIRS night passes over the AOI fall at about 00:00 to 03:00 UTC+7; the 119 Sentinel-1 scenes of the regional run start between 04:00 and 07:00 or between 16:00 and 19:00 UTC+7 (`scenes_processed_4326` in `data/detections_regional.gpkg`). Lights and radar contacts are hours apart, so they are compared by area, never matched one to one.
-- **Moon and cloud.** A bright moon raises the background and hides dim lights; thick cloud hides lights altogether; the cloud rule keeps only bright, isolated lights under cloud. Night-to-night counts therefore mix real activity with moon and cloud.
+- **Moon and cloud.** A bright moon raises the background and hides dim lights; thick cloud hides lights altogether; the cloud rule keeps only bright, isolated lights under cloud. Raw nightly counts follow cloud more than anything else (on the new-moon nights of 10 to 12 September only 4 to 20 % of the sea in some granules was clear), so nights are compared per km2 of clear sea, not by raw counts.
 - **Near-shore water is not tested.** Pixels within about 2 km of Natural Earth land are masked to keep shore lights out, so boats in harbours, river mouths and the first 2 km off the coast are not counted. Small islands and reefs missing from Natural Earth stay in the sea mask; their lights recur and land in the recurring class.
 - **Double counts.** Where swaths of two passes or two satellites overlap, a boat can be counted more than once in a night. The density raster divides by passes; raw per-night totals do not.
 - **Persistence threshold.** max(3, 30 % of nights) was set by judgement, not calibrated against truth. Dense fishing grounds could reach it by chance only at densities far above those mapped here, but this was not tested.
