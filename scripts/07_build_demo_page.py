@@ -12,7 +12,7 @@ from darkvessel.viz.demo import build_demo
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--out", required=True, type=Path)
-ap.add_argument("--chips-regional", type=int, default=500)
+ap.add_argument("--chips-regional", type=int, default=700)
 ap.add_argument("--chips-detail", type=int, default=600)
 ap.add_argument("--reuse-data", action="store_true", help="reuse the data saved by the last build (template changes only)")
 ap.add_argument("--refresh-viirs", action="store_true", help="with --reuse-data: reload the VIIRS layer (after 15_viirs_lights.py --merge)")

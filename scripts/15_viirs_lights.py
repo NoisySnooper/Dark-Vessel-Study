@@ -26,6 +26,8 @@ evidence that something lit was there at about 01:30 local time.
 
 Usage: python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01 --workers 3   then   --merge
        python scripts/15_viirs_lights.py --retry   (rerun granules that failed, then --merge)
+       python scripts/15_viirs_lights.py --clear   (clear-sky sea per 0.25 degree cell and granule, from the cloud
+                                                    masks; lets --merge normalise by clear sea, not passes)
 """
 
 import argparse
@@ -136,6 +138,67 @@ def run(start: dt.date, end: dt.date, workers: int):
             gid, n, err = f.result()
             if err or i % 20 == 0:
                 print(f"[{time.time() - t0:6.0f}s] {i}/{len(jobs)} {gid} {n} lights {err or ''}", flush=True)
+
+
+GRID_RES = 0.25
+
+
+def _grid():
+    from darkvessel.coverage import grid_for
+
+    return grid_for(aoi_gdf(DEFAULT_AOI).geometry.iloc[0].bounds, GRID_RES)
+
+
+def _clear_work(job):
+    """Sea and clear-sky pixel counts per 0.25 degree cell for one granule's cloud mask (cached as .clear.npz)."""
+    global _SEA
+    sat, key = job
+    import h5py
+
+    from darkvessel.viirs import access
+
+    gid = key.rsplit("/", 1)[-1][:40]
+    out = CACHE / f"{gid}.clear.npz"
+    try:
+        if _SEA is None:
+            _SEA = sea_grid()
+        ck = access.matching_key(sat, key, "cloud")
+        if ck is None:
+            return gid, "no_mask"
+        with access._open(sat, ck, 4 * 1024 * 1024) as f, h5py.File(f, "r") as h:
+            lat, lon, cm = h["Latitude"][:], h["Longitude"][:], h["CloudMask"][:]
+        tr, shape = _grid()
+        ok = (lat > -90) & _SEA.lookup(lon, lat)
+        r = np.floor((lat[ok] - tr.f) / tr.e).astype(np.int64)
+        c = np.floor((lon[ok] - tr.c) / tr.a).astype(np.int64)
+        inside = (r >= 0) & (r < shape[0]) & (c >= 0) & (c < shape[1])
+        flat = r[inside] * shape[1] + c[inside]
+        sea_n = np.bincount(flat, minlength=shape[0] * shape[1])
+        clear_n = np.bincount(flat, weights=np.isin(cm[ok][inside], (0, 1)).astype(float), minlength=shape[0] * shape[1])
+        cells = np.nonzero(sea_n)[0]
+        np.savez_compressed(out, cells=cells.astype(np.int32), sea_n=sea_n[cells].astype(np.int32), clear_n=clear_n[cells].astype(np.int32))
+        return gid, "ok"
+    except Exception as e:  # noqa: BLE001
+        return gid, repr(e)[:120]
+
+
+def clear_sky(workers: int):
+    """Clear-sky sea counts for every processed granule that has none yet."""
+    keys = {}
+    for p in sorted((CACHE / "index").glob("*.json")):
+        sat = p.stem.split("_", 1)[1]
+        for k in json.loads(p.read_text()):
+            keys[k.rsplit("/", 1)[-1][:40]] = (sat, k)
+    done = [m.stem for m in CACHE.glob("*.json")]
+    jobs = [keys[g] for g in done if g in keys and not (CACHE / f"{g}.clear.npz").exists()]
+    print(f"{len(jobs)} granules without clear-sky counts", flush=True)
+    bad = 0
+    with ProcessPoolExecutor(workers) as ex:
+        for i, (gid, status) in enumerate(ex.map(_clear_work, jobs), 1):
+            bad += status != "ok"
+            if status != "ok" or i % 50 == 0:
+                print(f"{i}/{len(jobs)} {gid} {status}", flush=True)
+    print(f"done, {bad} without counts", flush=True)
 
 
 def retry(workers: int):
@@ -281,7 +344,11 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
                       "rebuilt by scripts/15_viirs_lights.py --merge.")
     pyogrio.write_dataframe(pd.DataFrame([about_lean]), lean, layer="about", driver="GPKG")
 
-    # Mean lights per night per 1,000 km2 of observed sea (persistent lights excluded), clear-sky lights only
+    # Density of clear-sky lit vessel candidates (persistent lights excluded) on a 0.25 degree grid, two ways:
+    #   per satellite pass: counts / (passes x sea area of the cell)
+    #   per clear sea:      counts / (sum over granules of the clear-sky share of the cell's sea x sea area),
+    #                       from the cloud-mask counts of --clear; lights under thick cloud are invisible, so this
+    #                       is the fair basis for comparing nights and areas
     aoi = aoi_gdf(DEFAULT_AOI).geometry.iloc[0]
     tr, shape = grid_for(aoi.bounds, res)
     looks = np.zeros(shape, np.float64)
@@ -289,6 +356,14 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
         looks += features.rasterize([(Polygon(zip(m["ring_lon"], m["ring_lat"])), 1)], out_shape=shape, transform=tr, dtype="uint8")
     area = cell_area_km2(tr, shape)
     aoi_mask = features.rasterize([(aoi, 1)], out_shape=shape, transform=tr, dtype="uint8").astype(bool)
+    sg = sea_grid()  # sea beyond about 2 km of land, 0.01 degree: the only water searched for lights
+    sr, sc = np.nonzero(sg.mask)
+    r25 = np.floor((sg.north - (sr + 0.5) * sg.res - tr.f) / tr.e).astype(int)
+    c25 = np.floor((sg.west + (sc + 0.5) * sg.res - tr.c) / tr.a).astype(int)
+    keep = (r25 >= 0) & (r25 < shape[0]) & (c25 >= 0) & (c25 < shape[1])
+    sea_cells = np.zeros(shape)
+    np.add.at(sea_cells, (r25[keep], c25[keep]), 1)
+    sea_km2 = area * sea_cells / (res / sg.res) ** 2
     v = det[(det["class"] == "lit_vessel_candidate") & (det.quality == "clear")]
     rr = np.floor((v.lat.to_numpy() - tr.f) / tr.e).astype(int)
     cc = np.floor((v.lon.to_numpy() - tr.c) / tr.a).astype(int)
@@ -296,20 +371,52 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
     counts = np.zeros(shape)
     np.add.at(counts, (rr[okk], cc[okk]), 1)
     dens = np.full(shape, -1.0, np.float32)
-    valid = aoi_mask & (looks > 0)
-    dens[valid] = 1000 * counts[valid] / (looks[valid] * area[valid])
-    tags = {"units": "clear-sky lit vessel candidates per 1,000 km2 per satellite pass (persistent lights excluded)",
-            "nodata": "-1 = outside AOI or not observed", "source": "scripts/15_viirs_lights.py", "caveat": DARK_CAVEAT_SHORT}
+    valid = aoi_mask & (looks > 0) & (sea_km2 >= 25)
+    dens[valid] = 1000 * counts[valid] / (looks[valid] * sea_km2[valid])
     small = DATA_DIR / "outputs" / "small"
-    write_cog(dens, tr, "EPSG:4326", small / "viirs_lit_density_4326.tif", nodata=-1, tags=tags)
-    t2, w2, h2 = calculate_default_transform("EPSG:4326", CRS_UTM_REGIONAL, shape[1], shape[0], *aoi.bounds, resolution=25000)
-    dst = np.full((h2, w2), -1, np.float32)
-    reproject(dens, dst, src_transform=tr, src_crs="EPSG:4326", dst_transform=t2, dst_crs=CRS_UTM_REGIONAL,
-              resampling=Resampling.nearest, src_nodata=-1, dst_nodata=-1)
-    write_cog(dst, t2, CRS_UTM_REGIONAL, small / "viirs_lit_density_utm49n.tif", nodata=-1, tags=tags)
 
-    per_night = (det.groupby(["night", "satellite"]).agg(lights=("light_id", "size"), clear=("quality", lambda q: int((q == "clear").sum())),
-                                                          moon=("moon_illum_pct", "median")).reset_index())
+    def cogs(arr, name, units):
+        tags = {"units": units, "nodata": "-1 = outside AOI, not observed, or under 25 km2 of searched sea in the cell",
+                "source": "scripts/15_viirs_lights.py", "caveat": DARK_CAVEAT_SHORT + " A light at sea is not proof of a vessel."}
+        write_cog(arr, tr, "EPSG:4326", small / f"{name}_4326.tif", nodata=-1, tags=tags)
+        t2, w2, h2 = calculate_default_transform("EPSG:4326", CRS_UTM_REGIONAL, shape[1], shape[0], *aoi.bounds, resolution=25000)
+        dst = np.full((h2, w2), -1, np.float32)
+        reproject(arr, dst, src_transform=tr, src_crs="EPSG:4326", dst_transform=t2, dst_crs=CRS_UTM_REGIONAL,
+                  resampling=Resampling.nearest, src_nodata=-1, dst_nodata=-1)
+        write_cog(dst, t2, CRS_UTM_REGIONAL, small / f"{name}_utm49n.tif", nodata=-1, tags=tags)
+
+    cogs(dens, "viirs_lit_density", "clear-sky lit vessel candidates per 1,000 km2 of searched sea per satellite pass "
+                                    "(persistent lights excluded)")
+    clear_files = [CACHE / f"{m['granule']}.clear.npz" for m in metas]
+    have_clear = float(np.mean([p.exists() for p in clear_files])) if metas else 0.0
+    dens_clear, gran_clear_km2 = None, {}
+    if have_clear >= 0.9:
+        clear_looks = np.zeros(shape[0] * shape[1])
+        for m, pth in zip(metas, clear_files):
+            if pth.exists():
+                z = np.load(pth)
+                frac = z["clear_n"] / np.maximum(z["sea_n"], 1)
+                clear_looks[z["cells"]] += frac
+                gran_clear_km2[m["granule"]] = float((frac * sea_km2.ravel()[z["cells"]]).sum())
+        clear_looks = clear_looks.reshape(shape)
+        dens_clear = np.full(shape, -1.0, np.float32)
+        validc = aoi_mask & (clear_looks >= 0.5) & (sea_km2 >= 25)
+        dens_clear[validc] = 1000 * counts[validc] / (clear_looks[validc] * sea_km2[validc])
+        cogs(dens_clear, "viirs_lit_density_clear", "clear-sky lit vessel candidates per 1,000 km2 of clear searched sea "
+                                                    "per satellite pass (persistent lights excluded)")
+    else:
+        print(f"clear-sky counts for {have_clear:.0%} of granules: run --clear for the clear-sea density", flush=True)
+
+    per_night = (det.assign(clear_lit=(det["class"] == "lit_vessel_candidate") & (det.quality == "clear"))
+                 .groupby(["night", "satellite"]).agg(lights=("light_id", "size"), clear=("quality", lambda q: int((q == "clear").sum())),
+                                                      clear_lit=("clear_lit", "sum"), moon=("moon_illum_pct", "median")).reset_index())
+    if gran_clear_km2:  # clear searched sea seen per night and satellite, from the cloud masks
+        gm = pd.DataFrame({"granule": [m["granule"] for m in metas], "satellite": [m["satellite"] for m in metas],
+                           "night": night_of(pd.to_datetime(pd.Series([m["start_utc"] for m in metas]), utc=True)).astype(str)})
+        gm["clear_sea_km2"] = gm.granule.map(gran_clear_km2)
+        per_night = per_night.merge(gm.groupby(["night", "satellite"]).clear_sea_km2.sum().round(0).reset_index(),
+                                    on=["night", "satellite"], how="left")
+        per_night["lit_per_1000km2_clear"] = (1000 * per_night.clear_lit / per_night.clear_sea_km2.where(per_night.clear_sea_km2 > 0)).round(3)
     summary = {"nights": [str(n) for n in nights], "granules": len(metas), "lights": int(len(det)),
                "classes": det["class"].value_counts().to_dict(), "quality": det.quality.value_counts().to_dict(),
                "persistent_rule_nights": need, "sharp_single_pixel": int(det.sharp.sum()),
@@ -345,17 +452,18 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
                                          "radiance_median_sharp_nw": round(float(det[det.sharp.astype(bool)].radiance_nw.median()), 2),
                                          "radiance_median_broad_nw": round(float(det[~det.sharp.astype(bool)].radiance_nw.median()), 2)}
     if len(nights) >= 5:
-        pn = per_night.copy()
-        pn["clear_lit"] = [int(((g["class"] == "lit_vessel_candidate") & (g.quality == "clear")).sum())
-                           for _, g in det.groupby(["night", "satellite"])]
-        summary["moon_vs_clear_lit_spearman"] = {s: round(float(spearmanr(g.moon, g.clear_lit)[0]), 3)
-                                                 for s, g in pn.groupby("satellite") if len(g) >= 5}
+        metric = "lit_per_1000km2_clear" if "lit_per_1000km2_clear" in per_night else "clear_lit"
+        summary["moon_vs_lit_spearman"] = {"metric": metric, **{s: round(float(spearmanr(g.moon, g[metric], nan_policy="omit")[0]), 3)
+                                                                for s, g in per_night.groupby("satellite") if len(g) >= 5}}
+    if dens_clear is not None:
+        summary["clear_sea_basis"] = {"granules_with_cloud_counts": round(have_clear, 3),
+                                      "aoi_mean_lit_per_1000km2_clear_per_pass": round(float(dens_clear[dens_clear >= 0].mean()), 3)}
     (DATA_DIR / "viirs_summary.json").write_text(json.dumps(summary, indent=1, default=str))
     print(json.dumps({k: v for k, v in summary.items() if k != "per_night"}, indent=1, default=str))
-    figure(det, dens, tr, aoi, need, nights)
+    figure(det, dens if dens_clear is None else dens_clear, tr, aoi, need, nights, per_night, clear_basis=dens_clear is not None)
 
 
-def figure(det, dens, tr, aoi, need, nights):
+def figure(det, dens, tr, aoi, need, nights, per_night, clear_basis=False):
     """Map of mean lit-vessel density per pass with recurring lights, and lights per night against the moon."""
     import matplotlib
 
@@ -406,14 +514,15 @@ def figure(det, dens, tr, aoi, need, nights):
     handles.append(Line2D([], [], linestyle="none", marker="o", markersize=5, markerfacecolor=SERIES_EXTENDED[3], markeredgecolor=INK,
                           markeredgewidth=0.5, label=f"recurring light ({need}+ of {len(nights)} nights)"))
     handles.append(Line2D([], [], color=INK, linewidth=1.1, linestyle="--", label="never imaged by Sentinel-1 (90 days)"))
-    ax.legend(handles=handles, title="Lit vessel candidates per\n1,000 km2 per satellite pass", loc="lower right", fontsize=9,
+    basis = "clear sea" if clear_basis else "sea"
+    ax.legend(handles=handles, title=f"Lit vessel candidates per\n1,000 km2 of {basis} per pass", loc="lower right", fontsize=9,
               title_fontsize=9, frameon=True, facecolor="#fcfcfb", edgecolor="#e1e0d9")
 
     # Lights per night by satellite, with the moon above
     sats = [s for s in SATS if s in set(det.satellite)]
-    clear = det[(det["class"] == "lit_vessel_candidate") & (det.quality == "clear")]
     ns = [str(n) for n in nights]
-    per = clear.groupby(["night", "satellite"]).size().unstack("satellite").reindex(ns)
+    metric = "lit_per_1000km2_clear" if clear_basis and "lit_per_1000km2_clear" in per_night else "clear_lit"
+    per = per_night.pivot(index="night", columns="satellite", values=metric).reindex(ns)
     moon = det.groupby("night").moon_illum_pct.median().reindex(ns)
     x = pd.to_datetime(pd.Series(ns))
     axm = fig.add_axes([0.08, 0.215, 0.89, 0.055])
@@ -427,7 +536,7 @@ def figure(det, dens, tr, aoi, need, nights):
     for s, c in zip(sats, SERIES_LIGHT):
         if s in per:
             axn.plot(x, per[s].to_numpy(), color=c, marker="o", markersize=3.5, linewidth=1.4, label=s, zorder=3)
-    axn.set_ylabel("Clear-sky lit\ncandidates", fontsize=8)
+    axn.set_ylabel("Lit candidates per\n1,000 km2 clear sea" if metric != "clear_lit" else "Clear-sky lit\ncandidates", fontsize=8)
     axn.tick_params(labelsize=8)
     axn.grid(True, axis="y", zorder=0)
     axn.set_ylim(bottom=0)
@@ -436,12 +545,13 @@ def figure(det, dens, tr, aoi, need, nights):
     axn.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     fig.text(0.08, 0.975, "Lights at sea at night: South China Sea", fontsize=15, color=INK, fontweight="bold", va="top")
     fig.text(0.08, 0.948, f"VIIRS Day/Night Band, {len(nights)} night{'s' if len(nights) != 1 else ''} ({nights[0]} to {nights[-1]}), about 00:00 to 03:00 UTC+7. "
-             f"Map: clear-sky lights that do not recur,\nper 1,000 km2 per satellite pass, 0.25 degree cells. Recurring lights are "
+             f"Map: clear-sky lights that do not recur,\nper 1,000 km2 of {'clear ' if clear_basis else ''}sea per satellite pass, 0.25 degree cells. Recurring lights are "
              f"platforms, flares, island lights and anchorages.\nA light at sea is not proof of a vessel. {DARK_CAVEAT_SHORT}",
              fontsize=9.5, color=INK_2, va="top")
     fig.text(0.08, 0.012, "VIIRS DNB SDR, GEO and JRR cloud mask: NOAA JPSS on the AWS Open Data Registry. Detector after Elvidge "
              "et al. 2015 (doi:10.3390/rs70303020).\nAOI and land: Natural Earth (public domain). No maritime boundaries or "
-             "claims are drawn. Night counts depend on swath geometry (one or two passes).", fontsize=7.5, color=MUTED, va="bottom")
+             "claims are drawn. " + ("Nightly rates divide by the clear sea each satellite saw that night." if clear_basis else
+                                     "Night counts depend on swath geometry and cloud."), fontsize=7.5, color=MUTED, va="bottom")
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     fig.savefig(FIG_DIR / "viirs_lights.png", dpi=150)
     plt.close(fig)
@@ -455,10 +565,13 @@ if __name__ == "__main__":
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--merge", action="store_true")
     ap.add_argument("--retry", action="store_true")
+    ap.add_argument("--clear", action="store_true")
     a = ap.parse_args()
     if a.merge:
         merge()
     elif a.retry:
         retry(a.workers)
+    elif a.clear:
+        clear_sky(a.workers)
     else:
         run(a.start, a.end, a.workers)
