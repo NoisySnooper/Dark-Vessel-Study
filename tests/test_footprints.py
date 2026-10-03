@@ -168,3 +168,23 @@ def test_get_retries_transient_errors(monkeypatch):
     monkeypatch.setattr(aws.time, "sleep", lambda s: None)
     assert isinstance(aws._get("https://example.invalid/x"), Resp)
     assert calls["n"] == 3
+
+
+def test_look_probability_counts_start_days():
+    import datetime as dt
+
+    import geopandas as gpd
+    from shapely.geometry import box
+
+    from darkvessel.coverage import look_probability
+
+    aoi = box(0, 0, 1, 1)
+    # one pass over the west half on day 0 and day 5 of a 10-day window; the east half is never imaged
+    passes = gpd.GeoDataFrame({"start_utc": ["2026-01-01T10:00:00Z", "2026-01-06T22:00:00Z"]},
+                              geometry=[box(0, 0, 0.5, 1), box(0, 0, 0.5, 1)], crs="EPSG:4326")
+    p, mask, tr = look_probability(passes, aoi, dt.date(2026, 1, 1), 10, windows=(1, 5, 10), res_deg=0.25)
+    west, east = p[1][:, 0], p[1][:, -1]
+    assert np.allclose(west, 0.2) and np.allclose(east, 0.0)
+    # k = 5: start days 0..5 (6 of them); windows starting at 0, 1..5 all hold day 0 or day 5
+    assert np.allclose(p[5][:, 0], 1.0)
+    assert np.allclose(p[10][:, 0], 1.0) and np.allclose(p[10][:, -1], 0.0)

@@ -1,0 +1,26 @@
+{
+  "window": "2026-07-04 to 2026-10-02",
+  "days": 90,
+  "passes": 280,
+  "res_deg": 0.05,
+  "by_window": {
+    "1d": {
+      "aoi_mean": 0.0632,
+      "share_of_aoi_p_ge_50pct": 0.0,
+      "share_of_aoi_p_eq_100pct": 0.0,
+      "share_of_aoi_p_eq_0": 0.4465
+    },
+    "7d": {
+      "aoi_mean": 0.3354,
+      "share_of_aoi_p_ge_50pct": 0.4165,
+      "share_of_aoi_p_eq_100pct": 0.0788,
+      "share_of_aoi_p_eq_0": 0.4465
+    },
+    "30d": {
+      "aoi_mean": 0.4973,
+      "share_of_aoi_p_ge_50pct": 0.4932,
+      "share_of_aoi_p_eq_100pct": 0.4174,
+      "share_of_aoi_p_eq_0": 0.4465
+    }
+  }
+}

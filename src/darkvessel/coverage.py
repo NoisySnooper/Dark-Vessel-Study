@@ -67,3 +67,32 @@ def coverage_stats(counts: np.ndarray, aoi_mask: np.ndarray, transform, days: in
     # Pass area summed over the window, per day, as a share of the AOI: what one average day sees
     out["mean_daily_share_imaged"] = round(float((counts[aoi_mask] * area[aoi_mask]).sum()) / days / a_total, 4)
     return out
+
+
+def look_probability(passes: gpd.GeoDataFrame, aoi_geom, start, days: int, windows=(1, 7, 30), res_deg: float = 0.05):
+    """Chance that each cell is imaged at least once within k days, for k in `windows`.
+
+    For every start day d of the window with [d, d + k) inside the window, a cell counts as seen if any pass
+    covers it on those days (UTC dates); the probability is the share of such start days. k = 1 gives the
+    share of days with a look. Returns ({k: float32 array}, aoi_mask, transform).
+    """
+    import pandas as pd
+
+    transform, shape = grid_for(aoi_geom.bounds, res_deg)
+    seen = np.zeros((days, *shape), bool)
+    t0 = pd.Timestamp(start)
+    for geom, t in zip(passes.geometry, passes.start_utc):
+        ts = pd.Timestamp(t)
+        if ts.tzinfo is not None:
+            ts = ts.tz_convert("UTC").tz_localize(None)
+        d = (ts.normalize() - t0).days
+        if 0 <= d < days:
+            seen[d] |= features.rasterize([(geom, 1)], out_shape=shape, transform=transform, fill=0, dtype="uint8").astype(bool)
+    cum = np.concatenate([np.zeros((1, *shape), np.int32), np.cumsum(seen, axis=0, dtype=np.int32)])
+    out = {}
+    for k in windows:
+        n = days - k + 1
+        if n > 0:
+            out[k] = ((cum[k:k + n] - cum[:n]) > 0).mean(axis=0).astype(np.float32)
+    aoi_mask = features.rasterize([(aoi_geom, 1)], out_shape=shape, transform=transform, fill=0, dtype="uint8").astype(bool)
+    return out, aoi_mask, transform
