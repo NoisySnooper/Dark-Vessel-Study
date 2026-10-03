@@ -138,4 +138,6 @@ def light_sites(lights: pd.DataFrame, link_m: float = 500.0) -> pd.DataFrame:
                 radiance_med_nw=("radiance_nw", "median"), radiance_max_nw=("radiance_nw", "max"))
     if "satlas_infra_m" in lights:
         out["satlas_infra_m"] = g.satlas_infra_m.min()
+    if "nights_seen_500m" in lights:  # the persistence measure: most nights with a light within 500 m of any member
+        out["nights_seen_max"] = g.nights_seen_500m.max()
     return out.reset_index()

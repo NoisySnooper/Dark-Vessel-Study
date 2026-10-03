@@ -39,7 +39,7 @@ A fourth, independent term bounds activity without radar truth:
 | D, recall by length on Sentinel-1A/1B, AI2 labels (held-out, 50 m rule) | CFAR: 0.94 at 25 to 50 m (15 of 16), 0.88 at 50 to 100 m (63 of 72); 2 labels at 15 to 25 m; none under 15 m | `data/ml/recall_by_length_test.csv`, `docs/ml_verifier.md` |
 | D, Sentinel-1C/1D | not measured: no 1C/1D truth yet | owner labeling (precision only), AIS (recall) |
 | F, Vietnamese fleet by length | not measured; one search snippet gives 79,360 registered vessels in November 2025 (UNVERIFIED) | `docs/bibliometrics.md`, Table 17 (e) |
-| V, lit activity | 27-night run in progress (results pending) | `docs/viirs_lights.md`, `data/viirs_summary.json` |
+| V, lit activity | 27 nights: 34 % of 123,756 clear-sky lit vessel candidates lie in cells Sentinel-1 never imaged in 90 days. Per 1,000 km2 of clear sea per pass: never-imaged cells 0.77 (median 0.40), imaged cells 1.49 (median 0.57), over 1.53 and 1.81 million km2 of sea | `docs/viirs_lights.md`, `data/viirs_summary.json` |
 
 ## 4. What each term still needs
 

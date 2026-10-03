@@ -1,0 +1,38 @@
+{
+ "Central sea": {
+  "nights": 27,
+  "rate_median": 0.545,
+  "spearman_rate_vs_wind": -0.163,
+  "spearman_rate_vs_moon": 0.298
+ },
+ "Gulf of Thailand": {
+  "nights": 19,
+  "rate_median": 1.891,
+  "spearman_rate_vs_wind": 0.243,
+  "spearman_rate_vs_moon": -0.326
+ },
+ "Gulf of Tonkin": {
+  "nights": 26,
+  "rate_median": 3.343,
+  "spearman_rate_vs_wind": -0.758,
+  "spearman_rate_vs_moon": -0.007
+ },
+ "North shelf": {
+  "nights": 27,
+  "rate_median": 1.118,
+  "spearman_rate_vs_wind": -0.668,
+  "spearman_rate_vs_moon": 0.616
+ },
+ "South Vietnam shelf": {
+  "nights": 23,
+  "rate_median": 1.719,
+  "spearman_rate_vs_wind": 0.077,
+  "spearman_rate_vs_moon": -0.608
+ },
+ "Southern sea": {
+  "nights": 27,
+  "rate_median": 0.457,
+  "spearman_rate_vs_wind": 0.253,
+  "spearman_rate_vs_moon": -0.348
+ }
+}

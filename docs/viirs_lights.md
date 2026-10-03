@@ -45,9 +45,48 @@ Access and licence facts are in `docs/data_additions.md` (N01, N02) and `docs/da
 
 Rerun: `python scripts/15_viirs_lights.py --start 2026-09-05 --end 2026-10-01 --workers 3`, then `--retry` if any granule failed, `--clear`, and `--merge`.
 
-## Results
+## Results (27 nights, 5 September to 1 October 2026)
 
-RESULTS PENDING (the 27-night run is in progress).
+All numbers are from `data/viirs_summary.json`, `data/viirs_nightly_by_region.json` and `data/viirs_radar_pair_*.json`.
+
+**Run.** 904 night granules from S-NPP, NOAA-20 and NOAA-21, about 33 per night, all processed, none failed. 191,622 lights at sea: 164,333 lit vessel candidates and 27,289 recurring lights (14 %), grouped into 2,129 recurring-light sites. 75 % were seen in clear sky, 25 % under cloud.
+
+**Nights.** Lights per night ranged from 1,713 (11 September, when only 0.7 million km2 of clear sea was seen) to 15,417 (29 September). Per 1,000 km2 of clear sea per satellite pass the rate ranged from 0.46 to 1.63, median 0.98. The three satellites trace the same night-to-night pattern (`docs/figures/viirs_lights.png`, lower panel), which is a check on the processing.
+
+**Regions.** Nightly rate per 1,000 km2 of clear sea, nights with at least 5,000 km2 of clear sea, and its rank correlation with the GFS 10 m wind and with the moon (`scripts/21_viirs_regions.py`; boxes are for reporting only):
+
+| Region | Nights | Median rate | Spearman with wind | Spearman with moon |
+|---|---|---|---|---|
+| Gulf of Tonkin | 26 | 3.34 | -0.76 | -0.01 |
+| Gulf of Thailand | 19 | 1.89 | +0.24 | -0.33 |
+| South Vietnam shelf | 23 | 1.72 | +0.08 | -0.61 |
+| North shelf | 27 | 1.12 | -0.67 | +0.62 |
+| Central sea | 27 | 0.55 | -0.16 | +0.30 |
+| Southern sea | 27 | 0.46 | +0.25 | -0.35 |
+
+- **Gulf of Tonkin: wind.** The lit fleet all but vanished from 10 to 15 September: the rate fell from 4.8 to 8.2 on 5 to 8 September to between 0 and 1.0, while the mean GFS 10 m wind over the gulf's sea at 18 UTC rose from 1.8 to 3.8 m/s to 7.3 to 9.7 m/s (10 to 13 September). From 16 to 21 September, with the wind back at 2.5 to 5.3 m/s, it was 3.2 to 5.4 again. Boats staying in port in rough weather is the plain reading (interpretation; no port data was checked).
+- **South Vietnam shelf: partly moon.** The rate was 0 to 0.6 on every night with enough clear sea from 20 to 27 September, when the moon was 67 to 100 % lit, against 1.7 to 3.5 on most nights from 5 to 15 September. It rose again to 1.3 to 1.8 from 28 September with the moon still 70 to 95 % lit (Spearman with the moon -0.61). Fleets that use lights to draw fish and stand down near full moon would fit the dip but not the early recovery; 27 nights cannot settle it (interpretation).
+- **North shelf.** The rate rose with the moon and fell with wind; the wind event and the moon phase overlap there, so 27 nights cannot separate them.
+- **Pooled.** Over the whole sea the rate rises with the moon (Spearman +0.31 to +0.58 per satellite). That is a mix of the regional patterns above, not a lunar effect, and is why rates are reported by region.
+
+**Where the radar does not look.** 33.8 % of the 123,756 clear-sky lit vessel candidates lie in 0.05 degree cells that Sentinel-1 never imaged in 90 days. Per 1,000 km2 of clear sea per pass, never-imaged cells hold 0.77 lit candidates on average (median 0.40) against 1.49 (median 0.57) in imaged cells, over 1.53 and 1.81 million km2 of sea. The unwatched central sea carries about half the lit-activity density of the watched ring over a similar area. 452 of the 2,129 recurring-light sites are also in never-imaged cells.
+
+**Lights and radar.** On the 1,984 0.25 degree cells observed by both, light density and radar vessel density rank-correlate at 0.49. Two same-night pairs, radar about 4 hours after the lights (`scripts/18_viirs_radar_pair.py`):
+
+| Pair | Radar candidates | Lights (not recurring) | Cells with a light that also hold a radar candidate | Cells with a radar candidate that also hold a light | Spearman, 0.1 degree cells |
+|---|---|---|---|---|---|
+| Gulf of Thailand, S1D 2 Oct 06:09 UTC+7, VIIRS 01:00 to 02:41 | 1,907 | 384 | 96 % | 34 % | 0.53 |
+| Gulf of Tonkin, S1D 22 Sep 05:50 UTC+7, VIIRS 00:44 to 02:25 | 925 | 208 | 91 % | 32 % | 0.51 |
+
+Lit boats sit where the radar sees vessels, and the radar sees about three times as many occupied cells as VIIRS. The radar's extra includes unlit vessels, fixed gear and clutter; telling them apart needs the labels and AIS.
+
+![One night, two sensors](figures/viirs_radar_gulf_of_thailand.png)
+
+**Recurring lights.** 2,129 sites recur on 3 to 27 nights (median 4); 327 (15 %) lie within 1 km of a Satlas platform or turbine. They cluster in the Gulf of Thailand, on the south Vietnam shelf, off the east coast of peninsular Malaysia and in the northern Gulf of Tonkin, with scattered sites on reefs and islets of the central sea. What the 1,802 sites far from Satlas points are (other platforms, flares, island lights, fixed fishing spots) needs infrastructure data beyond Satlas (UNVERIFIED).
+
+**Single-pixel lights are not noise.** 26,051 lights (14 %) occupy a single pixel. Per 0.5 degree cell their counts track those of broader lights (Spearman 0.81), only 1 lies in a cell with no broader light, and they are brighter (median 33 against 9 nW cm-2 sr-1). Energetic-particle hits on the sensor would land at random.
+
+![Night lights](figures/viirs_lights.png)
 
 ## Limits
 

@@ -1,0 +1,20 @@
+{
+ "radar_pass": "S1D_IW_GRDH_1SDV_20260921T2250",
+ "radar_scenes": [
+  "S1D_IW_GRDH_1SDV_20260921T225018_20260921T225043_004682_008BFD_3573",
+  "S1D_IW_GRDH_1SDV_20260921T225043_20260921T225108_004682_008BFD_19F3"
+ ],
+ "viirs_night": "2026-09-21",
+ "radar_candidates": 925,
+ "radar_high": 449,
+ "lit_vessel_candidates": 208,
+ "lit_clear": 188,
+ "recurring_lights": 9,
+ "median_gap_hours": 4.3,
+ "cell_deg": 0.1,
+ "cells_in_footprint": 741,
+ "spearman_rho_cell_counts": 0.506,
+ "share_of_lit_cells_with_radar": 0.909,
+ "share_of_radar_cells_with_lights": 0.321,
+ "caveat": "Dark = no AIS match. Not evidence of illegal activity. Lights and radar contacts are hours apart and are not matched one to one."
+}

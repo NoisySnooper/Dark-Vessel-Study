@@ -6,8 +6,10 @@ Updated: 2026-10-03 (UTC). The owner reviews; the assistant does the heavy lifti
 
 ## Look at this first
 
-- **Demo page (private link, yours to share):** https://claude.ai/artifact/5VbpXaoghkKx8nwGoaEeUs (version 6). It holds:
+- **Demo page (private link, yours to share):** https://claude.ai/artifact/5VbpXaoghkKx8nwGoaEeUs (version 8). It holds:
   - a regional map of the South China Sea with all 78,615 vessel candidates of one 12-day cycle and the 90-day Sentinel-1 coverage layer;
+  - a night-lights layer (VIIRS): every light of one dark night and the recurring-light sites, off by default;
+  - wind and cloud-top temperature at each radar contact, and the optical and Satlas checks in the method section;
   - a radar view of one Ca Mau scene, with CNN scores;
   - a contact inspector (radar chip, DMS and MGRS position, date-time group);
   - in-browser labeling with CSV export.
@@ -97,7 +99,7 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 - **When does Sentinel-1 look?** Chance of a look within 1, 7 and 30 days for every 0.05 degree cell (`scripts/17_look_probability.py`): AOI mean 6.3 %, 34 % and 50 %; 42 % of the AOI is looked at within every 30-day window and 45 % never (`docs/scs_regional.md`, `docs/figures/look_probability.png`).
 - **Sentinel-2 optical check** (`scripts/19_optical_check.py`, `docs/optical_check.md`): on a random sample with a clear Sentinel-2 view, 37 % of fixed structures show a bright object at the spot (54 % near Satlas platforms), against 2.2 % of both-channel candidates, 1.5 % of one-channel candidates and 1 % of open sea. The persistence test finds things that stay put; the vessel classes are not structures in disguise.
 - **Satlas check** (`scripts/20_satlas_check.py`): the fixed class has a structure within 250 m of 72 % of the Satlas platform and turbine points in the tested sea (88 % of turbines, 62 % of platforms).
-- **VIIRS night lights** over the whole AOI, every night (`scripts/15_viirs_lights.py`, `docs/viirs_lights.md`): 27-night run in progress; results follow in this file.
+- **VIIRS night lights** over the whole AOI, every night (`scripts/15_viirs_lights.py`, `docs/viirs_lights.md`): 27 nights, 191,622 lights at sea (164,333 lit vessel candidates; 2,129 recurring-light sites). 34 % of clear-sky lit candidates lie where Sentinel-1 never looked in 90 days. The Gulf of Tonkin lit fleet tracks the wind (Spearman -0.76) and all but vanished in a mid-September wind event. On two same-night pairs, 91 to 96 % of the cells with a light also hold a radar candidate.
 - **Run harness:** `Makefile` with the pipeline in dependency order.
 - **Paper 2 design** (`docs/paper2_design.md`): the miss budget (coverage, detection by length, fleet composition, lit activity), what is measured and what each term still needs.
 

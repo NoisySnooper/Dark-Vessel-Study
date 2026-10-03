@@ -384,9 +384,9 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
     sr, sc = np.nonzero(sg.mask)
     r25 = np.floor((sg.north - (sr + 0.5) * sg.res - tr.f) / tr.e).astype(int)
     c25 = np.floor((sg.west + (sc + 0.5) * sg.res - tr.c) / tr.a).astype(int)
-    keep = (r25 >= 0) & (r25 < shape[0]) & (c25 >= 0) & (c25 < shape[1])
+    in_grid = (r25 >= 0) & (r25 < shape[0]) & (c25 >= 0) & (c25 < shape[1])
     sea_cells = np.zeros(shape)
-    np.add.at(sea_cells, (r25[keep], c25[keep]), 1)
+    np.add.at(sea_cells, (r25[in_grid], c25[in_grid]), 1)
     sea_km2 = area * sea_cells / (res / sg.res) ** 2
     v = det[(det["class"] == "lit_vessel_candidate") & (det.quality == "clear")]
     rr = np.floor((v.lat.to_numpy() - tr.f) / tr.e).astype(int)

@@ -361,9 +361,11 @@ def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
     night = (dark if len(dark) else per).n.idxmax()
     one = lit[lit.night == night].reset_index(drop=True)
     if "viirs_sites_4326" in layers:
+        cols = pyogrio.read_info(path, layer="viirs_sites_4326")["fields"]
+        nights_col = "nights_seen_max" if "nights_seen_max" in cols else "nights"
         pers = pyogrio.read_dataframe(path, layer="viirs_sites_4326", read_geometry=False,
-                                      columns=["lat", "lon", "nights", "radiance_max_nw", "satlas_infra_m"]).rename(
-            columns={"nights": "nights_seen_500m", "radiance_max_nw": "radiance_nw"})
+                                      columns=["lat", "lon", nights_col, "radiance_max_nw", "satlas_infra_m"]).rename(
+            columns={nights_col: "nights_seen_500m", "radiance_max_nw": "radiance_nw"})
     else:
         pers = d[d["class"] == "persistent_light"].copy()
         pers["k"] = (pers.lat / 0.005).round().astype(int).astype(str) + "_" + (pers.lon / 0.005).round().astype(int).astype(str)

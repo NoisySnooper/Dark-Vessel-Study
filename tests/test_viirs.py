@@ -154,3 +154,14 @@ def test_demo_viirs_layer_reads_lean_file(tmp_path, monkeypatch):
     assert _decode(v["persistent"]["colz"]["ns"]).tolist() == [9.0]
     assert np.isclose(_decode(v["persistent"]["colz"]["infra"])[0], 0.12)
     assert _decode(v["one"]["colz"]["q"]).tolist() == [0.0, 1.0]
+
+
+def test_light_sites_carry_the_persistence_measure():
+    import pandas as pd
+
+    from darkvessel.viirs.pipeline import light_sites
+
+    lights = pd.DataFrame({"lat": [10.0, 10.001], "lon": [110.0, 110.0], "night": ["n1", "n1"], "radiance_nw": [5.0, 6.0],
+                           "nights_seen_500m": [3, 5]})
+    s = light_sites(lights)
+    assert s.nights.tolist() == [1] and s.nights_seen_max.tolist() == [5]

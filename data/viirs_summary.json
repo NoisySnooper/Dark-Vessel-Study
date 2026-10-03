@@ -1,0 +1,912 @@
+{
+ "nights": [
+  "2026-09-05",
+  "2026-09-06",
+  "2026-09-07",
+  "2026-09-08",
+  "2026-09-09",
+  "2026-09-10",
+  "2026-09-11",
+  "2026-09-12",
+  "2026-09-13",
+  "2026-09-14",
+  "2026-09-15",
+  "2026-09-16",
+  "2026-09-17",
+  "2026-09-18",
+  "2026-09-19",
+  "2026-09-20",
+  "2026-09-21",
+  "2026-09-22",
+  "2026-09-23",
+  "2026-09-24",
+  "2026-09-25",
+  "2026-09-26",
+  "2026-09-27",
+  "2026-09-28",
+  "2026-09-29",
+  "2026-09-30",
+  "2026-10-01"
+ ],
+ "granules": 904,
+ "lights": 191622,
+ "classes": {
+  "lit_vessel_candidate": 164333,
+  "persistent_light": 27289
+ },
+ "quality": {
+  "clear": 142698,
+  "under_cloud": 48924
+ },
+ "persistent_rule_nights": 9,
+ "persistent_rule_cloud_aware": true,
+ "sharp_single_pixel": 26051,
+ "near_satlas_1km": 13738,
+ "persistent_near_satlas_1km_share": 0.427,
+ "showcase_night": "2026-09-06",
+ "lean_nights": [
+  "2026-09-06",
+  "2026-09-10",
+  "2026-09-11",
+  "2026-09-09",
+  "2026-09-12",
+  "2026-09-08",
+  "2026-09-13",
+  "2026-09-07",
+  "2026-09-14",
+  "2026-09-15"
+ ],
+ "lean_lights": 48692,
+ "sites": 2129,
+ "sites_near_satlas_1km": 327,
+ "per_night": [
+  {
+   "night": "2026-09-05",
+   "satellite": "NOAA-20",
+   "lights": 3949,
+   "clear": 2190,
+   "clear_lit": 1886,
+   "moon": 33.3,
+   "clear_sea_km2": 1207075.0,
+   "lit_per_1000km2_clear": 1.562
+  },
+  {
+   "night": "2026-09-05",
+   "satellite": "NOAA-21",
+   "lights": 2401,
+   "clear": 1819,
+   "clear_lit": 1522,
+   "moon": 32.9,
+   "clear_sea_km2": 1216418.0,
+   "lit_per_1000km2_clear": 1.251
+  },
+  {
+   "night": "2026-09-05",
+   "satellite": "S-NPP",
+   "lights": 3231,
+   "clear": 2292,
+   "clear_lit": 1970,
+   "moon": 32.7,
+   "clear_sea_km2": 1406808.0,
+   "lit_per_1000km2_clear": 1.4
+  },
+  {
+   "night": "2026-09-06",
+   "satellite": "NOAA-20",
+   "lights": 4667,
+   "clear": 3412,
+   "clear_lit": 2889,
+   "moon": 22.3,
+   "clear_sea_km2": 2025064.0,
+   "lit_per_1000km2_clear": 1.427
+  },
+  {
+   "night": "2026-09-06",
+   "satellite": "NOAA-21",
+   "lights": 2958,
+   "clear": 2536,
+   "clear_lit": 2083,
+   "moon": 22.7,
+   "clear_sea_km2": 1801142.0,
+   "lit_per_1000km2_clear": 1.156
+  },
+  {
+   "night": "2026-09-06",
+   "satellite": "S-NPP",
+   "lights": 3187,
+   "clear": 2709,
+   "clear_lit": 2225,
+   "moon": 22.4,
+   "clear_sea_km2": 1925576.0,
+   "lit_per_1000km2_clear": 1.155
+  },
+  {
+   "night": "2026-09-07",
+   "satellite": "NOAA-20",
+   "lights": 3735,
+   "clear": 2670,
+   "clear_lit": 2216,
+   "moon": 13.5,
+   "clear_sea_km2": 1618942.0,
+   "lit_per_1000km2_clear": 1.369
+  },
+  {
+   "night": "2026-09-07",
+   "satellite": "NOAA-21",
+   "lights": 4030,
+   "clear": 2605,
+   "clear_lit": 2216,
+   "moon": 13.9,
+   "clear_sea_km2": 1547513.0,
+   "lit_per_1000km2_clear": 1.432
+  },
+  {
+   "night": "2026-09-07",
+   "satellite": "S-NPP",
+   "lights": 3191,
+   "clear": 2372,
+   "clear_lit": 1960,
+   "moon": 13.6,
+   "clear_sea_km2": 1578317.0,
+   "lit_per_1000km2_clear": 1.242
+  },
+  {
+   "night": "2026-09-08",
+   "satellite": "NOAA-20",
+   "lights": 2785,
+   "clear": 2070,
+   "clear_lit": 1778,
+   "moon": 6.8,
+   "clear_sea_km2": 1251202.0,
+   "lit_per_1000km2_clear": 1.421
+  },
+  {
+   "night": "2026-09-08",
+   "satellite": "NOAA-21",
+   "lights": 4363,
+   "clear": 2844,
+   "clear_lit": 2505,
+   "moon": 7.0,
+   "clear_sea_km2": 1293492.0,
+   "lit_per_1000km2_clear": 1.937
+  },
+  {
+   "night": "2026-09-08",
+   "satellite": "S-NPP",
+   "lights": 3283,
+   "clear": 2143,
+   "clear_lit": 1872,
+   "moon": 6.8,
+   "clear_sea_km2": 1254412.0,
+   "lit_per_1000km2_clear": 1.492
+  },
+  {
+   "night": "2026-09-09",
+   "satellite": "NOAA-20",
+   "lights": 1234,
+   "clear": 693,
+   "clear_lit": 569,
+   "moon": 2.2,
+   "clear_sea_km2": 690381.0,
+   "lit_per_1000km2_clear": 0.824
+  },
+  {
+   "night": "2026-09-09",
+   "satellite": "NOAA-21",
+   "lights": 1404,
+   "clear": 990,
+   "clear_lit": 818,
+   "moon": 2.1,
+   "clear_sea_km2": 806190.0,
+   "lit_per_1000km2_clear": 1.015
+  },
+  {
+   "night": "2026-09-09",
+   "satellite": "S-NPP",
+   "lights": 1500,
+   "clear": 970,
+   "clear_lit": 828,
+   "moon": 2.3,
+   "clear_sea_km2": 771110.0,
+   "lit_per_1000km2_clear": 1.074
+  },
+  {
+   "night": "2026-09-10",
+   "satellite": "NOAA-20",
+   "lights": 927,
+   "clear": 478,
+   "clear_lit": 351,
+   "moon": 0.2,
+   "clear_sea_km2": 519144.0,
+   "lit_per_1000km2_clear": 0.676
+  },
+  {
+   "night": "2026-09-10",
+   "satellite": "NOAA-21",
+   "lights": 811,
+   "clear": 533,
+   "clear_lit": 393,
+   "moon": 0.1,
+   "clear_sea_km2": 564487.0,
+   "lit_per_1000km2_clear": 0.696
+  },
+  {
+   "night": "2026-09-10",
+   "satellite": "S-NPP",
+   "lights": 903,
+   "clear": 494,
+   "clear_lit": 354,
+   "moon": 0.1,
+   "clear_sea_km2": 585050.0,
+   "lit_per_1000km2_clear": 0.605
+  },
+  {
+   "night": "2026-09-11",
+   "satellite": "NOAA-20",
+   "lights": 703,
+   "clear": 174,
+   "clear_lit": 132,
+   "moon": 0.6,
+   "clear_sea_km2": 218273.0,
+   "lit_per_1000km2_clear": 0.605
+  },
+  {
+   "night": "2026-09-11",
+   "satellite": "NOAA-21",
+   "lights": 447,
+   "clear": 169,
+   "clear_lit": 134,
+   "moon": 0.6,
+   "clear_sea_km2": 244597.0,
+   "lit_per_1000km2_clear": 0.548
+  },
+  {
+   "night": "2026-09-11",
+   "satellite": "S-NPP",
+   "lights": 563,
+   "clear": 243,
+   "clear_lit": 195,
+   "moon": 0.6,
+   "clear_sea_km2": 272223.0,
+   "lit_per_1000km2_clear": 0.716
+  },
+  {
+   "night": "2026-09-12",
+   "satellite": "NOAA-20",
+   "lights": 1244,
+   "clear": 565,
+   "clear_lit": 482,
+   "moon": 3.3,
+   "clear_sea_km2": 528268.0,
+   "lit_per_1000km2_clear": 0.912
+  },
+  {
+   "night": "2026-09-12",
+   "satellite": "NOAA-21",
+   "lights": 815,
+   "clear": 365,
+   "clear_lit": 292,
+   "moon": 3.2,
+   "clear_sea_km2": 585576.0,
+   "lit_per_1000km2_clear": 0.499
+  },
+  {
+   "night": "2026-09-12",
+   "satellite": "S-NPP",
+   "lights": 816,
+   "clear": 462,
+   "clear_lit": 377,
+   "moon": 3.3,
+   "clear_sea_km2": 552380.0,
+   "lit_per_1000km2_clear": 0.683
+  },
+  {
+   "night": "2026-09-13",
+   "satellite": "NOAA-20",
+   "lights": 1491,
+   "clear": 953,
+   "clear_lit": 741,
+   "moon": 8.0,
+   "clear_sea_km2": 1427487.0,
+   "lit_per_1000km2_clear": 0.519
+  },
+  {
+   "night": "2026-09-13",
+   "satellite": "NOAA-21",
+   "lights": 1072,
+   "clear": 578,
+   "clear_lit": 439,
+   "moon": 7.8,
+   "clear_sea_km2": 1212481.0,
+   "lit_per_1000km2_clear": 0.362
+  },
+  {
+   "night": "2026-09-13",
+   "satellite": "S-NPP",
+   "lights": 1304,
+   "clear": 840,
+   "clear_lit": 645,
+   "moon": 7.9,
+   "clear_sea_km2": 1328224.0,
+   "lit_per_1000km2_clear": 0.486
+  },
+  {
+   "night": "2026-09-14",
+   "satellite": "NOAA-20",
+   "lights": 1288,
+   "clear": 829,
+   "clear_lit": 721,
+   "moon": 14.2,
+   "clear_sea_km2": 1141388.0,
+   "lit_per_1000km2_clear": 0.632
+  },
+  {
+   "night": "2026-09-14",
+   "satellite": "NOAA-21",
+   "lights": 1752,
+   "clear": 1011,
+   "clear_lit": 884,
+   "moon": 13.9,
+   "clear_sea_km2": 1106858.0,
+   "lit_per_1000km2_clear": 0.799
+  },
+  {
+   "night": "2026-09-14",
+   "satellite": "S-NPP",
+   "lights": 1326,
+   "clear": 794,
+   "clear_lit": 680,
+   "moon": 14.1,
+   "clear_sea_km2": 1180666.0,
+   "lit_per_1000km2_clear": 0.576
+  },
+  {
+   "night": "2026-09-15",
+   "satellite": "NOAA-20",
+   "lights": 1807,
+   "clear": 1105,
+   "clear_lit": 887,
+   "moon": 21.6,
+   "clear_sea_km2": 1590802.0,
+   "lit_per_1000km2_clear": 0.558
+  },
+  {
+   "night": "2026-09-15",
+   "satellite": "NOAA-21",
+   "lights": 2478,
+   "clear": 1853,
+   "clear_lit": 1542,
+   "moon": 21.8,
+   "clear_sea_km2": 2055123.0,
+   "lit_per_1000km2_clear": 0.75
+  },
+  {
+   "night": "2026-09-15",
+   "satellite": "S-NPP",
+   "lights": 2264,
+   "clear": 1106,
+   "clear_lit": 895,
+   "moon": 21.5,
+   "clear_sea_km2": 1618428.0,
+   "lit_per_1000km2_clear": 0.553
+  },
+  {
+   "night": "2026-09-16",
+   "satellite": "NOAA-20",
+   "lights": 3022,
+   "clear": 1508,
+   "clear_lit": 1291,
+   "moon": 29.9,
+   "clear_sea_km2": 1558036.0,
+   "lit_per_1000km2_clear": 0.829
+  },
+  {
+   "night": "2026-09-16",
+   "satellite": "NOAA-21",
+   "lights": 1855,
+   "clear": 1383,
+   "clear_lit": 1114,
+   "moon": 30.2,
+   "clear_sea_km2": 1590725.0,
+   "lit_per_1000km2_clear": 0.7
+  },
+  {
+   "night": "2026-09-16",
+   "satellite": "S-NPP",
+   "lights": 2381,
+   "clear": 1757,
+   "clear_lit": 1474,
+   "moon": 30.4,
+   "clear_sea_km2": 2036926.0,
+   "lit_per_1000km2_clear": 0.724
+  },
+  {
+   "night": "2026-09-17",
+   "satellite": "NOAA-20",
+   "lights": 2578,
+   "clear": 1737,
+   "clear_lit": 1489,
+   "moon": 39.5,
+   "clear_sea_km2": 1386916.0,
+   "lit_per_1000km2_clear": 1.074
+  },
+  {
+   "night": "2026-09-17",
+   "satellite": "NOAA-21",
+   "lights": 1665,
+   "clear": 1110,
+   "clear_lit": 951,
+   "moon": 39.1,
+   "clear_sea_km2": 1103611.0,
+   "lit_per_1000km2_clear": 0.862
+  },
+  {
+   "night": "2026-09-17",
+   "satellite": "S-NPP",
+   "lights": 1789,
+   "clear": 1306,
+   "clear_lit": 1114,
+   "moon": 39.4,
+   "clear_sea_km2": 1165271.0,
+   "lit_per_1000km2_clear": 0.956
+  },
+  {
+   "night": "2026-09-18",
+   "satellite": "NOAA-20",
+   "lights": 1950,
+   "clear": 1431,
+   "clear_lit": 1274,
+   "moon": 48.7,
+   "clear_sea_km2": 1731524.0,
+   "lit_per_1000km2_clear": 0.736
+  },
+  {
+   "night": "2026-09-18",
+   "satellite": "NOAA-21",
+   "lights": 1673,
+   "clear": 1052,
+   "clear_lit": 900,
+   "moon": 48.3,
+   "clear_sea_km2": 1510013.0,
+   "lit_per_1000km2_clear": 0.596
+  },
+  {
+   "night": "2026-09-18",
+   "satellite": "S-NPP",
+   "lights": 1516,
+   "clear": 1046,
+   "clear_lit": 883,
+   "moon": 48.6,
+   "clear_sea_km2": 1532620.0,
+   "lit_per_1000km2_clear": 0.576
+  },
+  {
+   "night": "2026-09-19",
+   "satellite": "NOAA-20",
+   "lights": 2211,
+   "clear": 1514,
+   "clear_lit": 1296,
+   "moon": 57.9,
+   "clear_sea_km2": 1547422.0,
+   "lit_per_1000km2_clear": 0.838
+  },
+  {
+   "night": "2026-09-19",
+   "satellite": "NOAA-21",
+   "lights": 3253,
+   "clear": 1961,
+   "clear_lit": 1654,
+   "moon": 57.6,
+   "clear_sea_km2": 1537440.0,
+   "lit_per_1000km2_clear": 1.076
+  },
+  {
+   "night": "2026-09-19",
+   "satellite": "S-NPP",
+   "lights": 2352,
+   "clear": 1418,
+   "clear_lit": 1166,
+   "moon": 57.8,
+   "clear_sea_km2": 1493583.0,
+   "lit_per_1000km2_clear": 0.781
+  },
+  {
+   "night": "2026-09-20",
+   "satellite": "NOAA-20",
+   "lights": 1785,
+   "clear": 1376,
+   "clear_lit": 1171,
+   "moon": 67.0,
+   "clear_sea_km2": 1659325.0,
+   "lit_per_1000km2_clear": 0.706
+  },
+  {
+   "night": "2026-09-20",
+   "satellite": "NOAA-21",
+   "lights": 2105,
+   "clear": 1643,
+   "clear_lit": 1393,
+   "moon": 67.2,
+   "clear_sea_km2": 1947093.0,
+   "lit_per_1000km2_clear": 0.715
+  },
+  {
+   "night": "2026-09-20",
+   "satellite": "S-NPP",
+   "lights": 2829,
+   "clear": 2229,
+   "clear_lit": 1996,
+   "moon": 66.8,
+   "clear_sea_km2": 1804845.0,
+   "lit_per_1000km2_clear": 1.106
+  },
+  {
+   "night": "2026-09-21",
+   "satellite": "NOAA-20",
+   "lights": 2239,
+   "clear": 1630,
+   "clear_lit": 1471,
+   "moon": 75.5,
+   "clear_sea_km2": 1119689.0,
+   "lit_per_1000km2_clear": 1.314
+  },
+  {
+   "night": "2026-09-21",
+   "satellite": "NOAA-21",
+   "lights": 1377,
+   "clear": 1145,
+   "clear_lit": 982,
+   "moon": 75.8,
+   "clear_sea_km2": 1295744.0,
+   "lit_per_1000km2_clear": 0.758
+  },
+  {
+   "night": "2026-09-21",
+   "satellite": "S-NPP",
+   "lights": 1706,
+   "clear": 1359,
+   "clear_lit": 1148,
+   "moon": 76.0,
+   "clear_sea_km2": 1226082.0,
+   "lit_per_1000km2_clear": 0.936
+  },
+  {
+   "night": "2026-09-22",
+   "satellite": "NOAA-20",
+   "lights": 1468,
+   "clear": 648,
+   "clear_lit": 523,
+   "moon": 83.8,
+   "clear_sea_km2": 783860.0,
+   "lit_per_1000km2_clear": 0.667
+  },
+  {
+   "night": "2026-09-22",
+   "satellite": "NOAA-21",
+   "lights": 837,
+   "clear": 483,
+   "clear_lit": 362,
+   "moon": 83.5,
+   "clear_sea_km2": 762613.0,
+   "lit_per_1000km2_clear": 0.475
+  },
+  {
+   "night": "2026-09-22",
+   "satellite": "S-NPP",
+   "lights": 1109,
+   "clear": 691,
+   "clear_lit": 574,
+   "moon": 83.7,
+   "clear_sea_km2": 1042080.0,
+   "lit_per_1000km2_clear": 0.551
+  },
+  {
+   "night": "2026-09-23",
+   "satellite": "NOAA-20",
+   "lights": 1686,
+   "clear": 1433,
+   "clear_lit": 1235,
+   "moon": 90.4,
+   "clear_sea_km2": 1115232.0,
+   "lit_per_1000km2_clear": 1.107
+  },
+  {
+   "night": "2026-09-23",
+   "satellite": "NOAA-21",
+   "lights": 693,
+   "clear": 495,
+   "clear_lit": 355,
+   "moon": 90.2,
+   "clear_sea_km2": 883615.0,
+   "lit_per_1000km2_clear": 0.402
+  },
+  {
+   "night": "2026-09-23",
+   "satellite": "S-NPP",
+   "lights": 832,
+   "clear": 645,
+   "clear_lit": 495,
+   "moon": 90.3,
+   "clear_sea_km2": 843918.0,
+   "lit_per_1000km2_clear": 0.587
+  },
+  {
+   "night": "2026-09-24",
+   "satellite": "NOAA-20",
+   "lights": 2293,
+   "clear": 2049,
+   "clear_lit": 1899,
+   "moon": 95.5,
+   "clear_sea_km2": 1126990.0,
+   "lit_per_1000km2_clear": 1.685
+  },
+  {
+   "night": "2026-09-24",
+   "satellite": "NOAA-21",
+   "lights": 1642,
+   "clear": 1379,
+   "clear_lit": 1195,
+   "moon": 95.4,
+   "clear_sea_km2": 1128829.0,
+   "lit_per_1000km2_clear": 1.059
+  },
+  {
+   "night": "2026-09-24",
+   "satellite": "S-NPP",
+   "lights": 1407,
+   "clear": 1156,
+   "clear_lit": 1003,
+   "moon": 95.5,
+   "clear_sea_km2": 1100415.0,
+   "lit_per_1000km2_clear": 0.911
+  },
+  {
+   "night": "2026-09-25",
+   "satellite": "NOAA-20",
+   "lights": 3128,
+   "clear": 2843,
+   "clear_lit": 2685,
+   "moon": 98.8,
+   "clear_sea_km2": 1384080.0,
+   "lit_per_1000km2_clear": 1.94
+  },
+  {
+   "night": "2026-09-25",
+   "satellite": "NOAA-21",
+   "lights": 2544,
+   "clear": 2377,
+   "clear_lit": 2116,
+   "moon": 98.7,
+   "clear_sea_km2": 1645630.0,
+   "lit_per_1000km2_clear": 1.286
+  },
+  {
+   "night": "2026-09-25",
+   "satellite": "S-NPP",
+   "lights": 2108,
+   "clear": 1852,
+   "clear_lit": 1650,
+   "moon": 98.8,
+   "clear_sea_km2": 1486478.0,
+   "lit_per_1000km2_clear": 1.11
+  },
+  {
+   "night": "2026-09-26",
+   "satellite": "NOAA-20",
+   "lights": 3384,
+   "clear": 2743,
+   "clear_lit": 2542,
+   "moon": 99.9,
+   "clear_sea_km2": 1970245.0,
+   "lit_per_1000km2_clear": 1.29
+  },
+  {
+   "night": "2026-09-26",
+   "satellite": "NOAA-21",
+   "lights": 3276,
+   "clear": 3109,
+   "clear_lit": 2911,
+   "moon": 99.9,
+   "clear_sea_km2": 2159383.0,
+   "lit_per_1000km2_clear": 1.348
+  },
+  {
+   "night": "2026-09-26",
+   "satellite": "S-NPP",
+   "lights": 3115,
+   "clear": 2838,
+   "clear_lit": 2588,
+   "moon": 99.9,
+   "clear_sea_km2": 2155001.0,
+   "lit_per_1000km2_clear": 1.201
+  },
+  {
+   "night": "2026-09-27",
+   "satellite": "NOAA-20",
+   "lights": 3097,
+   "clear": 2540,
+   "clear_lit": 2350,
+   "moon": 98.7,
+   "clear_sea_km2": 1477150.0,
+   "lit_per_1000km2_clear": 1.591
+  },
+  {
+   "night": "2026-09-27",
+   "satellite": "NOAA-21",
+   "lights": 2705,
+   "clear": 2395,
+   "clear_lit": 2246,
+   "moon": 98.6,
+   "clear_sea_km2": 1374822.0,
+   "lit_per_1000km2_clear": 1.634
+  },
+  {
+   "night": "2026-09-27",
+   "satellite": "S-NPP",
+   "lights": 2717,
+   "clear": 2424,
+   "clear_lit": 2241,
+   "moon": 98.5,
+   "clear_sea_km2": 1516254.0,
+   "lit_per_1000km2_clear": 1.478
+  },
+  {
+   "night": "2026-09-28",
+   "satellite": "NOAA-20",
+   "lights": 4110,
+   "clear": 3559,
+   "clear_lit": 3238,
+   "moon": 94.6,
+   "clear_sea_km2": 1594800.0,
+   "lit_per_1000km2_clear": 2.03
+  },
+  {
+   "night": "2026-09-28",
+   "satellite": "NOAA-21",
+   "lights": 2128,
+   "clear": 1821,
+   "clear_lit": 1575,
+   "moon": 94.7,
+   "clear_sea_km2": 1499278.0,
+   "lit_per_1000km2_clear": 1.051
+  },
+  {
+   "night": "2026-09-28",
+   "satellite": "S-NPP",
+   "lights": 3160,
+   "clear": 2861,
+   "clear_lit": 2660,
+   "moon": 94.6,
+   "clear_sea_km2": 1503613.0,
+   "lit_per_1000km2_clear": 1.769
+  },
+  {
+   "night": "2026-09-29",
+   "satellite": "NOAA-20",
+   "lights": 5539,
+   "clear": 5350,
+   "clear_lit": 4784,
+   "moon": 88.2,
+   "clear_sea_km2": 3318933.0,
+   "lit_per_1000km2_clear": 1.441
+  },
+  {
+   "night": "2026-09-29",
+   "satellite": "NOAA-21",
+   "lights": 5748,
+   "clear": 5453,
+   "clear_lit": 4718,
+   "moon": 88.4,
+   "clear_sea_km2": 3264302.0,
+   "lit_per_1000km2_clear": 1.445
+  },
+  {
+   "night": "2026-09-29",
+   "satellite": "S-NPP",
+   "lights": 4130,
+   "clear": 3882,
+   "clear_lit": 3334,
+   "moon": 88.3,
+   "clear_sea_km2": 3015493.0,
+   "lit_per_1000km2_clear": 1.106
+  },
+  {
+   "night": "2026-09-30",
+   "satellite": "NOAA-20",
+   "lights": 2864,
+   "clear": 2457,
+   "clear_lit": 2103,
+   "moon": 79.9,
+   "clear_sea_km2": 2253461.0,
+   "lit_per_1000km2_clear": 0.933
+  },
+  {
+   "night": "2026-09-30",
+   "satellite": "NOAA-21",
+   "lights": 4333,
+   "clear": 3626,
+   "clear_lit": 3241,
+   "moon": 79.6,
+   "clear_sea_km2": 2651813.0,
+   "lit_per_1000km2_clear": 1.222
+  },
+  {
+   "night": "2026-09-30",
+   "satellite": "S-NPP",
+   "lights": 3752,
+   "clear": 2846,
+   "clear_lit": 2536,
+   "moon": 80.0,
+   "clear_sea_km2": 2297420.0,
+   "lit_per_1000km2_clear": 1.104
+  },
+  {
+   "night": "2026-10-01",
+   "satellite": "NOAA-20",
+   "lights": 4199,
+   "clear": 2117,
+   "clear_lit": 1850,
+   "moon": 69.8,
+   "clear_sea_km2": 1799221.0,
+   "lit_per_1000km2_clear": 1.028
+  },
+  {
+   "night": "2026-10-01",
+   "satellite": "NOAA-21",
+   "lights": 3122,
+   "clear": 2363,
+   "clear_lit": 2041,
+   "moon": 69.6,
+   "clear_sea_km2": 2032946.0,
+   "lit_per_1000km2_clear": 1.004
+  },
+  {
+   "night": "2026-10-01",
+   "satellite": "S-NPP",
+   "lights": 4281,
+   "clear": 2791,
+   "clear_lit": 2458,
+   "moon": 69.4,
+   "clear_sea_km2": 1979187.0,
+   "lit_per_1000km2_clear": 1.242
+  }
+ ],
+ "clear_lit_candidates": 123756,
+ "clear_lit_share_where_s1_never_imaged_90d": 0.338,
+ "density_rank_correlation_viirs_vs_sar": {
+  "spearman_rho": 0.49,
+  "cells": 1984,
+  "note": "0.25 degree cells observed by both; different hours and targets"
+ },
+ "sharp_check_0p5deg": {
+  "spearman_sharp_vs_broad": 0.807,
+  "sharp_in_cells_without_broad": 1,
+  "sharp_total": 26051,
+  "radiance_median_sharp_nw": 33.4,
+  "radiance_median_broad_nw": 9.15
+ },
+ "moon_vs_lit_spearman": {
+  "metric": "lit_per_1000km2_clear",
+  "NOAA-20": 0.576,
+  "NOAA-21": 0.335,
+  "S-NPP": 0.311
+ },
+ "clear_sea_basis": {
+  "granules_with_cloud_counts": 1.0,
+  "aoi_mean_lit_per_1000km2_clear_per_pass": 1.161
+ },
+ "lit_density_clear_by_radar_coverage": {
+  "never_imaged": {
+   "cells": 2032,
+   "mean": 0.767,
+   "median": 0.401,
+   "sea_km2": 1528557.0
+  },
+  "imaged": {
+   "cells": 2528,
+   "mean": 1.494,
+   "median": 0.568,
+   "sea_km2": 1805926.0
+  }
+ }
+}
