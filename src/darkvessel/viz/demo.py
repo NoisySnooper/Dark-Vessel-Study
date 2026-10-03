@@ -211,13 +211,27 @@ def label_queue(dets: pd.DataFrame, rates: dict, census: pd.Series | None = None
 
 
 def _chip_retry(scene, row, col, tries: int = 3):
-    """One chip; transient read errors are retried, then the chip is skipped (the page shows none)."""
+    """One chip; transient read errors are retried, then the chip is skipped (the page shows none).
+
+    GDAL's /vsicurl/ remembers a failed open, so one proxy hiccup would fail every later chip of the
+    scene. Retries therefore drop this thread's open handles and bypass the GDAL URL cache.
+    """
     for k in range(tries):
         try:
-            return chip_png(scene, row, col)
+            if k == 0:
+                return chip_png(scene, row, col)
+            local = getattr(scene, "_local", None)
+            for key in list(vars(local)) if local is not None else []:
+                try:
+                    getattr(local, key).close()
+                except Exception:  # noqa: BLE001
+                    pass
+                delattr(local, key)
+            with rasterio.Env(CPL_VSIL_CURL_NON_CACHED="/vsicurl/"):
+                return chip_png(scene, row, col)
         except Exception as e:  # noqa: BLE001 (network reads: retry anything, then give up)
             if k == tries - 1:
-                print("chip skipped:", repr(e)[:120], flush=True)
+                print("chip skipped:", repr(e)[:200], flush=True)
                 return None
             time.sleep(2 * (k + 1))
 
