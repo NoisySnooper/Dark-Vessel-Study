@@ -504,7 +504,9 @@ function saveLabels() { try { localStorage.setItem(LKEY, JSON.stringify(labels))
 function refreshLabelUI() {
   document.querySelector(".labeler").classList.toggle("off", !current);
   ["vessel", "structure", "clutter", "unsure"].forEach((l) => $("lb-" + l).setAttribute("aria-pressed", String(!!current && labels[current] === l)));
-  $("lbl-count").textContent = `${Object.keys(labels).length} labeled`;
+  const q = (view === "r" ? R : X).queue || [];
+  const done = q.filter((i) => labels[i]).length;
+  $("lbl-count").textContent = `${Object.keys(labels).length} labeled · queue ${done} of ${q.length}`;
 }
 function setLabel(l) { if (!current) return; labels[current] = l; saveLabels(); refreshLabelUI(); }
 document.querySelectorAll(".lbl-btns button").forEach((b) => b.addEventListener("click", () => setLabel(b.dataset.l)));
