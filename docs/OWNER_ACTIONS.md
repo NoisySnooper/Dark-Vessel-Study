@@ -1,6 +1,6 @@
 # Owner actions
 
-Updated: 2026-10-02 (UTC). Only you can do these. Everything else runs without you. Do them in the order below; times are your effort, not waiting time.
+Updated: 2026-10-03 (UTC). Only you can do these. Everything else runs without you. Do them in the order below; times are your effort, not waiting time.
 
 > Never paste a key, token or password into the chat. Keys go into the cloud environment settings as environment variables; a new session picks them up.
 
@@ -90,4 +90,6 @@ The page is private. Use its Share menu to give reviewers access.
 
 ## What does not need you
 
-Everything else continues without you: regional runs, VIIRS night lights, weather context, the CNN, figures, docs and the demo page. Progress is in `docs/STATUS.md`.
+Everything else continues without you: regional runs, VIIRS night lights, weather context, the Sentinel-2 optical check, the CNN, figures, docs and the demo page. Progress is in `docs/STATUS.md`. To rerun anything yourself: `make test`, `make regional`, `make context`, `make demo OUT=page.html` (see the `Makefile`).
+
+Nothing new is needed from you after the 2026-10-03 additions (VIIRS, Sentinel-2, weather, look probability): all of them use open buckets that this environment already reaches.

@@ -155,6 +155,20 @@ def retry(workers: int):
             print(f"{gid} {n} lights {err or ''}", flush=True)
 
 
+SATLAS_URL = "https://storage.googleapis.com/satlas-explorer-public/outputs/marine/latest.geojson"
+
+
+def satlas_points() -> Path:
+    """Local copy of the Satlas marine infrastructure snapshot (AI2, ODC-BY), downloaded once with retries."""
+    from darkvessel.s1 import aws
+
+    path = DATA_DIR / "cache" / "satlas_marine_latest.geojson"
+    if not path.exists() or path.stat().st_size < 1000:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(aws._get(SATLAS_URL).content)
+    return path
+
+
 def night_of(t: pd.Series) -> pd.Series:
     """Local calendar night: the UTC date of a pass near 18:00 UTC is the evening date in Vietnam (UTC+7)."""
     return (t + pd.Timedelta(hours=7) - pd.Timedelta(hours=12)).dt.date
@@ -187,7 +201,7 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
 
     # Distance to Satlas offshore infrastructure (platforms, turbines), if reachable
     try:
-        sat = gpd.read_file("https://storage.googleapis.com/satlas-explorer-public/outputs/marine/latest.geojson")
+        sat = gpd.read_file(satlas_points())
         sxy = np.c_[np.radians(sat.geometry.x) * 6371008.8 * np.cos(lat0), np.radians(sat.geometry.y) * 6371008.8]
         det["satlas_infra_m"] = np.round(cKDTree(sxy).query(xy)[0], 0)
     except Exception as e:  # noqa: BLE001
@@ -374,6 +388,15 @@ def figure(det, dens, tr, aoi, need, nights):
     pers = det[det["class"] == "persistent_light"]
     pers = pers.assign(k=(pers.lat / 0.01).round().astype(int).astype(str) + "_" + (pers.lon / 0.01).round().astype(int).astype(str)).drop_duplicates("k")
     ax.scatter(pers.lon, pers.lat, s=10, marker="o", facecolor=SERIES_EXTENDED[3], edgecolor=INK, linewidth=0.4, zorder=4)
+    # Outline of the sea Sentinel-1 never imaged in the 90-day window
+    import rasterio
+
+    with rasterio.open(DATA_DIR / "outputs" / "small" / "s1_passes_4326.tif") as ds:
+        pas, ptr = ds.read(1), ds.transform
+    never = ((pas == 0)).astype(float)
+    gx = ptr.c + (np.arange(pas.shape[1]) + 0.5) * ptr.a
+    gy = ptr.f + (np.arange(pas.shape[0]) + 0.5) * ptr.e
+    ax.contour(gx, gy, never, levels=[0.5], colors=[INK], linewidths=1.1, linestyles="--", zorder=5)
     pad = 0.6
     ax.set_xlim(west - pad, east + pad)
     ax.set_ylim(south - pad, north + pad)
@@ -384,6 +407,7 @@ def figure(det, dens, tr, aoi, need, nights):
     handles = [Patch(facecolor=c, edgecolor="none", label=l) for c, l in zip(colors, labels)]
     handles.append(Line2D([], [], linestyle="none", marker="o", markersize=5, markerfacecolor=SERIES_EXTENDED[3], markeredgecolor=INK,
                           markeredgewidth=0.5, label=f"recurring light ({need}+ of {len(nights)} nights)"))
+    handles.append(Line2D([], [], color=INK, linewidth=1.1, linestyle="--", label="never imaged by Sentinel-1 (90 days)"))
     ax.legend(handles=handles, title="Lit vessel candidates per\n1,000 km2 per satellite pass", loc="lower right", fontsize=9,
               title_fontsize=9, frameon=True, facecolor="#fcfcfb", edgecolor="#e1e0d9")
 
