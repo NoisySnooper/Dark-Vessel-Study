@@ -368,7 +368,8 @@ def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
     mins = ((t - t.dt.normalize()).dt.total_seconds() // 60).to_numpy("<u2")
     nights = sorted(per.index)
     summary = DATA_DIR / "viirs_summary.json"
-    rule = json.loads(summary.read_text())["persistent_rule_nights"] if summary.exists() else max(3, int(np.ceil(0.3 * len(nights))))
+    summ = json.loads(summary.read_text()) if summary.exists() else {}
+    rule = summ.get("persistent_rule_nights", max(3, int(np.ceil(0.3 * len(nights)))))
     # distance to the nearest Satlas point in units of 10 m (decodes to km); 65535 = not available
     infra = pers.satlas_infra_m.to_numpy(float) / 10
     infra = np.where(np.isfinite(infra), np.clip(np.round(infra), 0, 65534), 65535).astype("<u2")
@@ -382,6 +383,7 @@ def viirs_data(max_moon_pct: float = 30.0) -> dict | None:
         "persistent": {"n": int(len(pers)), "cols": ["lat", "lon", "rad", "ns", "infra"],
                        "colz": pack(pers, {"infra": _b64col(infra, "u16", 100, 65535)})},
         "lights_shown": int(len(one)), "recurring_shown": int(len(pers)),
+        "gap_share": summ.get("clear_lit_share_where_s1_never_imaged_90d"), "clear_lit_total": summ.get("clear_lit_candidates"),
     }
 
 
