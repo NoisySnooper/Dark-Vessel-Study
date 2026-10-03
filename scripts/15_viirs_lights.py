@@ -482,6 +482,22 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
     if dens_clear is not None:
         summary["clear_sea_basis"] = {"granules_with_cloud_counts": round(have_clear, 3),
                                       "aoi_mean_lit_per_1000km2_clear_per_pass": round(float(dens_clear[dens_clear >= 0].mean()), 3)}
+        # Lit activity where Sentinel-1 never looked against where it did (paper 2, lit-activity term): share of each
+        # 0.25 degree cell's AOI cells (0.05 degree) with no Sentinel-1 pass in 90 days
+        prow, pcol = np.nonzero(passes != 65535)
+        r25 = np.floor((ptr.f + (prow + 0.5) * ptr.e - tr.f) / tr.e).astype(int)
+        c25 = np.floor((ptr.c + (pcol + 0.5) * ptr.a - tr.c) / tr.a).astype(int)
+        okp = (r25 >= 0) & (r25 < shape[0]) & (c25 >= 0) & (c25 < shape[1])
+        n_all, n_never = np.zeros(shape), np.zeros(shape)
+        np.add.at(n_all, (r25[okp], c25[okp]), 1)
+        np.add.at(n_never, (r25[okp], c25[okp]), (passes[prow, pcol] == 0)[okp].astype(float))
+        never_share = np.where(n_all > 0, n_never / np.maximum(n_all, 1), np.nan)
+        ok_d = dens_clear >= 0
+        groups = {"never_imaged": ok_d & (never_share >= 0.9), "imaged": ok_d & (never_share <= 0.1)}
+        summary["lit_density_clear_by_radar_coverage"] = {
+            k: {"cells": int(m.sum()), "mean": round(float(dens_clear[m].mean()), 3) if m.any() else None,
+                "median": round(float(np.median(dens_clear[m])), 3) if m.any() else None,
+                "sea_km2": round(float(sea_km2[m].sum()), 0)} for k, m in groups.items()}
     (DATA_DIR / "viirs_summary.json").write_text(json.dumps(summary, indent=1, default=str))
     print(json.dumps({k: v for k, v in summary.items() if k != "per_night"}, indent=1, default=str))
     rule_label = f"{persist_frac:.0%} of clear nights, 3+" if cloud_aware else f"{need}+ of {len(nights)} nights"
