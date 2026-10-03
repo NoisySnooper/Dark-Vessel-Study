@@ -26,6 +26,20 @@ Source: AWS Open Data mirror of Sentinel-1 GRD, all IW products of Sentinel-1C a
 
 Rasters: `data/outputs/small/s1_passes_4326.tif` and `s1_passes_utm49n.tif` (COG, passes per cell; 65535 = outside AOI). Statistics: `data/s1_coverage.json`.
 
+How soon a look comes (`scripts/17_look_probability.py`): for each cell and each start day of the window, did any pass cover the cell within the next 1, 7 or 30 days? The share of start days is the chance of a look.
+
+| Window | AOI mean chance | AOI with an even chance or better | AOI looked at in every window |
+|---|---|---|---|
+| 1 day | 6.3 % | 0 % | 0 % |
+| 7 days | 34 % | 42 % | 7.9 % |
+| 30 days | 50 % | 49 % | 42 % |
+
+The 1-day mean equals the average daily share above, as it should. In the coastal ring the 7-day chance runs from under 10 % to 100 % depending on the cell; in the central sea it is zero at every horizon.
+
+![Look probability](figures/look_probability.png)
+
+Rasters: `data/outputs/small/s1_look_prob_{1,7,30}d_4326.tif` and `_utm49n.tif` (COG, uint8 percent; 255 = outside AOI). Statistics: `data/s1_look_probability.json`.
+
 What the map shows: Sentinel-1 images a coastal ring (Vietnam, Gulf of Thailand, Malaysia, Borneo, Palawan, Luzon, south China) and leaves the central South China Sea, including the Spratly Islands area, unimaged in IW mode for the whole 90 days. A 12-day check (18 to 29 September) found no EW-mode and no stripmap products over the AOI either. The bucket holds GRD products only, so ocean wave-mode (WV) vignettes, which are not usable for ship detection, are not counted.
 
 Why it matters:
