@@ -413,6 +413,15 @@ def optical_summary() -> dict | None:
                    "veg": by[k].get("vegetated_share_of_objects")} for k in ("fixed", "high", "medium", "control") if k in by}}
 
 
+def satlas_summary() -> dict | None:
+    """Share of Satlas platforms and turbines in the tested sea with a fixed structure within 250 m (scripts/20)."""
+    path = DATA_DIR / "satlas_check.json"
+    if not path.exists():
+        return None
+    by = {r["category"]: r for r in json.loads(path.read_text())["by_category"]}
+    return {k: {"n": by[k]["points"], "found": by[k]["fixed_within_250m"]} for k in ("offshore_platform", "offshore_wind_turbine", "all") if k in by}
+
+
 def weather_shares() -> dict | None:
     """Share of objects under deep convection by group, from data/weather_context.json (scripts/16)."""
     path = DATA_DIR / "weather_context.json"
@@ -472,7 +481,7 @@ def regional_data(max_chips: int) -> tuple[dict, dict]:
                                               "km2": int(r.tested_km2)}) for g, r in zip(proc.geometry, proc.itertuples())]),
         "cols": cols, "colz": colz, "n": int(len(vessel)), "scenes": scenes_tab,
         "n_low": int(summary["classes"].get("low", 0)),
-        "passes": pass_list, "label_check": label_check(), "queue": queue, "viirs": viirs_data(), "weather": weather_shares(), "optical": optical_summary(),
+        "passes": pass_list, "label_check": label_check(), "queue": queue, "viirs": viirs_data(), "weather": weather_shares(), "optical": optical_summary(), "satlas": satlas_summary(),
         "queue_rule": {"hash": "sha1(det_id)[:8] / 2^32 < rate", "rates": QUEUE_RATES},
     }
     return data, chips
@@ -489,6 +498,7 @@ def build_demo(out_html: Path, max_chips_regional: int = 300, max_chips_detail: 
         if refresh_viirs:
             data["regional"]["viirs"] = viirs_data()
             data["regional"]["optical"] = optical_summary()
+            data["regional"]["satlas"] = satlas_summary()
             cache.write_text(json.dumps({"data": data, "det_img": det_img}, separators=(",", ":")))
     else:
         reg, chips_r = regional_data(max_chips_regional)

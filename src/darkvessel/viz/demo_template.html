@@ -567,7 +567,8 @@ const steps = [
   ["Stream blocks", "Read and process only the 2048-pixel blocks that hold testable sea, with an 810 m margin for the detector."],
   ["Detect", "Cell-averaging CFAR on calibrated VV and VH, false-alarm rate 1e-6, gamma clutter with one ENL per scene."],
   ["Fuse and grade", "VV and VH objects within 30 m merged. Both channels = higher confidence; weak VV-only or longer than 450 m = low."],
-  ["Persistence", "Each candidate checked on up to two earlier passes of the same orbit (20 m overview). A return there every time = fixed structure."],
+  ["Persistence", "Each candidate checked on up to two earlier passes of the same orbit (20 m overview). A return there every time = fixed structure." +
+    (R.satlas && R.satlas.offshore_wind_turbine ? ` It finds ${Math.round(R.satlas.offshore_wind_turbine.found * 100)} % of the wind turbines and ${Math.round(R.satlas.offshore_platform.found * 100)} % of the platforms that Satlas maps in the tested sea.` : "")],
   ["Clutter zones", `A candidate among 5 or more weak returns within 1 km (rain cells, wind fronts, aquaculture rafts) moves to the low class: ${fmt(RS.clutter_zone_downgraded || 0)} in this run.`],
 ];
 if (R.weather) steps.push(["Weather context", `GFS 10 m wind of the nearest hour and Himawari-9 cloud-top temperature of the nearest 10 minutes at every contact (shown in the inspector). Clutter-flagged objects lie under deep convection (cloud tops below 220 K) ${Math.round(R.weather.clutter * 100)} % of the time, both-channel candidates ${Math.round(R.weather.high * 100)} %.`]);
