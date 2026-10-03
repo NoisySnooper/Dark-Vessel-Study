@@ -155,6 +155,21 @@ Both are NOAA open data on AWS, read by byte range.
 - The separation is partial. 61 % of flagged objects are not under tops colder than 220 K (aquaculture, fleets, warmer rain clouds), and about a quarter of kept candidates are under convective cloud. Ships do not stop for storms, and some rain cells survive the rule.
 - Winds were light in this window (medians 3 to 4 m/s), the conditions in which small boats are easiest to see.
 
+**Optical check with Sentinel-2.** `scripts/19_optical_check.py` looked for a bright object at the position of a random sample of regional objects in the first cloud-free Sentinel-2 view between 15 September and 2 October (details: `docs/optical_check.md`). The threshold is set so that 1 % of open-sea control points pass.
+
+| Group | Clear views | Bright object at the spot |
+|---|---|---|
+| Fixed structures | 1,072 | 37.1 % [34.3, 40.1] |
+| Fixed structures within 1 km of a Satlas platform or turbine | 345 | 54.2 % [48.9, 59.4] |
+| Fixed structures, the rest | 727 | 29.0 % [25.8, 32.4] |
+| Both-channel candidates | 643 | 2.2 % [1.3, 3.6] |
+| One-channel candidates | 609 | 1.5 % [0.8, 2.8] |
+| Open sea (control) | 751 | 1.1 % (1 % by construction) |
+
+- The persistence test finds things that stay put: fixed structures show in an optical image days later 17 times as often as both-channel candidates. Sentinel-2 at 10 m misses stake nets and low rafts, so 37 % is a lower bound on the fixed class's precision, not an estimate.
+- The vessel classes are not structures in disguise: their optical rate is close to open sea, as expected for things that move.
+- The example chips (`docs/figures/optical_examples.png`) show what "fixed" holds besides platforms: small vegetated islets missing from the land mask, and anchorages where a ship sits on every pass. The first are correctly fixed but not structures; the second is the moored-ship case listed under the limits.
+
 **Products.**
 - `data/detections_regional.gpkg` (36 MB):
   - `detections_regional_4326` and `_utm49n`: 78,615 vessel candidates. Columns:
