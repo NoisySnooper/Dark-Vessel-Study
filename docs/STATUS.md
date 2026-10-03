@@ -29,6 +29,7 @@ Updated: 2026-10-03 (UTC). The owner reviews; the assistant does the heavy lifti
 | `docs/gis_baseline.md` | Ca Mau scene detail and the CA-CFAR baseline |
 | `docs/paper1_design.md`, `docs/paper1_manuscript.md` | Transfer letter: design, power analysis, manuscript skeleton |
 | `docs/paper2_design.md` | Flagship paper: the miss budget |
+| `docs/ocean_context_plan.md` | Approved plan: ocean layers (depth, SST, fronts, currents, chlorophyll, shipping lanes, EEZ) and the expected-activity model, built once access is open |
 | `docs/bibliometrics.md`, `docs/journals.md` | Literature scan, gap analysis, venues |
 | `docs/data_landscape.md`, `docs/data_additions.md` | Data sources with licences and access tests |
 
@@ -102,6 +103,13 @@ The AOI moved from Ca Mau to the whole South China Sea at the owner's request. A
 - **VIIRS night lights** over the whole AOI, every night (`scripts/15_viirs_lights.py`, `docs/viirs_lights.md`): 27 nights, 191,622 lights at sea (164,333 lit vessel candidates; 2,129 recurring-light sites). 34 % of clear-sky lit candidates lie where Sentinel-1 never looked in 90 days. The Gulf of Tonkin lit fleet tracks the wind (Spearman -0.76) and all but vanished in a mid-September wind event. On two same-night pairs, 91 to 96 % of the cells with a light also hold a radar candidate.
 - **Run harness:** `Makefile` with the pipeline in dependency order.
 - **Paper 2 design** (`docs/paper2_design.md`): the miss budget (coverage, detection by length, fleet composition, lit activity), what is measured and what each term still needs.
+- **Ocean context plan, approved, waiting on access** (`docs/ocean_context_plan.md`). Your decisions of 2026-10-03:
+  - build depth, SST and fronts, currents, waves, chlorophyll, shipping lanes and the expected-activity model in one go once access is open;
+  - EEZ as an optional layer, off by default;
+  - Global Fishing Watch for the papers only;
+  - a few key layers on the demo page.
+
+  Reachability was tested: depth (ETOPO1), 0.25 degree SST, currents and sea level are open now; chlorophyll, 1 km SST, shipping density and EEZ lines are blocked until owner actions 1 to 3.
 
 ### Paper 1 groundwork (`docs/paper1_design.md`)
 - Noise floor from the products' own annotation: Sentinel-1C and 1D are 1.4 dB (VV) and 1.8 dB (VH) below Sentinel-1A (2022) at every incidence angle, and 1C and 1D match each other (`docs/figures/nesz_by_satellite.png`). This explains about half of the darker 1D chip backgrounds.
@@ -122,7 +130,7 @@ Worked around: OpenAlex via its public S3 snapshot; Sentinel-1 via the AWS Open 
 ## Defaults applied (say the word to change any)
 
 - Map naming: "South China Sea" as written in your request. For a Vietnamese audience you may prefer "East Sea (Bien Dong)"; it is a one-line change in `src/darkvessel/config.py` and the figure titles.
-- No maritime boundaries or claim lines are drawn anywhere.
+- No maritime boundaries or claim lines are drawn now. Approved on 2026-10-03: EEZ lines from Marine Regions as an optional layer, off by default, labelled as the source publishes them, once marineregions.org is reachable.
 - Display: files in the repo, short chat summaries, and one private demo page.
 - Commits: one per workstream plus labeled work-in-progress commits, no Co-Authored-By trailer. Commit author is the container default; give a name and email to switch.
 - Training data: AI2 Skylight labels (Apache-2.0) only; xView3-SAR is reported noncommercial (UNVERIFIED), so it is not used.

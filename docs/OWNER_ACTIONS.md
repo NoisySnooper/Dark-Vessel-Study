@@ -8,9 +8,9 @@ Updated: 2026-10-03 (UTC). Only you can do these. Everything else runs without y
 
 | # | Action | Your time | What it unlocks | Status |
 |---|---|---|---|---|
-| 1 | Open network access | 10 min | Verification of about 100 UNVERIFIED facts; STAC search; GFW, NASA and EOG data | Open |
-| 2 | Apply for accounts (GFW, Copernicus, OpenAlex, NASA Earthdata, EOG) | 45 min, then waiting | API keys for items 3 and 6 | Open |
-| 3 | Add the keys as environment variables | 10 min | AIS (dark labels), Copernicus S3, OpenAlex API | Waiting on 2 |
+| 1 | Open network access | 10 min | Verification of about 100 UNVERIFIED facts; STAC search; GFW, NASA and EOG data; the ocean context layers (chlorophyll, 1 km SST, shipping lanes, EEZ) | Open |
+| 2 | Apply for accounts (GFW, Copernicus, Copernicus Marine, OpenAlex, NASA Earthdata, EOG) | 45 min, then waiting | API keys for items 3 and 6 | Open |
+| 3 | Add the keys as environment variables | 10 min | AIS (dark labels), Copernicus S3, OpenAlex API, chlorophyll and 1 km SST; starts the ocean context build (`docs/ocean_context_plan.md`) | Waiting on 2 |
 | 4 | Label the Ca Mau queue on the demo page | 3 h | First Sentinel-1D truth; scores the CNN for paper 1 | Open |
 | 5 | Make four decisions | 1 h plus reading | AIS source, letter venue, map naming, commit author | Open |
 | 6 | Label the regional queue | 1 h | Sentinel-1C truth for paper 1 | Later week |
@@ -28,6 +28,7 @@ Hosts, grouped by what they unlock:
 - AIS: `gateway.api.globalfishingwatch.org`, `globalfishingwatch.org`
 - Night lights and NASA data: `eogdata.mines.edu`, `payneinstitute.mines.edu`, `urs.earthdata.nasa.gov`, `ladsweb.modaps.eosdis.nasa.gov`, `search.asf.nasa.gov`, `datapool.asf.alaska.edu`
 - Other: `planetarycomputer.microsoft.com`, `earth-search.aws.element84.com`, `huggingface.co`, `zenodo.org`, `www.ncei.noaa.gov`
+- Ocean context (`docs/ocean_context_plan.md`): `datacatalog.worldbank.org`, `datacatalogfiles.worldbank.org` (shipping density); `www.marineregions.org`, `marineregions.org` (EEZ layer); `oceancolor.gsfc.nasa.gov`, `oceandata.sci.gsfc.nasa.gov`, `obdaac-tea.earthdatacloud.nasa.gov`, `archive.podaac.earthdata.nasa.gov` (NASA chlorophyll and 1 km SST); `data.marine.copernicus.eu`, `marine.copernicus.eu` (Copernicus Marine). The NASA and Copernicus Marine download hosts beyond the first of each group are names from memory (UNVERIFIED); with "Full" access this list does not matter.
 
 Hosts for optional extra sources (Black Marble, SDGSAT-1, scatterometer winds, other SAR programmes, Vietnamese portals) are listed in `docs/data_additions.md`, section "Hosts the owner would need to allow". None of them is needed for the core pipeline.
 
@@ -40,7 +41,8 @@ Start these now: approval can take days.
 | Global Fishing Watch API | globalfishingwatch.org, API access page | Free | AIS positions and GFW vessel data | Noncommercial (CC BY-NC 4.0, per `docs/data_landscape.md`): fine for the papers, not for anything Viettel-facing |
 | Copernicus Data Space | dataspace.copernicus.eu | Free | Official Sentinel archive, S3 keys, STAC | Copernicus terms allow commercial use |
 | OpenAlex | openalex.org | Free | API key (the API reportedly needs a key since 2026; UNVERIFIED, `docs/data_landscape.md` F02) | Open data |
-| NASA Earthdata Login | urs.earthdata.nasa.gov | Free (UNVERIFIED) | Black Marble night lights, NISAR, ASF | Check the terms when you sign up |
+| NASA Earthdata Login | urs.earthdata.nasa.gov | Free (UNVERIFIED) | Black Marble night lights, NISAR, ASF; chlorophyll and 1 km SST for the ocean context | Check the terms when you sign up |
+| Copernicus Marine | marine.copernicus.eu | Free registration (UNVERIFIED) | Chlorophyll, SST and currents; the alternative to NASA for the ocean context | Check the terms when you sign up |
 | Earth Observation Group | eogdata.mines.edu | Free registration (UNVERIFIED) | Ready-made VIIRS Boat Detection (VBD) | Licence per subset, partly CC BY 4.0 (UNVERIFIED) |
 
 ## 3. Add the keys as environment variables (10 min)
@@ -53,13 +55,15 @@ Steps: cloud environment menu, then Edit. Add each key under API credentials whe
 | `CDSE_S3_ACCESS_KEY`, `CDSE_S3_SECRET_KEY` | Copernicus Data Space (S3 credentials) |
 | `OPENALEX_API_KEY` | OpenAlex |
 | `EARTHDATA_TOKEN` | NASA Earthdata Login (user token) |
+| `CMEMS_USERNAME`, `CMEMS_PASSWORD` | Copernicus Marine account |
 | `EOG_USER`, `EOG_PASSWORD` | Earth Observation Group, if you want their VBD product |
 
 Then start a new session or tell me, and I will:
 - pull AIS for the regional window and label dark candidates (with the caveat on every row);
 - cross-check the scene list against Copernicus;
 - verify the SJR, quartile and integrity items in `docs/journals.md`;
-- compare the project's own VIIRS lights with EOG's VBD product.
+- compare the project's own VIIRS lights with EOG's VBD product;
+- build the ocean context layers and the expected-activity model in one go (`docs/ocean_context_plan.md`).
 
 ## 4. Label the Ca Mau queue (3 h)
 
@@ -75,7 +79,7 @@ Labels live only in your browser until you copy them. The sample rule is in `doc
 
 Read `docs/STATUS.md`, `docs/scs_regional.md`, the gap analysis at the end of `docs/bibliometrics.md` and the short answer in `docs/journals.md`. Then decide:
 
-1. **AIS source.** GFW (noncommercial) for the papers, and whether to request a commercial quote (Spire or exactEarth) for anything Viettel-facing.
+1. **AIS source.** Decided on 2026-10-03: GFW (noncommercial) for the papers, kept out of the product. Still open: whether to request a commercial quote (Spire or exactEarth) for anything Viettel-facing.
 2. **Letter venue.** IGARSS 2027 or IEEE GRSL. The IGARSS 2027 deadline is not published; the 2026 deadline was 10 January 2026 (UNVERIFIED), so plan for early January 2027.
 3. **Map naming.** "South China Sea" (current) or "East Sea (Bien Dong)" for a Vietnamese audience.
 4. **Commit author.** Commits use the container default author. Give a name and email if you want them under yours.
