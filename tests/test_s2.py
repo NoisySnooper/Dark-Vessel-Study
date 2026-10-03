@@ -25,3 +25,12 @@ def test_nir_contrast_peaks_at_the_centre_only():
     nir2 = 1100 + rng.normal(0, 10, (31, 31))
     nir2[2, 2] += 2500                                 # bright pixel at the window edge is not the point
     assert s2.nir_contrast(nir2)[2] < 60
+
+
+def test_ndvi_at_peak_uses_the_offset():
+    nir = np.full((31, 31), 1100.0)
+    red = np.full((31, 31), 1100.0)
+    nir[15, 15], red[15, 15] = 1000 + 4000, 1000 + 500    # vegetation: reflectance 0.40 NIR, 0.05 red
+    assert abs(s2.ndvi_at_peak(nir, red, -1000) - (0.35 / 0.45)) < 1e-6
+    nir[15, 15], red[15, 15] = 1000 + 3000, 1000 + 2800   # white hull or concrete: flat spectrum
+    assert s2.ndvi_at_peak(nir, red, -1000) < 0.1

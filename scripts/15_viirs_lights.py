@@ -155,20 +155,6 @@ def retry(workers: int):
             print(f"{gid} {n} lights {err or ''}", flush=True)
 
 
-SATLAS_URL = "https://storage.googleapis.com/satlas-explorer-public/outputs/marine/latest.geojson"
-
-
-def satlas_points() -> Path:
-    """Local copy of the Satlas marine infrastructure snapshot (AI2, ODC-BY), downloaded once with retries."""
-    from darkvessel.s1 import aws
-
-    path = DATA_DIR / "cache" / "satlas_marine_latest.geojson"
-    if not path.exists() or path.stat().st_size < 1000:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(aws._get(SATLAS_URL).content)
-    return path
-
-
 def night_of(t: pd.Series) -> pd.Series:
     """Local calendar night: the UTC date of a pass near 18:00 UTC is the evening date in Vietnam (UTC+7)."""
     return (t + pd.Timedelta(hours=7) - pd.Timedelta(hours=12)).dt.date
@@ -201,7 +187,9 @@ def merge(persist_frac: float = 0.3, persist_radius_m: float = 500.0, res: float
 
     # Distance to Satlas offshore infrastructure (platforms, turbines), if reachable
     try:
-        sat = gpd.read_file(satlas_points())
+        from darkvessel import satlas
+
+        sat = satlas.points()
         sxy = np.c_[np.radians(sat.geometry.x) * 6371008.8 * np.cos(lat0), np.radians(sat.geometry.y) * 6371008.8]
         det["satlas_infra_m"] = np.round(cKDTree(sxy).query(xy)[0], 0)
     except Exception as e:  # noqa: BLE001

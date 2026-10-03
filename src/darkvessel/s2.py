@@ -55,8 +55,10 @@ def list_items(tile: str, start: dt.date, end: dt.date) -> list[dict]:
             day = dt.datetime.strptime(item.split("_")[2], "%Y%m%d").date()
             if start <= day <= end:
                 meta = aws._get(f"{BUCKET}/{p}{item}.json").json()
-                out.append({"item": item, "date": day, "datetime": meta["properties"]["datetime"],
-                            "cloud": float(meta["properties"].get("eo:cloud_cover", 100.0)), "base": f"{BUCKET}/{p}"})
+                pr = meta["properties"]
+                baseline = float(pr.get("s2:processing_baseline", "0") or 0)
+                out.append({"item": item, "date": day, "datetime": pr["datetime"], "cloud": float(pr.get("eo:cloud_cover", 100.0)),
+                            "base": f"{BUCKET}/{p}", "dn_offset": -1000 if baseline >= 4.0 else 0})
     return sorted(out, key=lambda r: r["cloud"])
 
 
@@ -72,6 +74,19 @@ def read_around(ds, lon: float, lat: float, half: int) -> np.ndarray | None:
     if row - half < 0 or col - half < 0 or row + half >= ds.height or col + half >= ds.width:
         return None
     return ds.read(1, window=Window(col - half, row - half, 2 * half + 1, 2 * half + 1))
+
+
+def ndvi_at_peak(nir: np.ndarray, red: np.ndarray, dn_offset: int, core: int = 2) -> float:
+    """NDVI at the brightest near-infrared pixel of the core, from L2A DN (reflectance = (DN + offset) / 10,000).
+
+    Vegetated islets and shore read above about 0.3; steel, concrete, hulls and water read lower.
+    """
+    c = nir.shape[0] // 2
+    sub = nir[c - core:c + core + 1, c - core:c + core + 1]
+    i, j = np.unravel_index(int(np.argmax(sub)), sub.shape)
+    n = float(nir[c - core + i, c - core + j]) + dn_offset
+    r = float(red[c - core + i, c - core + j]) + dn_offset
+    return (n - r) / (n + r) if (n + r) > 0 else float("nan")
 
 
 def nir_contrast(nir: np.ndarray, core: int = 2) -> tuple[float, float, float]:
