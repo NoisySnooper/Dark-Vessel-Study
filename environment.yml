@@ -6,6 +6,8 @@ channels:
 dependencies:
   - python=3.11
   - gdal>=3.8
+  - libgdal-netcdf   # NetCDF driver (RTOFS, MUR, chlorophyll)
+  - libgdal-grib     # GRIB driver (GFS, GFS-Wave)
   - rasterio>=1.3
   - geopandas>=0.14
   - pyogrio
@@ -24,6 +26,10 @@ dependencies:
   - requests
   - fsspec
   - h5py
+  - xarray
+  - h5netcdf
+  - netcdf4
+  - scikit-learn
   - aiohttp
   - python-dotenv
   - pyyaml
@@ -33,4 +39,5 @@ dependencies:
   - pip
   - pip:
       - mgrs
+      - websockets   # aisstream.io live AIS
       - -e .

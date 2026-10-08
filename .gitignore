@@ -53,3 +53,11 @@ Thumbs.db
 # Run logs
 *.log
 data/ml/build_log.txt
+
+# Research-only outputs (Global Fishing Watch, CC BY-NC 4.0): kept apart from product files
+!data/research/*.tif
+
+# Product app build artefacts
+app/frontend/node_modules/
+app/frontend/dist/
+app/**/__pycache__/
