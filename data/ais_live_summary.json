@@ -1,0 +1,375 @@
+{
+ "positions": 15780,
+ "static_rows": 951,
+ "mmsi_count": 1277,
+ "period_start_utc": "2026-10-08T14:31:47.338848+00:00",
+ "period_end_utc": "2026-10-08T23:37:45.979593+00:00",
+ "hours_recorded": 4,
+ "mmsi_by_class": {
+  "A": 1062,
+  "B": 215
+ },
+ "positions_by_type": {
+  "PositionReport": 13958,
+  "StandardClassBPositionReport": 1612,
+  "ExtendedClassBPositionReport": 210
+ },
+ "share_positions_underway_over_1kn": 0.352,
+ "mmsi_gear_beacon_like": 15,
+ "mmsi_with_static": 817,
+ "top_ship_types": {
+  "cargo": 292,
+  "tanker": 150,
+  "tug": 94,
+  "passenger": 40,
+  "high speed craft": 39,
+  "other": 26,
+  "fishing": 22,
+  "pilot vessel": 14,
+  "pleasure craft": 13,
+  "towing": 8,
+  "dredging or underwater ops": 7,
+  "reserved": 4
+ },
+ "length_m_quartiles": [
+  35.5,
+  78.0,
+  177.0
+ ],
+ "mmsi_with_length_under_15m": 21,
+ "generated_utc": "2026-10-08T23:37:54Z",
+ "period": "2026-10-08 14:31 to 2026-10-08 23:37 UTC (4 UTC hour(s) with data)",
+ "recording_gaps_over_10_min": [
+  {
+   "from_utc": "2026-10-08T15:19:52Z",
+   "to_utc": "2026-10-08T22:38:51Z",
+   "minutes": 439.0
+  }
+ ],
+ "positions_in_aoi": 5227,
+ "mmsi_in_aoi": 420,
+ "recorder_status": {
+  "started_utc": "2026-10-08T23:35:47.592298+00:00",
+  "messages": 402,
+  "positions": 344,
+  "static": 57,
+  "other": 1,
+  "bad_json": 0,
+  "dropped": 0,
+  "handler_errors": 0,
+  "clock_skew_dropped": 0,
+  "by_type": {
+   "SubscriptionConfirmation": 1,
+   "PositionReport": 315,
+   "StaticDataReport": 14,
+   "ShipStaticData": 43,
+   "ExtendedClassBPositionReport": 3,
+   "StandardClassBPositionReport": 26
+  },
+  "connects": 1,
+  "connection": "connected",
+  "connect_attempts": 0,
+  "last_connect_utc": "2026-10-08T23:35:48.467033+00:00",
+  "last_disconnect_utc": null,
+  "errors": 0,
+  "last_error": null,
+  "flush_errors": 0,
+  "last_message_utc": "2026-10-08T23:37:47.425148+00:00",
+  "last_write_utc": "2026-10-08T23:37:48.114733+00:00",
+  "flushes": 2,
+  "distinct_mmsi": 288,
+  "updated_utc": "2026-10-08T23:37:48.114866+00:00",
+  "pid": 6290
+ },
+ "watchdog_status": {
+  "pid": 4012,
+  "started_utc": "2026-10-08T23:26:46Z",
+  "checks": 12,
+  "restarts": 1,
+  "streak": 1,
+  "last_restart_utc": "2026-10-08T23:35:47Z",
+  "last_restart_reason": "no recorder process",
+  "last_decision": "ok: ok: last message 60 s ago"
+ },
+ "reach": {
+  "grid": "0.25 degree model grid (darkvessel.ocean.grid.model_grid)",
+  "aoi_cells": 4778,
+  "aoi_cells_reached": 42,
+  "share_aoi_cells_reached": 0.0088,
+  "aoi_cells_reached_half_of_hours_or_more": 28,
+  "rasters": [
+   "data/outputs/small/ais_reach_share_4326.tif",
+   "data/outputs/small/ais_reach_share_utm49n.tif",
+   "data/outputs/small/ais_reach_mmsi_4326.tif",
+   "data/outputs/small/ais_reach_mmsi_utm49n.tif"
+  ]
+ },
+ "coverage_by_aoi_part": {
+  "South China Sea": {
+   "positions": 10140,
+   "mmsi": 676,
+   "aoi_cells": 4226,
+   "cells_heard": 42,
+   "share_cells_heard": 0.0099,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 2535.0
+  },
+  "Gulf of Thailand": {
+   "positions": 0,
+   "mmsi": 0,
+   "aoi_cells": 391,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 0.0,
+   "positions_per_hour": 0.0
+  },
+  "Gulf of Tonkin": {
+   "positions": 0,
+   "mmsi": 0,
+   "aoi_cells": 161,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 0.0,
+   "positions_per_hour": 0.0
+  }
+ },
+ "coverage_by_report_box": {
+  "Pearl River mouth and Hong Kong": {
+   "positions": 7676,
+   "mmsi": 493,
+   "aoi_cells": 17,
+   "cells_heard": 8,
+   "share_cells_heard": 0.4706,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 1919.0,
+   "bbox": [
+    113.0,
+    21.8,
+    114.6,
+    22.9
+   ]
+  },
+  "Luzon west coast and Manila Bay": {
+   "positions": 142,
+   "mmsi": 32,
+   "aoi_cells": 40,
+   "cells_heard": 2,
+   "share_cells_heard": 0.05,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 35.5,
+   "bbox": [
+    119.5,
+    13.5,
+    121.0,
+    16.5
+   ]
+  },
+  "Singapore Strait": {
+   "positions": 3463,
+   "mmsi": 456,
+   "aoi_cells": 1,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 865.8,
+   "bbox": [
+    103.4,
+    1.0,
+    104.6,
+    1.5
+   ]
+  },
+  "Bangka Strait": {
+   "positions": 831,
+   "mmsi": 61,
+   "aoi_cells": 17,
+   "cells_heard": 8,
+   "share_cells_heard": 0.4706,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 207.8,
+   "bbox": [
+    105.0,
+    -3.3,
+    106.5,
+    -1.5
+   ]
+  },
+  "Gulf of Thailand, Thai coast": {
+   "positions": 358,
+   "mmsi": 34,
+   "aoi_cells": 60,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 89.5,
+   "bbox": [
+    99.5,
+    11.5,
+    102.5,
+    13.8
+   ]
+  },
+  "Ca Mau detail area": {
+   "positions": 0,
+   "mmsi": 0,
+   "aoi_cells": 74,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 0.0,
+   "positions_per_hour": 0.0,
+   "bbox": [
+    103.5,
+    7.5,
+    106.0,
+    9.8
+   ]
+  },
+  "Gulf of Tonkin, Vietnamese side": {
+   "positions": 0,
+   "mmsi": 0,
+   "aoi_cells": 72,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 0.0,
+   "positions_per_hour": 0.0,
+   "bbox": [
+    105.6,
+    19.0,
+    108.2,
+    21.6
+   ]
+  },
+  "Central Vietnam coast": {
+   "positions": 134,
+   "mmsi": 15,
+   "aoi_cells": 90,
+   "cells_heard": 1,
+   "share_cells_heard": 0.0111,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 33.5,
+   "bbox": [
+    107.5,
+    11.0,
+    110.0,
+    16.5
+   ]
+  },
+  "Paracel Islands area": {
+   "positions": 0,
+   "mmsi": 0,
+   "aoi_cells": 80,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 0.0,
+   "positions_per_hour": 0.0,
+   "bbox": [
+    110.5,
+    15.5,
+    113.0,
+    17.5
+   ]
+  },
+  "Spratly Islands area": {
+   "positions": 0,
+   "mmsi": 0,
+   "aoi_cells": 477,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 0.0,
+   "positions_per_hour": 0.0,
+   "bbox": [
+    111.0,
+    7.0,
+    117.0,
+    12.0
+   ]
+  }
+ },
+ "report_box_note": "Reporting boxes are lon/lat boxes for statistics only; they are not boundaries and take no position on any claim.",
+ "coverage_by_distance_to_coast": {
+  "0 to 20 km": {
+   "positions": 12406,
+   "mmsi": 1033,
+   "aoi_cells": 534,
+   "cells_heard": 15,
+   "share_cells_heard": 0.0281,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 3101.5
+  },
+  "20 to 50 km": {
+   "positions": 17,
+   "mmsi": 7,
+   "aoi_cells": 739,
+   "cells_heard": 7,
+   "share_cells_heard": 0.0095,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 4.2
+  },
+  "50 to 100 km": {
+   "positions": 48,
+   "mmsi": 9,
+   "aoi_cells": 1092,
+   "cells_heard": 7,
+   "share_cells_heard": 0.0064,
+   "share_hours_with_any_position": 1.0,
+   "positions_per_hour": 12.0
+  },
+  "100 to 200 km": {
+   "positions": 9,
+   "mmsi": 6,
+   "aoi_cells": 1388,
+   "cells_heard": 7,
+   "share_cells_heard": 0.005,
+   "share_hours_with_any_position": 0.75,
+   "positions_per_hour": 2.2
+  },
+  "over 200 km": {
+   "positions": 0,
+   "mmsi": 0,
+   "aoi_cells": 973,
+   "cells_heard": 0,
+   "share_cells_heard": 0.0,
+   "share_hours_with_any_position": 0.0,
+   "positions_per_hour": 0.0
+  },
+  "source": "data/outputs/small/dist_coast_km_4326.tif (Natural Earth 10 m coastline, distance at the position and at each 0.25 degree cell centre)"
+ },
+ "tracks": 1094,
+ "s1_next_passes": {
+  "n": 88,
+  "pass_groups": 39,
+  "esa_plan": 45,
+  "repeat_cycle": 43,
+  "window_start_utc": "2026-10-06T13:34:20Z",
+  "window_end_utc": "2026-10-21T13:34:20Z",
+  "generated_utc": "2026-10-09T13:34:20Z",
+  "file": "data/s1_next_passes.json"
+ },
+ "aisstream_terms": {
+  "source": "aisstream.io websocket feed, wss://stream.aisstream.io/v0/stream",
+  "docs_url": "https://aisstream.io/documentation",
+  "read_utc": "2026-10-08",
+  "provenance_quote": "Our global network of Automatic Identification System (AIS) stations, which power aisstream.io's tracking capabilities, allows us to stream much more than just ship positions. (https://aisstream.io/)",
+  "cost_quote": "Track ship movements ... from aisstream.io's websocket api in real-time and for free. (https://aisstream.io/)",
+  "limits_quote": "Connections per account: 3 subscribed connections. Connections per originating IP: 3 open connections. Initial subscription: within 3 seconds. (https://aisstream.io/documentation#limits)",
+  "browser_quote": "Direct browser connections are not permitted; proxy only the information your clients need from your own server. (https://aisstream.io/documentation)",
+  "sla_quote": "The service currently provides no SLA or uptime guarantee, and events are not durably replayed. (https://aisstream.io/documentation)",
+  "compression_quote": "Beginning in September 2026, uncompressed connections will be subject to per-user bandwidth limits, and messages exceeding those limits will be dropped. (https://aisstream.io/documentation)",
+  "licence": "UNVERIFIED: no terms-of-service or data-licence page exists on aisstream.io (only a privacy policy about personal data, https://aisstream.io/privacypolicy). Redistribution and commercial use of the relayed AIS data are not addressed anywhere on the site. Treat the recording as research input until the owner asks the operator (Support link on the site) in writing."
+ },
+ "caveat": "'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "caveat_reach": "Live AIS here comes from the shore receivers of aisstream.io. They hear class A transponders a few tens of kilometres offshore and class B less far; the open sea is silent whether or not vessels are there. No AIS heard in a cell does not mean no vessel. 'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "caveat_gap": "A gap in a vessel's AIS track is not proof of intent: receivers lose class B first, messages collide in busy waters, and the feed itself drops messages and has no uptime guarantee.",
+ "files": {
+  "gpkg": "data/ais_live.gpkg",
+  "layers": [
+   "vessels_latest_4326",
+   "vessels_latest_utm49n",
+   "tracks_4326",
+   "tracks_utm49n",
+   "s1_next_passes_4326",
+   "s1_next_passes_utm49n",
+   "about"
+  ]
+ }
+}
