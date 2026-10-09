@@ -1,0 +1,173 @@
+{
+ "generated_utc": "2026-10-09T06:43:29.441885+00:00",
+ "use": "research build only, noncommercial (Global Fishing Watch data, CC BY-NC 4.0)",
+ "licence": "CC BY-NC 4.0",
+ "licence_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+ "caveat": "Global Fishing Watch detections and events are another model's output, not ground truth. GFW SAR detections cover industrial vessels and miss most vessels under 15 m (GFW data caveats; Paolo et al. 2024, doi:10.1038/s41586-023-06825-8). GFW's 'matched' flag is GFW's own AIS match, not ours. An AIS gap event is not proof of intent: GFW's own documentation calls the gaps dataset a prototype, and AIS can be off or unreceived for lawful and technical reasons. 'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "method": "cell-date counts on GFW's grid (GFW reports cell centres, not positions); 0.01 degree cells also keyed by hour",
+ "ours": {
+  "file": "data/detections_regional.gpkg detections_regional_4326",
+  "n": 78615,
+  "dates": [
+   "2026-09-20",
+   "2026-09-21",
+   "2026-09-22",
+   "2026-09-23",
+   "2026-09-24",
+   "2026-09-26",
+   "2026-09-27",
+   "2026-09-28",
+   "2026-09-29",
+   "2026-09-30",
+   "2026-10-01"
+  ],
+  "classes": "high and medium candidates (low class and fixed structures excluded)"
+ },
+ "gfw": {
+  "dataset": "public-global-sar-presence:v4.0",
+  "n_on_our_dates_aoi": 17911,
+  "n_on_our_dates_in_our_scenes": 17603
+ },
+ "by_resolution": {
+  "0.01": {
+   "n_ours": 78615,
+   "n_gfw": 17603,
+   "cells_ours": 60733,
+   "cells_gfw": 16950,
+   "cells_both": 14939,
+   "n_pair": 15511,
+   "ours_in_cells_with_gfw": 0.2753,
+   "ours_paired_share": 0.1973,
+   "gfw_in_cells_with_ours": 0.8841,
+   "gfw_paired_share": 0.8812,
+   "gfw_matched_share_in_shared_cells": 0.3323,
+   "gfw_matched_share_all": 0.3455
+  },
+  "0.1": {
+   "n_ours": 78615,
+   "n_gfw": 17603,
+   "cells_ours": 16318,
+   "cells_gfw": 6482,
+   "cells_both": 6220,
+   "n_pair": 17057,
+   "ours_in_cells_with_gfw": 0.6001,
+   "ours_paired_share": 0.217,
+   "gfw_in_cells_with_ours": 0.9827,
+   "gfw_paired_share": 0.969,
+   "gfw_matched_share_in_shared_cells": 0.3419,
+   "gfw_matched_share_all": 0.3455
+  },
+  "0.25": {
+   "n_ours": 78615,
+   "n_gfw": 17603,
+   "cells_ours": 4135,
+   "cells_gfw": 2523,
+   "cells_both": 2510,
+   "n_pair": 17551,
+   "ours_in_cells_with_gfw": 0.7712,
+   "ours_paired_share": 0.2233,
+   "gfw_in_cells_with_ours": 0.9986,
+   "gfw_paired_share": 0.997,
+   "gfw_matched_share_in_shared_cells": 0.3453,
+   "gfw_matched_share_all": 0.3455
+  }
+ },
+ "by_length_m": {
+  "0-25": {
+   "n_ours": 29324,
+   "ours_in_cells_with_gfw": 0.4342,
+   "ours_paired_share": 0.2814,
+   "gfw_matched_share_in_shared_cells": 0.3536
+  },
+  "25-50": {
+   "n_ours": 16232,
+   "ours_in_cells_with_gfw": 0.6349,
+   "ours_paired_share": 0.4657,
+   "gfw_matched_share_in_shared_cells": 0.3267
+  },
+  "50-100": {
+   "n_ours": 18088,
+   "ours_in_cells_with_gfw": 0.7002,
+   "ours_paired_share": 0.5467,
+   "gfw_matched_share_in_shared_cells": 0.3196
+  },
+  "100-1000": {
+   "n_ours": 14971,
+   "ours_in_cells_with_gfw": 0.7666,
+   "ours_paired_share": 0.6334,
+   "gfw_matched_share_in_shared_cells": 0.3778
+  }
+ },
+ "by_mission": {
+  "S1C": {
+   "n_ours": 13283,
+   "n_gfw": 3396,
+   "cells_ours": 2496,
+   "cells_gfw": 1065,
+   "cells_both": 991,
+   "n_pair": 3260,
+   "ours_in_cells_with_gfw": 0.7069,
+   "ours_paired_share": 0.2454,
+   "gfw_in_cells_with_ours": 0.9753,
+   "gfw_paired_share": 0.96,
+   "gfw_matched_share_in_shared_cells": 0.304,
+   "gfw_matched_share_all": 0.3101,
+   "note": "GFW detections inside this mission's scene footprints on the same dates"
+  },
+  "S1D": {
+   "n_ours": 65332,
+   "n_gfw": 14207,
+   "cells_ours": 13822,
+   "cells_gfw": 5417,
+   "cells_both": 5229,
+   "n_pair": 13797,
+   "ours_in_cells_with_gfw": 0.5784,
+   "ours_paired_share": 0.2112,
+   "gfw_in_cells_with_ours": 0.9844,
+   "gfw_paired_share": 0.9711,
+   "gfw_matched_share_in_shared_cells": 0.3509,
+   "gfw_matched_share_all": 0.3539,
+   "note": "GFW detections inside this mission's scene footprints on the same dates"
+  }
+ },
+ "statement": "GFW detections are another detector's output on the same Sentinel-1 scenes, not truth. GFW reports industrial vessels and misses most under 15 m (GFW data caveats; Paolo et al. 2024 report >70 % at 25 m, >90 % at 50 m, 60 % at 15 to 20 m by calibration). Agreement in a cell means both detectors saw something there in that pass; it is not an object-level match. GFW's matched flag is AIS status by GFW's matcher, research only. Dark does not mean illegal.",
+ "cell_convention_0.01deg": {
+  "gfw_grid_centre_anchored (used)": 0.2753,
+  "corner_anchored_floor (old, wrong)": 0.108,
+  "note": "share of our candidates in a 0.01 degree cell-hour with a GFW detection; GFW's lon/lat is the cell centre (https://globalfishingwatch.org/our-apis/documentation/docs/v3/4wings/report), so cells are centred on whole multiples of 0.01"
+ },
+ "by_confidence": {
+  "high": {
+   "n_ours": 29228,
+   "n_gfw": 17603,
+   "cells_ours": 8368,
+   "cells_gfw": 6482,
+   "cells_both": 5171,
+   "n_pair": 14475,
+   "ours_in_cells_with_gfw": 0.7328,
+   "ours_paired_share": 0.4952,
+   "gfw_in_cells_with_ours": 0.909,
+   "gfw_paired_share": 0.8223,
+   "gfw_matched_share_in_shared_cells": 0.3381,
+   "gfw_matched_share_all": 0.3455,
+   "note": "ours restricted to this class; GFW side is all GFW detections in our scenes"
+  },
+  "medium": {
+   "n_ours": 49387,
+   "n_gfw": 17603,
+   "cells_ours": 14846,
+   "cells_gfw": 6482,
+   "cells_both": 5415,
+   "n_pair": 12818,
+   "ours_in_cells_with_gfw": 0.5217,
+   "ours_paired_share": 0.2595,
+   "gfw_in_cells_with_ours": 0.9004,
+   "gfw_paired_share": 0.7282,
+   "gfw_matched_share_in_shared_cells": 0.3461,
+   "gfw_matched_share_all": 0.3455,
+   "note": "ours restricted to this class; GFW side is all GFW detections in our scenes"
+  }
+ },
+ "attribution": "Global Fishing Watch. 2026, updated daily. public-global-sar-presence:v4.0, 2026-09-20 to 2026-10-01. Data set accessed 2026-10-08 at https://globalfishingwatch.org/our-apis/ .",
+ "accessed": "2026-10-08"
+}

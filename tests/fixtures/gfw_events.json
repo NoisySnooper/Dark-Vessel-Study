@@ -1,0 +1,23 @@
+{"total": 3, "limit": 3, "offset": 0, "nextOffset": null, "metadata": {"datasets": ["public-global-gaps-events:v4.0"]},
+ "entries": [
+  {"start": "2026-09-14T19:06:18.000Z", "end": "2026-09-16T20:49:16.000Z", "id": "gap0001", "type": "gap",
+   "position": {"lat": 12.4332, "lon": 113.6513}, "regions": {"eez": [], "rfmo": ["WCPFC"]},
+   "boundingBox": [113.0, 12.0, 114.0, 13.0],
+   "distances": {"startDistanceFromShoreKm": 148, "endDistanceFromShoreKm": 130, "startDistanceFromPortKm": 259.1, "endDistanceFromPortKm": 240.2},
+   "vessel": {"id": "v-gap-0001", "name": "TEST ONE", "ssvid": "000000001", "flag": "XXX", "type": "fishing", "nextPort": null},
+   "gap": {"intentionalDisabling": true, "distanceKm": "91.7", "durationHours": 49.7, "impliedSpeedKnots": "1.0",
+           "positions12HoursBeforeSat": "18", "positionsPerDaySatReception": 256.0,
+           "offPosition": {"lat": 12.0, "lon": 113.0}, "onPosition": {"lat": "13.0", "lon": "114.0"}}},
+  {"start": "2026-09-10T00:00:00.000Z", "end": "2026-09-10T02:40:00.000Z", "id": "enc0001.1", "type": "encounter",
+   "position": {"lat": 10.4418, "lon": 109.0647}, "regions": {"eez": ["0"]}, "boundingBox": [109.06, 10.44, 109.06, 10.44],
+   "distances": {"startDistanceFromShoreKm": 12, "endDistanceFromShoreKm": 12, "startDistanceFromPortKm": 161.5, "endDistanceFromPortKm": 161.5},
+   "vessel": {"id": "v-enc-a", "name": "TEST A", "ssvid": "000000002", "flag": "XXX", "type": "fishing", "nextPort": null},
+   "encounter": {"vessel": {"id": "v-enc-b", "flag": "YYY", "name": "TEST B", "type": "fishing", "ssvid": "000000003"},
+                 "medianDistanceKilometers": 0.005, "medianSpeedKnots": 0.036, "type": "fishing-fishing", "potentialRisk": false}},
+  {"start": "2026-09-01T04:33:18.000Z", "end": "2026-09-03T23:35:41.000Z", "id": "pv0001", "type": "port_visit",
+   "position": {"lat": 22.3176, "lon": 114.1945}, "regions": {"eez": ["0"]}, "boundingBox": [114.15, 22.29, 114.19, 22.31],
+   "distances": {"startDistanceFromShoreKm": 0, "endDistanceFromShoreKm": 0, "startDistanceFromPortKm": 0, "endDistanceFromPortKm": 0},
+   "vessel": {"id": "v-pv-1", "name": "TEST FERRY", "ssvid": "000000004", "flag": "ZZZ", "type": "passenger", "nextPort": null},
+   "port_visit": {"visitId": "visit1", "confidence": "4", "durationHrs": 67.04,
+                  "startAnchorage": {"anchorageId": "a1", "atDock": true, "flag": "ZZZ", "id": "zzz-testport", "lat": 22.29, "lon": 114.15, "name": "TESTPORT"}}}
+ ]}

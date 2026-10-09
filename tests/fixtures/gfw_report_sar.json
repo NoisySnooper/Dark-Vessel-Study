@@ -1,0 +1,6 @@
+{"total": 1, "limit": null, "offset": null, "nextOffset": null, "metadata": {},
+ "entries": [{"public-global-sar-presence:v4.0": [
+   {"callsign": "", "dataset": "", "date": "2026-09-20 10:00", "detections": 1, "entryTimestamp": "2026-09-20T10:48:31Z", "exitTimestamp": "2026-09-20T23:00:50Z", "flag": "", "geartype": "", "imo": "", "lat": 21.31, "lon": 109.52999877929688, "mmsi": "", "shipName": "", "vesselId": "", "vesselType": ""},
+   {"callsign": "", "dataset": "", "date": "2026-09-20 10:00", "detections": 2, "entryTimestamp": "2026-09-20T10:48:31Z", "exitTimestamp": "2026-09-20T23:00:50Z", "flag": "", "geartype": "", "imo": "", "lat": 20.22, "lon": 109.33000183105688, "mmsi": "", "shipName": "", "vesselId": "", "vesselType": ""},
+   {"callsign": "", "dataset": "", "date": "2026-09-20 22:00", "detections": 1, "entryTimestamp": "2026-09-20T10:48:31Z", "exitTimestamp": "2026-09-20T23:00:50Z", "flag": "", "geartype": "", "imo": "", "lat": 7.05, "lon": 104.12, "mmsi": "", "shipName": "", "vesselId": "", "vesselType": ""}
+ ]}]}

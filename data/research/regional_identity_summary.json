@@ -1,0 +1,1509 @@
+{
+ "generated_utc": "2026-10-09T06:53:59.130105+00:00",
+ "run_id": "regional_2026-09",
+ "use": "research build only, noncommercial (Global Fishing Watch data, CC BY-NC 4.0)",
+ "licence": "CC BY-NC 4.0",
+ "licence_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+ "terms_url": "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits",
+ "accessed": "2026-10-08 to 2026-10-09",
+ "accessed_by_dataset": {
+  "sar": "2026-10-08",
+  "presence": "2026-10-08",
+  "gaps": "2026-10-08",
+  "encounters": "2026-10-08",
+  "loitering": "2026-10-08",
+  "vessels": "2026-10-08 to 2026-10-09"
+ },
+ "attribution": {
+  "sar": "Global Fishing Watch. 2026, updated daily. public-global-sar-presence:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 at https://globalfishingwatch.org/our-apis/ .",
+  "presence": "Global Fishing Watch. 2026, updated daily. public-global-presence:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 at https://globalfishingwatch.org/our-apis/ .",
+  "gaps": "Global Fishing Watch. 2026, updated daily. public-global-gaps-events:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 at https://globalfishingwatch.org/our-apis/ .",
+  "encounters": "Global Fishing Watch. 2026, updated daily. public-global-encounters-events:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 at https://globalfishingwatch.org/our-apis/ .",
+  "loitering": "Global Fishing Watch. 2026, updated daily. public-global-loitering-events:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 at https://globalfishingwatch.org/our-apis/ .",
+  "vessels": "Global Fishing Watch. 2026, updated daily. public-global-vessel-identity:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 to 2026-10-09 at https://globalfishingwatch.org/our-apis/ ."
+ },
+ "caveat": "'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "gfw_caveat": "Global Fishing Watch detections and events are another model's output, not ground truth. GFW SAR detections cover industrial vessels and miss most vessels under 15 m (GFW data caveats; Paolo et al. 2024, doi:10.1038/s41586-023-06825-8). GFW's 'matched' flag is GFW's own AIS match, not ours. An AIS gap event is not proof of intent: GFW's own documentation calls the gaps dataset a prototype, and AIS can be off or unreceived for lawful and technical reasons. 'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "datasets": {
+  "sar": "public-global-sar-presence:v4.0",
+  "presence": "public-global-presence:v4.0",
+  "gaps": "public-global-gaps-events:v4.0",
+  "encounters": "public-global-encounters-events:v4.0",
+  "loitering": "public-global-loitering-events:v4.0",
+  "vessels": "public-global-vessel-identity:v4.0"
+ },
+ "window_presence_grid": [
+  "2026-09-01",
+  "2026-10-08"
+ ],
+ "run_dates": [
+  "2026-09-20",
+  "2026-09-21",
+  "2026-09-22",
+  "2026-09-23",
+  "2026-09-24",
+  "2026-09-26",
+  "2026-09-27",
+  "2026-09-28",
+  "2026-09-29",
+  "2026-09-30",
+  "2026-10-01"
+ ],
+ "passes": [
+  {
+   "pass_id": "S1C_20260920T1048",
+   "mission": "S1C",
+   "t0": "2026-09-20T10:48:16+00:00",
+   "t1": "2026-09-20T10:48:45+00:00",
+   "n_scenes": 2,
+   "presence_window": [
+    "2026-09-20T09:00:00.000Z",
+    "2026-09-20T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260920T1134",
+   "mission": "S1D",
+   "t0": "2026-09-20T11:34:35+00:00",
+   "t1": "2026-09-20T11:35:50+00:00",
+   "n_scenes": 4,
+   "presence_window": [
+    "2026-09-20T10:00:00.000Z",
+    "2026-09-20T13:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260920T2213",
+   "mission": "S1D",
+   "t0": "2026-09-20T22:13:43+00:00",
+   "t1": "2026-09-20T22:15:52+00:00",
+   "n_scenes": 4,
+   "presence_window": [
+    "2026-09-20T21:00:00.000Z",
+    "2026-09-21T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260920T2300",
+   "mission": "S1C",
+   "t0": "2026-09-20T23:00:37+00:00",
+   "t1": "2026-09-20T23:00:37+00:00",
+   "n_scenes": 1,
+   "presence_window": [
+    "2026-09-20T22:00:00.000Z",
+    "2026-09-21T01:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260921T1040",
+   "mission": "S1D",
+   "t0": "2026-09-21T10:40:31+00:00",
+   "t1": "2026-09-21T10:41:00+00:00",
+   "n_scenes": 2,
+   "presence_window": [
+    "2026-09-21T09:00:00.000Z",
+    "2026-09-21T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260921T2250",
+   "mission": "S1D",
+   "t0": "2026-09-21T22:50:18+00:00",
+   "t1": "2026-09-21T22:54:54+00:00",
+   "n_scenes": 7,
+   "presence_window": [
+    "2026-09-21T21:00:00.000Z",
+    "2026-09-22T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260922T1115",
+   "mission": "S1D",
+   "t0": "2026-09-22T11:15:30+00:00",
+   "t1": "2026-09-22T11:19:40+00:00",
+   "n_scenes": 11,
+   "presence_window": [
+    "2026-09-22T10:00:00.000Z",
+    "2026-09-22T13:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260922T2153",
+   "mission": "S1D",
+   "t0": "2026-09-22T21:53:24+00:00",
+   "t1": "2026-09-22T21:56:37+00:00",
+   "n_scenes": 7,
+   "presence_window": [
+    "2026-09-22T20:00:00.000Z",
+    "2026-09-22T23:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260922T2242",
+   "mission": "S1C",
+   "t0": "2026-09-22T22:42:55+00:00",
+   "t1": "2026-09-22T22:44:39+00:00",
+   "n_scenes": 2,
+   "presence_window": [
+    "2026-09-22T21:00:00.000Z",
+    "2026-09-23T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260923T1024",
+   "mission": "S1D",
+   "t0": "2026-09-23T10:24:51+00:00",
+   "t1": "2026-09-23T10:24:51+00:00",
+   "n_scenes": 1,
+   "presence_window": [
+    "2026-09-23T09:00:00.000Z",
+    "2026-09-23T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260923T1110",
+   "mission": "S1C",
+   "t0": "2026-09-23T11:10:46+00:00",
+   "t1": "2026-09-23T11:10:46+00:00",
+   "n_scenes": 1,
+   "presence_window": [
+    "2026-09-23T10:00:00.000Z",
+    "2026-09-23T13:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260923T2235",
+   "mission": "S1D",
+   "t0": "2026-09-23T22:35:20+00:00",
+   "t1": "2026-09-23T22:40:20+00:00",
+   "n_scenes": 9,
+   "presence_window": [
+    "2026-09-23T21:00:00.000Z",
+    "2026-09-24T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260924T1102",
+   "mission": "S1D",
+   "t0": "2026-09-24T11:02:38+00:00",
+   "t1": "2026-09-24T11:05:13+00:00",
+   "n_scenes": 4,
+   "presence_window": [
+    "2026-09-24T10:00:00.000Z",
+    "2026-09-24T13:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260926T0958",
+   "mission": "S1C",
+   "t0": "2026-09-26T09:58:46+00:00",
+   "t1": "2026-09-26T09:59:51+00:00",
+   "n_scenes": 3,
+   "presence_window": [
+    "2026-09-26T08:00:00.000Z",
+    "2026-09-26T11:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260926T1048",
+   "mission": "S1D",
+   "t0": "2026-09-26T10:48:32+00:00",
+   "t1": "2026-09-26T10:49:26+00:00",
+   "n_scenes": 3,
+   "presence_window": [
+    "2026-09-26T09:00:00.000Z",
+    "2026-09-26T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260926T2300",
+   "mission": "S1D",
+   "t0": "2026-09-26T23:00:43+00:00",
+   "t1": "2026-09-26T23:02:23+00:00",
+   "n_scenes": 5,
+   "presence_window": [
+    "2026-09-26T22:00:00.000Z",
+    "2026-09-27T01:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260927T1123",
+   "mission": "S1D",
+   "t0": "2026-09-27T11:23:55+00:00",
+   "t1": "2026-09-27T11:28:05+00:00",
+   "n_scenes": 11,
+   "presence_window": [
+    "2026-09-27T10:00:00.000Z",
+    "2026-09-27T13:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260927T2205",
+   "mission": "S1D",
+   "t0": "2026-09-27T22:05:01+00:00",
+   "t1": "2026-09-27T22:05:30+00:00",
+   "n_scenes": 2,
+   "presence_window": [
+    "2026-09-27T21:00:00.000Z",
+    "2026-09-28T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260927T2250",
+   "mission": "S1C",
+   "t0": "2026-09-27T22:50:47+00:00",
+   "t1": "2026-09-27T22:52:31+00:00",
+   "n_scenes": 2,
+   "presence_window": [
+    "2026-09-27T21:00:00.000Z",
+    "2026-09-28T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260928T1032",
+   "mission": "S1D",
+   "t0": "2026-09-28T10:32:47+00:00",
+   "t1": "2026-09-28T10:33:16+00:00",
+   "n_scenes": 2,
+   "presence_window": [
+    "2026-09-28T09:00:00.000Z",
+    "2026-09-28T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260928T1119",
+   "mission": "S1C",
+   "t0": "2026-09-28T11:19:04+00:00",
+   "t1": "2026-09-28T11:19:33+00:00",
+   "n_scenes": 2,
+   "presence_window": [
+    "2026-09-28T10:00:00.000Z",
+    "2026-09-28T13:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260928T2151",
+   "mission": "S1C",
+   "t0": "2026-09-28T21:51:53+00:00",
+   "t1": "2026-09-28T21:54:08+00:00",
+   "n_scenes": 5,
+   "presence_window": [
+    "2026-09-28T20:00:00.000Z",
+    "2026-09-28T23:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260928T2242",
+   "mission": "S1D",
+   "t0": "2026-09-28T22:42:57+00:00",
+   "t1": "2026-09-28T22:45:31+00:00",
+   "n_scenes": 4,
+   "presence_window": [
+    "2026-09-28T21:00:00.000Z",
+    "2026-09-29T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260929T1107",
+   "mission": "S1D",
+   "t0": "2026-09-29T11:07:10+00:00",
+   "t1": "2026-09-29T11:10:53+00:00",
+   "n_scenes": 3,
+   "presence_window": [
+    "2026-09-29T10:00:00.000Z",
+    "2026-09-29T13:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20260929T2235",
+   "mission": "S1C",
+   "t0": "2026-09-29T22:35:10+00:00",
+   "t1": "2026-09-29T22:36:29+00:00",
+   "n_scenes": 4,
+   "presence_window": [
+    "2026-09-29T21:00:00.000Z",
+    "2026-09-30T00:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20260930T1016",
+   "mission": "S1D",
+   "t0": "2026-09-30T10:16:50+00:00",
+   "t1": "2026-09-30T10:16:50+00:00",
+   "n_scenes": 1,
+   "presence_window": [
+    "2026-09-30T09:00:00.000Z",
+    "2026-09-30T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1C_20261001T1005",
+   "mission": "S1C",
+   "t0": "2026-10-01T10:05:36+00:00",
+   "t1": "2026-10-01T10:06:51+00:00",
+   "n_scenes": 4,
+   "presence_window": [
+    "2026-10-01T09:00:00.000Z",
+    "2026-10-01T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20261001T1054",
+   "mission": "S1D",
+   "t0": "2026-10-01T10:54:38+00:00",
+   "t1": "2026-10-01T10:57:37+00:00",
+   "n_scenes": 8,
+   "presence_window": [
+    "2026-10-01T09:00:00.000Z",
+    "2026-10-01T12:00:00.000Z"
+   ]
+  },
+  {
+   "pass_id": "S1D_20261001T2308",
+   "mission": "S1D",
+   "t0": "2026-10-01T23:08:40+00:00",
+   "t1": "2026-10-01T23:10:20+00:00",
+   "n_scenes": 5,
+   "presence_window": [
+    "2026-10-01T22:00:00.000Z",
+    "2026-10-02T01:00:00.000Z"
+   ]
+  }
+ ],
+ "rules": {
+  "a_sar": "gfw_sar_cell_hour: GFW SAR detection in the contact's 0.01 degree cell or one of the 8 neighbours, within 30 min of the scene time; one-to-one, cheapest first (km to the cell centre + |log2 length ratio| when a registry length exists). Identity from GFW-matched detections only; a GFW-unmatched pair is evidence.",
+  "b_presence": "gfw_presence_cell_hour: for contacts with no SAR pair. GFW's HOURLY by-vessel presence gives one 0.01 degree cell per vessel and hour; a vessel is a candidate when a cell of its in the pass hour or the hour before or after lies within 6 km. Its position at the scene time is interpolated along its hourly cells (each at the hour's midpoint) and its speed proxy is the largest hourly displacement. Kept when the interpolated position is within 3 km and the vessel has at least two hourly cells with a speed proxy of at most 10 km/h (single-cell vessels and faster vessels are rejected); GEAR buoys and vessels GFW SAR already matched in the pass are excluded; cost = interpolated km + speed/10; one-to-one per vessel. medium: one-to-one, within 1 km, speed known and at most 3 km/h, cell in the contact's hour; low otherwise. match_dist_m is the interpolated distance; match_dt_s the hour offset of the nearest cell.",
+  "c_status": "matched when (a) or (b) gives a vessel; no_coverage when GFW AIS presence shows zero hours in the 0.3 x 0.3 degree block around the contact over the whole pull window; unmatched otherwise (ais_presence_h_day = 0 marks the unmatched contacts whose block had no AIS presence on the pass day itself).",
+  "quality_sar": "high: one-to-one, within 1 km, lengths within a factor 2 (or no AIS length); low: ambiguous on both sides, lengths off by more than a factor 3, identity taken from a cell with several GFW-matched detections (gfw_sar_ambiguous_cell), or a GEAR buoy identity (identity_kind = gear); medium: everything else.",
+  "identity_kind": "vessel: GFW publishes a vessel type other than GEAR; gear: GFW types the matched AIS device as GEAR (an AIS net or gear buoy, which can sit on or near the vessel tending it but is not that vessel's identity); unknown: no type published; empty when unmatched.",
+  "sar_pair_values": "gfw_sar_pair: matched = paired with a GFW-matched detection carrying an identity; matched_no_identity = GFW matched it but the report gives no usable identity (several detections in the cell, no by-vessel rows), rule (b) is then tried; unmatched = paired with a detection GFW found no AIS for, rule (b) is not tried; empty = no GFW SAR detection in the block within 30 min.",
+  "d_evidence": "nearest GFW AIS vessel in the pass window (hour-bucket offset; GEAR buoys excluded), distinct vessels within 10 km in the pass hour (n_ais_10km) and GEAR buoys within 10 km (n_gear_10km), GFW gap events within 50 km and 24 h, encounters and loitering within 10 km and 24 h, GFW neural vessel type within 1 km on the same date, ais_reach = share of window days with AIS presence in the 0.25 degree cell."
+ },
+ "sources": {
+  "docs_4wings": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/4wings",
+  "docs_report": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/4wings/report",
+  "docs_interaction": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/4wings/interaction",
+  "docs_events": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/events",
+  "docs_events_get_all": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/events/get-all-events",
+  "docs_vessels": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/vessels",
+  "docs_vessels_get": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/vessels/get-vessels",
+  "docs_key_concepts": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/general-api-doc/key-concepts",
+  "docs_data_caveats": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/general-api-doc/data-caveats",
+  "docs_pagination": "https://globalfishingwatch.org/our-apis/documentation/docs/v3/general-api-doc/pagination",
+  "docs_licence_rate_limits": "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits",
+  "licence": "https://creativecommons.org/licenses/by-nc/4.0/",
+  "paolo_2024": "https://doi.org/10.1038/s41586-023-06825-8"
+ },
+ "gfw_sar_detections_on_run_dates": 17911,
+ "gfw_sar_matched_on_run_dates": 6205,
+ "gfw_sar_matched_in_multi_detection_cells": 0,
+ "gfw_sar_matched_identity_recovered_from_by_vessel_report": 0,
+ "cell_alignment_check": {
+  "value_is_centre": {
+   "pairs": 23088,
+   "within_half_cell_share": 0.6938,
+   "median_dlon_deg": -0.0,
+   "median_dlat_deg": 0.0,
+   "median_dist_m": 511.1
+  },
+  "corner_plus_half": {
+   "pairs": 22487,
+   "within_half_cell_share": 0.2822,
+   "median_dlon_deg": -0.0034,
+   "median_dlat_deg": -0.0033,
+   "median_dist_m": 854.1
+  },
+  "chosen": "value_is_centre",
+  "shift_applied_deg": 0.0
+ },
+ "gfw_sar_matched_to_gear_buoy": 269,
+ "presence_rows": 91328,
+ "presence_passes_with_rows": 29,
+ "presence_calibration": {
+  "n_reference": 4613,
+  "n_with_hour_h_cell": 3903,
+  "all": {
+   "n": 4613,
+   "interp_median_km": 1.45,
+   "interp_within_1km": 0.427,
+   "interp_within_3km": 0.672,
+   "hour_cell_median_km": 1.35,
+   "hour_cell_within_1km": 0.376
+  },
+  "speed_unknown_single_cell": {
+   "n": 682,
+   "interp_median_km": 4.2,
+   "interp_within_1km": 0.257,
+   "interp_within_3km": 0.443,
+   "hour_cell_median_km": 1.3,
+   "hour_cell_within_1km": 0.098
+  },
+  "speed_0_to_3_kmh": {
+   "n": 1608,
+   "interp_median_km": 0.46,
+   "interp_within_1km": 0.856,
+   "interp_within_3km": 0.968,
+   "hour_cell_median_km": 0.47,
+   "hour_cell_within_1km": 0.798
+  },
+  "speed_3_to_10_kmh": {
+   "n": 796,
+   "interp_median_km": 1.5,
+   "interp_within_1km": 0.328,
+   "interp_within_3km": 0.82,
+   "hour_cell_median_km": 1.6,
+   "hour_cell_within_1km": 0.315
+  },
+  "speed_over_10_kmh": {
+   "n": 1527,
+   "interp_median_km": 3.71,
+   "interp_within_1km": 0.105,
+   "interp_within_3km": 0.386,
+   "hour_cell_median_km": 4.81,
+   "hour_cell_within_1km": 0.088
+  },
+  "rule_b_accepts": {
+   "max_dist_km": 3.0,
+   "max_speed_kmh": 10.0,
+   "medium_needs_speed_at_most_kmh": 3.0
+  }
+ },
+ "presence_low_daily": {
+  "days_with_data": 34,
+  "first": "2026-09-01",
+  "last": "2026-10-04",
+  "cells_rows": 557348
+ },
+ "matched_gear_identity": 278,
+ "n_contacts": 78615,
+ "by_status": {
+  "unmatched": 68470,
+  "matched": 9954,
+  "no_coverage": 191
+ },
+ "by_method_quality": {
+  "gfw_presence_cell_hour|low": 4417,
+  "gfw_presence_cell_hour|medium": 59,
+  "gfw_sar_cell_hour|high": 1220,
+  "gfw_sar_cell_hour|low": 2581,
+  "gfw_sar_cell_hour|medium": 1677
+ },
+ "by_sar_pair": {
+  "none": 66643,
+  "unmatched": 6361,
+  "matched": 5478,
+  "matched_no_identity": 133
+ },
+ "by_mission": {
+  "S1C": {
+   "matched": 1609,
+   "no_coverage": 32,
+   "unmatched": 11642,
+   "n": 13283,
+   "matched_share": 0.1211
+  },
+  "S1D": {
+   "matched": 8345,
+   "no_coverage": 159,
+   "unmatched": 56828,
+   "n": 65332,
+   "matched_share": 0.1277
+  }
+ },
+ "by_confidence": {
+  "high": {
+   "matched": 6107,
+   "no_coverage": 48,
+   "unmatched": 23073,
+   "n": 29228,
+   "matched_share": 0.2089
+  },
+  "medium": {
+   "matched": 3847,
+   "no_coverage": 143,
+   "unmatched": 45397,
+   "n": 49387,
+   "matched_share": 0.0779
+  }
+ },
+ "matched_by_identity_kind": {
+  "vessel": 9572,
+  "gear": 278,
+  "unknown": 104
+ },
+ "matched_by_method_identity_kind": {
+  "gfw_presence_cell_hour|gear": 7,
+  "gfw_presence_cell_hour|unknown": 84,
+  "gfw_presence_cell_hour|vessel": 4385,
+  "gfw_sar_cell_hour|gear": 271,
+  "gfw_sar_cell_hour|unknown": 20,
+  "gfw_sar_cell_hour|vessel": 5187
+ },
+ "n_matched_vessel_identity": 9572,
+ "n_matched_gear_identity": 278,
+ "presence_matches": {
+  "n": 4476,
+  "speed_known": 4476,
+  "speed_kmh_median": 0.0,
+  "dist_m_median": 879.1,
+  "share_dist_within_1km": 0.5424,
+  "n_cells_median": 3.0
+ },
+ "by_length_bin": {
+  "0-25 m": {
+   "matched": 1517,
+   "no_coverage": 109,
+   "unmatched": 27698,
+   "n": 29324,
+   "matched_share": 0.0517
+  },
+  "100 m and longer": {
+   "matched": 4801,
+   "no_coverage": 10,
+   "unmatched": 10160,
+   "n": 14971,
+   "matched_share": 0.3207
+  },
+  "25-50 m": {
+   "matched": 1383,
+   "no_coverage": 36,
+   "unmatched": 14813,
+   "n": 16232,
+   "matched_share": 0.0852
+  },
+  "50-100 m": {
+   "matched": 2253,
+   "no_coverage": 36,
+   "unmatched": 15799,
+   "n": 18088,
+   "matched_share": 0.1246
+  }
+ },
+ "by_region": {
+  "Central sea": {
+   "matched": 27,
+   "no_coverage": 23,
+   "unmatched": 1215,
+   "n": 1265,
+   "matched_share": 0.0213
+  },
+  "Gulf of Thailand": {
+   "matched": 1151,
+   "no_coverage": 157,
+   "unmatched": 17488,
+   "n": 18796,
+   "matched_share": 0.0612
+  },
+  "Gulf of Tonkin": {
+   "matched": 1944,
+   "no_coverage": 0,
+   "unmatched": 16021,
+   "n": 17965,
+   "matched_share": 0.1082
+  },
+  "North shelf": {
+   "matched": 3157,
+   "no_coverage": 0,
+   "unmatched": 10173,
+   "n": 13330,
+   "matched_share": 0.2368
+  },
+  "South Vietnam shelf": {
+   "matched": 1113,
+   "no_coverage": 0,
+   "unmatched": 6821,
+   "n": 7934,
+   "matched_share": 0.1403
+  },
+  "Southern sea": {
+   "matched": 1193,
+   "no_coverage": 1,
+   "unmatched": 7496,
+   "n": 8690,
+   "matched_share": 0.1373
+  },
+  "other": {
+   "matched": 1369,
+   "no_coverage": 10,
+   "unmatched": 9256,
+   "n": 10635,
+   "matched_share": 0.1287
+  }
+ },
+ "cnn": {
+  "n_scored": 26799,
+  "n_cnn_vessel": 8109,
+  "matched_share_cnn_vessel": 0.1979,
+  "matched_share_cnn_rejected": 0.0526,
+  "status_cnn_vessel": {
+   "unmatched": 6498,
+   "matched": 1605,
+   "no_coverage": 6
+  }
+ },
+ "length_check": {
+  "n_matched_with_ais_length": 161,
+  "n_matched": 9954,
+  "spearman": {
+   "rho": 0.376,
+   "p": 9.019091696113505e-07,
+   "n": 161
+  },
+  "median_ratio_radar_over_ais": 1.592,
+  "share_within_factor_2": 0.5155,
+  "median_radar_m": 200.8,
+  "median_ais_m": 128.0,
+  "by_ais_length_bin": {
+   "0-25 m": {
+    "n": 7,
+    "median_radar_m": 40.0,
+    "median_ais_m": 20.6
+   },
+   "25-50 m": {
+    "n": 8,
+    "median_radar_m": 81.8,
+    "median_ais_m": 40.1
+   },
+   "50-100 m": {
+    "n": 34,
+    "median_radar_m": 123.7,
+    "median_ais_m": 85.9
+   },
+   "100 m and longer": {
+    "n": 112,
+    "median_radar_m": 262.1,
+    "median_ais_m": 162.1
+   }
+  }
+ },
+ "n_ais_10km_median_by_status": {
+  "matched": 17.0,
+  "no_coverage": 0.0,
+  "unmatched": 0.0
+ },
+ "ais_reach_median_by_status": {
+  "matched": 1.0,
+  "no_coverage": 0.0,
+  "unmatched": 1.0
+ },
+ "ais_presence_h_window_median_by_status": {
+  "matched": 39988.0,
+  "no_coverage": 0.0,
+  "unmatched": 2150.0
+ },
+ "evidence_unmatched": {
+  "n": 68470,
+  "with_nearest_ais": 68285,
+  "no_ais_presence_in_block_on_pass_day": 4749,
+  "presence_candidates_rejected": 16723,
+  "nearest_ais_dist_m_median": 8442.2,
+  "gfw_sar_pair_unmatched": 6359,
+  "with_gap_event_50km_24h": 0,
+  "with_encounter_10km_24h": 2654,
+  "with_loitering_10km_24h": 15511,
+  "gfw_neural_type": {
+   "none": 49210,
+   "Unknown": 8402,
+   "Likely Fishing": 7658,
+   "Likely non-fishing": 2369,
+   "mixed": 831
+  }
+ },
+ "hand_check_sample": [
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20260920T104816_01590",
+   "pass_id": "S1C_20260920T1048",
+   "acq_utc": "2026-09-20T10:48:16+00:00",
+   "lon": 109.1343,
+   "lat": 18.2734,
+   "length_est_m": 381.2,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "1013adae5-5399-2aee-2606-a581152be228",
+   "mmsi": "413210760",
+   "vessel_name": "ZHONG CHUAN HAIGONG6",
+   "flag": "CHN",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 592.3,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 109.13,
+     "lat_cell": 18.27,
+     "entryTimestamp": "2026-09-20T10:48:31Z",
+     "date": "2026-09-20 10:00",
+     "mmsi": "413210760",
+     "shipName": "ZHONG CHUAN HAIGONG6",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20260922T224255_00246",
+   "pass_id": "S1C_20260922T2242",
+   "acq_utc": "2026-09-22T22:42:55+00:00",
+   "lon": 107.8199,
+   "lat": 17.6977,
+   "length_est_m": 95.2,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "52a9fd574-4e62-0db4-c344-717716005f6d",
+   "mmsi": "574933325",
+   "vessel_name": NaN,
+   "flag": "VNM",
+   "ship_type": "FISHING",
+   "length_ais_m": NaN,
+   "match_dist_m": 252.5,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 107.82,
+     "lat_cell": 17.7,
+     "entryTimestamp": "2026-09-22T22:43:10Z",
+     "date": "2026-09-22 22:00",
+     "mmsi": "574933325",
+     "shipName": null,
+     "vesselType": "FISHING"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20260926T095911_01970",
+   "pass_id": "S1C_20260926T0958",
+   "acq_utc": "2026-09-26T09:59:11+00:00",
+   "lon": 122.2609,
+   "lat": 19.5212,
+   "length_est_m": 40.0,
+   "confidence": "medium",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "1347fe276-6bc2-d202-b54c-53de09e836e3",
+   "mmsi": "241669000",
+   "vessel_name": "WOODSIDE REES WITHER",
+   "flag": "GRC",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 168.9,
+   "match_dt_s": 7.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 122.26,
+     "lat_cell": 19.52,
+     "entryTimestamp": "2026-09-26T09:59:18Z",
+     "date": "2026-09-26 09:00",
+     "mmsi": "241669000",
+     "shipName": "WOODSIDE REES WITHER",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20260927T225047_00155",
+   "pass_id": "S1C_20260927T2250",
+   "acq_utc": "2026-09-27T22:50:47+00:00",
+   "lon": 106.2655,
+   "lat": 18.8708,
+   "length_est_m": 161.3,
+   "confidence": "medium",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "00a19397d-d809-155d-2282-d5f927001f81",
+   "mmsi": "574943903",
+   "vessel_name": "DAIDUONG69",
+   "flag": "VNM",
+   "ship_type": "FISHING",
+   "length_ais_m": NaN,
+   "match_dist_m": 485.3,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 106.27,
+     "lat_cell": 18.87,
+     "entryTimestamp": "2026-09-27T22:51:02Z",
+     "date": "2026-09-27 22:00",
+     "mmsi": "574943903",
+     "shipName": "DAIDUONG69",
+     "vesselType": "FISHING"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20260928T111904_00008",
+   "pass_id": "S1C_20260928T1119",
+   "acq_utc": "2026-09-28T11:19:04+00:00",
+   "lon": 102.2337,
+   "lat": 10.1851,
+   "length_est_m": 320.1,
+   "confidence": "medium",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "a1b88ede0-0678-b630-262c-23665394e2d4",
+   "mmsi": "314082000",
+   "vessel_name": "SYNVAL",
+   "flag": "BRB",
+   "ship_type": "CARGO",
+   "length_ais_m": NaN,
+   "match_dist_m": 681.1,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 102.23,
+     "lat_cell": 10.19,
+     "entryTimestamp": "2026-09-28T11:19:19Z",
+     "date": "2026-09-28 11:00",
+     "mmsi": "314082000",
+     "shipName": "SYNVAL",
+     "vesselType": "CARGO"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20260928T215153_00097",
+   "pass_id": "S1C_20260928T2151",
+   "acq_utc": "2026-09-28T21:51:53+00:00",
+   "lon": 120.1242,
+   "lat": 22.8833,
+   "length_est_m": 135.7,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "8af12ca76-624e-bb39-d7cb-c59249307b8e",
+   "mmsi": "416001869",
+   "vessel_name": "LONG YU FA NO1",
+   "flag": "TWN",
+   "ship_type": "FISHING",
+   "length_ais_m": NaN,
+   "match_dist_m": 569.2,
+   "match_dt_s": 13.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 120.12,
+     "lat_cell": 22.88,
+     "entryTimestamp": "2026-09-28T21:52:06Z",
+     "date": "2026-09-28 21:00",
+     "mmsi": "416001869",
+     "shipName": "LONG YU FA NO1",
+     "vesselType": "FISHING"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20260929T223510_02006",
+   "pass_id": "S1C_20260929T2235",
+   "acq_utc": "2026-09-29T22:35:10+00:00",
+   "lon": 108.5086,
+   "lat": 15.9977,
+   "length_est_m": 103.7,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "a8b88acde-e14b-962b-a5f6-ebb6c6d9d0af",
+   "mmsi": "574015439",
+   "vessel_name": "THUAN DAT 126",
+   "flag": "VNM",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 292.5,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 108.51,
+     "lat_cell": 16.0,
+     "entryTimestamp": "2026-09-29T22:35:25Z",
+     "date": "2026-09-29 22:00",
+     "mmsi": "574015439",
+     "shipName": "THUAN DAT 126",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1C_20261001T100536_01695",
+   "pass_id": "S1C_20261001T1005",
+   "acq_utc": "2026-10-01T10:05:36+00:00",
+   "lon": 120.3801,
+   "lat": 12.4831,
+   "length_est_m": 403.5,
+   "confidence": "medium",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "31540b6f0-06fe-8c01-8b42-55f14ee2a42b",
+   "mmsi": "414005000",
+   "vessel_name": "LI DIAN 5",
+   "flag": "CHN",
+   "ship_type": "CARGO",
+   "length_ais_m": NaN,
+   "match_dist_m": 343.7,
+   "match_dt_s": 13.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 120.38,
+     "lat_cell": 12.48,
+     "entryTimestamp": "2026-10-01T10:05:49Z",
+     "date": "2026-10-01 10:00",
+     "mmsi": "414005000",
+     "shipName": "LI DIAN 5",
+     "vesselType": "CARGO"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1D_20260920T113435_00219",
+   "pass_id": "S1D_20260920T1134",
+   "acq_utc": "2026-09-20T11:34:35+00:00",
+   "lon": 100.7958,
+   "lat": 7.2494,
+   "length_est_m": 30.0,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "e6cd363ed-dc1e-e0fb-bfb9-b86e7333cb73",
+   "mmsi": "567222227",
+   "vessel_name": "SOR.PORN 27 CH 15B",
+   "flag": "THA",
+   "ship_type": "FISHING",
+   "length_ais_m": NaN,
+   "match_dist_m": 471.8,
+   "match_dt_s": 13.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 100.8,
+     "lat_cell": 7.25,
+     "entryTimestamp": "2026-09-20T11:34:48Z",
+     "date": "2026-09-20 11:00",
+     "mmsi": "567222227",
+     "shipName": "SOR.PORN 27 CH 15B",
+     "vesselType": "FISHING"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_high",
+   "det_id": "S1D_20260920T221343_01434",
+   "pass_id": "S1D_20260920T2213",
+   "acq_utc": "2026-09-20T22:13:43+00:00",
+   "lon": 113.0161,
+   "lat": 4.9857,
+   "length_est_m": 92.2,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "high",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "1f811d1b3-3789-95d5-ef99-363fd9fa9052",
+   "mmsi": "533133123",
+   "vessel_name": "CENTUS SOFFIA",
+   "flag": "MYS",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 639.8,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 113.02,
+     "lat_cell": 4.99,
+     "entryTimestamp": "2026-09-20T22:13:58Z",
+     "date": "2026-09-20 22:00",
+     "mmsi": "533133123",
+     "shipName": "CENTUS SOFFIA",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_low",
+   "det_id": "S1C_20260920T104816_01595",
+   "pass_id": "S1C_20260920T1048",
+   "acq_utc": "2026-09-20T10:48:16+00:00",
+   "lon": 109.1195,
+   "lat": 18.2926,
+   "length_est_m": 151.2,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "7a7f6d760-06ad-5b4d-b8a8-22f15e209cb5",
+   "mmsi": "412464470",
+   "vessel_name": "NANHAI218",
+   "flag": "CHN",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 300.1,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 109.12,
+     "lat_cell": 18.29,
+     "entryTimestamp": "2026-09-20T10:48:31Z",
+     "date": "2026-09-20 10:00",
+     "mmsi": "412464470",
+     "shipName": "NANHAI218",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_low",
+   "det_id": "S1C_20260922T224255_00196",
+   "pass_id": "S1C_20260922T2242",
+   "acq_utc": "2026-09-22T22:42:55+00:00",
+   "lon": 107.8541,
+   "lat": 17.6986,
+   "length_est_m": 95.3,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "9b7f8abfe-e988-4ec2-0950-4de136d427a5",
+   "mmsi": "574586837",
+   "vessel_name": NaN,
+   "flag": "VNM",
+   "ship_type": "NA",
+   "length_ais_m": NaN,
+   "match_dist_m": 464.7,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 107.85,
+     "lat_cell": 17.7,
+     "entryTimestamp": "2026-09-22T22:43:10Z",
+     "date": "2026-09-22 22:00",
+     "mmsi": "574586837",
+     "shipName": null,
+     "vesselType": "NA"
+    }
+   ]
+  },
+  {
+   "sample_group": "sar_low",
+   "det_id": "S1C_20260926T095951_00918",
+   "pass_id": "S1C_20260926T0958",
+   "acq_utc": "2026-09-26T09:59:51+00:00",
+   "lon": 120.6719,
+   "lat": 21.9631,
+   "length_est_m": 90.5,
+   "confidence": "high",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "9f8c286f3-366f-1de0-9a7c-4cdce877e50a",
+   "mmsi": "416230800",
+   "vessel_name": "SING MAN YI NO3",
+   "flag": "TWN",
+   "ship_type": "FISHING",
+   "length_ais_m": 21.8,
+   "match_dist_m": 398.4,
+   "match_dt_s": 15.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 120.67,
+     "lat_cell": 21.96,
+     "entryTimestamp": "2026-09-26T10:00:06Z",
+     "date": "2026-09-26 10:00",
+     "mmsi": "416230800",
+     "shipName": "SING MAN YI NO3",
+     "vesselType": "FISHING"
+    }
+   ]
+  },
+  {
+   "sample_group": "presence_medium",
+   "det_id": "S1C_20260920T104816_02352",
+   "pass_id": "S1C_20260920T1048",
+   "acq_utc": "2026-09-20T10:48:16+00:00",
+   "lon": 108.6289,
+   "lat": 18.9918,
+   "length_est_m": 20.0,
+   "confidence": "medium",
+   "match_method": "gfw_presence_cell_hour",
+   "match_quality": "medium",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "844ff98b4-4aad-fd1b-e5f7-c9a7309afb54",
+   "mmsi": "413390480",
+   "vessel_name": "SHUN DA 2608",
+   "flag": "CHN",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 923.0,
+   "match_dt_s": 0.0,
+   "pres_speed_kmh": 0.0,
+   "pres_n_cells": 2,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 108.63,
+     "lat_cell": 19.0,
+     "hour": "2026-09-20T09:00",
+     "hours": 1.0,
+     "mmsi": "413390480",
+     "shipName": "SHUN DA 2608",
+     "vesselType": "OTHER"
+    },
+    {
+     "lon_cell": 108.63,
+     "lat_cell": 19.0,
+     "hour": "2026-09-20T10:00",
+     "hours": 1.0,
+     "mmsi": "413390480",
+     "shipName": "SHUN DA 2608",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "presence_medium",
+   "det_id": "S1C_20260922T224255_00277",
+   "pass_id": "S1C_20260922T2242",
+   "acq_utc": "2026-09-22T22:42:55+00:00",
+   "lon": 107.7088,
+   "lat": 17.6609,
+   "length_est_m": 41.1,
+   "confidence": "medium",
+   "match_method": "gfw_presence_cell_hour",
+   "match_quality": "medium",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "467deedb2-2643-f578-c78d-ef13a988dda2",
+   "mmsi": "574226810",
+   "vessel_name": NaN,
+   "flag": "VNM",
+   "ship_type": "NA",
+   "length_ais_m": NaN,
+   "match_dist_m": 938.9,
+   "match_dt_s": 0.0,
+   "pres_speed_kmh": 1.54,
+   "pres_n_cells": 2,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 107.71,
+     "lat_cell": 17.65,
+     "hour": "2026-09-22T21:00",
+     "hours": 1.0,
+     "mmsi": "574226810",
+     "shipName": NaN,
+     "vesselType": "NA"
+    },
+    {
+     "lon_cell": 107.7,
+     "lat_cell": 17.66,
+     "hour": "2026-09-22T22:00",
+     "hours": 1.0,
+     "mmsi": "574226810",
+     "shipName": NaN,
+     "vesselType": "NA"
+    }
+   ]
+  },
+  {
+   "sample_group": "presence_medium",
+   "det_id": "S1D_20260920T113525_04128",
+   "pass_id": "S1D_20260920T1134",
+   "acq_utc": "2026-09-20T11:35:25+00:00",
+   "lon": 99.9763,
+   "lat": 9.9057,
+   "length_est_m": 41.6,
+   "confidence": "high",
+   "match_method": "gfw_presence_cell_hour",
+   "match_quality": "medium",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "5c26689bd-da1a-2159-0499-d7425f407744",
+   "mmsi": "686098609",
+   "vessel_name": "RUNGWAREERAT  3",
+   "flag": NaN,
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 744.1,
+   "match_dt_s": 0.0,
+   "pres_speed_kmh": 2.48,
+   "pres_n_cells": 3,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 99.98,
+     "lat_cell": 9.91,
+     "hour": "2026-09-20T10:00",
+     "hours": 1.0,
+     "mmsi": "686098609",
+     "shipName": "RUNGWAREERAT  3",
+     "vesselType": "OTHER"
+    },
+    {
+     "lon_cell": 99.98,
+     "lat_cell": 9.91,
+     "hour": "2026-09-20T11:00",
+     "hours": 1.0,
+     "mmsi": "686098609",
+     "shipName": "RUNGWAREERAT  3",
+     "vesselType": "OTHER"
+    },
+    {
+     "lon_cell": 99.97,
+     "lat_cell": 9.93,
+     "hour": "2026-09-20T12:00",
+     "hours": 1.0,
+     "mmsi": "686098609",
+     "shipName": "RUNGWAREERAT  3",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "presence_low",
+   "det_id": "S1C_20260920T104816_00977",
+   "pass_id": "S1C_20260920T1048",
+   "acq_utc": "2026-09-20T10:48:16+00:00",
+   "lon": 109.518,
+   "lat": 18.2048,
+   "length_est_m": 63.8,
+   "confidence": "high",
+   "match_method": "gfw_presence_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "8b7176111-18a9-f9e7-464b-5672ffae9aee",
+   "mmsi": "500812345",
+   "vessel_name": "CCG 5008",
+   "flag": NaN,
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 2109.3,
+   "match_dt_s": 3600.0,
+   "pres_speed_kmh": 0.0,
+   "pres_n_cells": 2,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 109.53,
+     "lat_cell": 18.22,
+     "hour": "2026-09-20T09:00",
+     "hours": 1.0,
+     "mmsi": "500812345",
+     "shipName": "CCG 5008",
+     "vesselType": "OTHER"
+    },
+    {
+     "lon_cell": 109.53,
+     "lat_cell": 18.22,
+     "hour": "2026-09-20T11:00",
+     "hours": 1.0,
+     "mmsi": "500812345",
+     "shipName": "CCG 5008",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "presence_low",
+   "det_id": "S1C_20260920T230037_00185",
+   "pass_id": "S1C_20260920T2300",
+   "acq_utc": "2026-09-20T23:00:37+00:00",
+   "lon": 101.2472,
+   "lat": 12.6227,
+   "length_est_m": 216.9,
+   "confidence": "high",
+   "match_method": "gfw_presence_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "ffe0ce7aa-ae55-5d06-5a0a-6050e73fc913",
+   "mmsi": "567004317",
+   "vessel_name": "VENUS 23",
+   "flag": "THA",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 1615.5,
+   "match_dt_s": 0.0,
+   "pres_speed_kmh": 0.0,
+   "pres_n_cells": 3,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 101.24,
+     "lat_cell": 12.61,
+     "hour": "2026-09-20T22:00",
+     "hours": 1.0,
+     "mmsi": "567004317",
+     "shipName": "VENUS 23",
+     "vesselType": "OTHER"
+    },
+    {
+     "lon_cell": 101.24,
+     "lat_cell": 12.61,
+     "hour": "2026-09-20T23:00",
+     "hours": 1.0,
+     "mmsi": "567004317",
+     "shipName": "VENUS 23",
+     "vesselType": "OTHER"
+    },
+    {
+     "lon_cell": 101.24,
+     "lat_cell": 12.61,
+     "hour": "2026-09-21T00:00",
+     "hours": 1.0,
+     "mmsi": "567004317",
+     "shipName": "VENUS 23",
+     "vesselType": "OTHER"
+    }
+   ]
+  },
+  {
+   "sample_group": "presence_low",
+   "det_id": "S1C_20260922T224255_00295",
+   "pass_id": "S1C_20260922T2242",
+   "acq_utc": "2026-09-22T22:42:55+00:00",
+   "lon": 107.584,
+   "lat": 17.6561,
+   "length_est_m": 100.0,
+   "confidence": "high",
+   "match_method": "gfw_presence_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "30713961e-e320-3a08-0cc1-4a7999b138c1",
+   "mmsi": "574204069",
+   "vessel_name": NaN,
+   "flag": "VNM",
+   "ship_type": "FISHING",
+   "length_ais_m": NaN,
+   "match_dist_m": 2837.4,
+   "match_dt_s": 0.0,
+   "pres_speed_kmh": 0.0,
+   "pres_n_cells": 2,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 107.61,
+     "lat_cell": 17.65,
+     "hour": "2026-09-22T21:00",
+     "hours": 1.0,
+     "mmsi": "574204069",
+     "shipName": NaN,
+     "vesselType": "FISHING"
+    },
+    {
+     "lon_cell": 107.61,
+     "lat_cell": 17.65,
+     "hour": "2026-09-22T22:00",
+     "hours": 1.0,
+     "mmsi": "574204069",
+     "shipName": NaN,
+     "vesselType": "FISHING"
+    }
+   ]
+  },
+  {
+   "sample_group": "gear_identity",
+   "det_id": "S1C_20260920T104845_00408",
+   "pass_id": "S1C_20260920T1048",
+   "acq_utc": "2026-09-20T10:48:45+00:00",
+   "lon": 109.0393,
+   "lat": 19.8206,
+   "length_est_m": 40.0,
+   "confidence": "medium",
+   "match_method": "gfw_sar_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "gear",
+   "gfw_vessel_id": "fd645837e-ece2-54a8-b0c6-cfe703de63ae",
+   "mmsi": "41463333",
+   "vessel_name": "04146-3-99%",
+   "flag": NaN,
+   "ship_type": "GEAR",
+   "length_ais_m": NaN,
+   "match_dist_m": 101.5,
+   "match_dt_s": 17.0,
+   "pres_speed_kmh": NaN,
+   "pres_n_cells": 0,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 109.04,
+     "lat_cell": 19.82,
+     "entryTimestamp": "2026-09-20T10:49:02Z",
+     "date": "2026-09-20 10:00",
+     "mmsi": "41463333",
+     "shipName": "04146-3-99%",
+     "vesselType": "GEAR"
+    }
+   ]
+  },
+  {
+   "sample_group": "presence_moving",
+   "det_id": "S1C_20260920T104816_01675",
+   "pass_id": "S1C_20260920T1048",
+   "acq_utc": "2026-09-20T10:48:16+00:00",
+   "lon": 109.1565,
+   "lat": 18.2644,
+   "length_est_m": 59.5,
+   "confidence": "medium",
+   "match_method": "gfw_presence_cell_hour",
+   "match_quality": "low",
+   "identity_kind": "vessel",
+   "gfw_vessel_id": "c207fc282-2cff-2ced-5ef2-45f109500fd8",
+   "mmsi": "413054670",
+   "vessel_name": "NAN HAI JIU 102",
+   "flag": "CHN",
+   "ship_type": "OTHER",
+   "length_ais_m": NaN,
+   "match_dist_m": 1274.4,
+   "match_dt_s": 3600.0,
+   "pres_speed_kmh": 3.38,
+   "pres_n_cells": 2,
+   "gfw_raw_rows": [
+    {
+     "lon_cell": 109.14,
+     "lat_cell": 18.31,
+     "hour": "2026-09-20T09:00",
+     "hours": 1.0,
+     "mmsi": "413054670",
+     "shipName": "NAN HAI JIU 102",
+     "vesselType": "OTHER"
+    },
+    {
+     "lon_cell": 109.15,
+     "lat_cell": 18.25,
+     "hour": "2026-09-20T11:00",
+     "hours": 1.0,
+     "mmsi": "413054670",
+     "shipName": "NAN HAI JIU 102",
+     "vesselType": "OTHER"
+    }
+   ]
+  }
+ ]
+}

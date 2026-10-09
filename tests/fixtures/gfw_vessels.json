@@ -1,0 +1,10 @@
+{"limit": null, "since": null, "total": 1, "metadata": {"idsFound": ["v-pv-1"], "idsNotFound": []},
+ "entries": [{"registryInfoTotalRecords": 1,
+   "registryInfo": [{"vesselId": "v-pv-1", "sourceCode": ["TEST-REGISTRY"], "imo": "0000000", "lengthM": 42.5, "tonnageGt": 300, "geartype": null, "shiptype": "PASSENGER"}],
+   "registryOwners": [], "registryPublicAuthorizations": [],
+   "combinedSourcesInfo": [{"vesselId": "v-pv-1", "geartypes": [{"name": "PASSENGER", "source": "COMBINATION", "yearFrom": 2012, "yearTo": 2026}],
+                            "shiptypes": [{"name": "PASSENGER", "source": "COMBINATION", "yearFrom": 2012, "yearTo": 2026}]}],
+   "selfReportedInfo": [{"id": "v-pv-1", "ssvid": "000000004", "shipname": "TEST FERRY", "nShipname": "TESTFERRY", "flag": "ZZZ", "callsign": "TEST1", "imo": null,
+                         "messagesCounter": 100, "positionsCounter": 50, "sourceCode": ["AIS"], "matchFields": "NO_MATCH",
+                         "transmissionDateFrom": "2012-01-01T00:33:18Z", "transmissionDateTo": "2026-10-05T00:06:20Z"}],
+   "dataset": "public-global-vessel-identity:v4.0"}]}
