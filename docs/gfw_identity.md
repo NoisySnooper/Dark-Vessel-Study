@@ -1,6 +1,6 @@
 # AIS status and identity of the September regional contacts from Global Fishing Watch (research build)
 
-Updated: 2026-10-09 07:00 UTC. Data accessed 2026-10-08 (reports and events) and 2026-10-08 to 2026-10-09 (vessel identities). Research build only. Nothing in this document or in `data/research/` may go into the open (commercial-clean) build.
+Updated: 2026-10-09 13:55 UTC. Data accessed 2026-10-08 (reports and events) and 2026-10-08 to 2026-10-09 (vessel identities). Research build only. Nothing in this document or in `data/research/` may go into the open (commercial-clean) build.
 
 > **"Dark" does not mean illegal.** It means only that no AIS position was matched to a radar contact. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite and terrestrial AIS have blind spots. An AIS gap is not proof of intent. Every contact row in the GeoPackage and the parquet carries this caveat (`darkvessel.config.DARK_CAVEAT`).
 
@@ -36,7 +36,7 @@ Attribution format used (GFW terms, section A.3): "Global Fishing Watch. 2026, u
 | GFW AIS presence per day | LOW, DAILY, whole AOI, summed per cell (GFW returns one row per vessel and cell, about 150,000 rows and 75 MB a day) | scripts/27 `--steps grids` |
 | GFW events | gaps, encounters, loitering as parquet tables | scripts/27 `--steps outputs` |
 | GFW vessels | identity records of every vessel id the identity needs, batches of 100; ids already present in any cached batch are served from the cache | scripts/31 `--steps vessels` |
-| `data/ml/shared_cells_cnn.parquet` | CNN verifier scores of 35,626 contacts (read-only) | scripts/06 |
+| `data/ml/regional_cnn.parquet` | CNN verifier scores (`verifier_v0`) of every regional contact, read-only; 51,816 scored by scripts/32 and 26,799 reused from the shared-cell run (`data/ml/shared_cells_cnn.parquet`, the fallback when the regional file is absent) | scripts/32 |
 
 The pull respects the API's one-concurrent-report rule: reports run in sequence from one process. The client waits on the 429 "one concurrent report" refusal instead of failing (the earlier pull died on it because two processes sent reports at once), recovers a report after a 524 or a client-side timeout through `GET /4wings/last-report` only when that report is the one requested (same dataset and date range; a running report's uri is compared too), and backs off on rate limits honouring Retry-After. Every response is cached by a hash of the request; the token is never part of a key, a file or a log. The SAR report cache is complete for every day from 2026-09-01 to 2026-10-08 (data to 2026-10-05; 10-06 to 10-08 held no cells at pull time and can be refetched with `--refresh-empty`).
 
@@ -117,7 +117,7 @@ Identity completeness of the 9,954 matched contacts: MMSI on 9,850 (99.0 %), nam
 | South Vietnam shelf | 7,934 | 1,113 | 6,821 | 0 | 14.0 % |
 | Central sea | 1,265 | 27 | 1,215 | 23 | 2.1 % |
 
-**CNN verifier.** 26,799 contacts have a verifier score (shared cells only). Among the 8,109 the CNN accepts, 19.8 % are matched; among the ones it rejects, 5.3 %. The verifier and GFW's AIS match agree on what a vessel looks like, which is the expected direction; the unscored contacts get scores in R1-T6.
+**CNN verifier.** Every contact has a verifier score (`data/ml/regional_cnn.parquet`, scripts/32: 51,816 scored there, 26,799 reused from the shared-cell run; `verifier_v0`, threshold 0.632). The CNN accepts 24,114 of the 78,615 contacts. Among the accepted, 26.9 % are matched (high class 28.0 %, medium 22.6 %); among the rejected, 6.4 %. The verifier and GFW's AIS match agree on what a vessel looks like, which is the expected direction, and 6,484 of the 9,954 matched contacts (65.1 %) are CNN-accepted. The verifier was trained on Sentinel-1A/1B labels and applied to 1C/1D without retraining (docs/ml_verifier.md), so acceptance is a prior for the lead score, not truth.
 
 **Radar length against AIS length.** GFW publishes a registry length for 161 of the 9,954 matched contacts (1.6 %). On that sample the Spearman rank correlation is 0.376 (p = 9.0e-07, n = 161); the median ratio radar length over AIS length is 1.59, and 51.6 % of the pairs agree within a factor 2 (median radar length 200.8 m, median AIS length 128.0 m). By AIS length bin (n, median radar length): 0 to 25 m (7, 40.0 m), 25 to 50 m (8, 81.8 m), 50 to 100 m (34, 123.7 m), 100 m and longer (112, 262.1 m). The radar estimate runs long at every size: the CFAR blob includes sidelobes and wake at 20 m pixels, and the registered vessels are the large ones.
 
@@ -173,9 +173,9 @@ What the sample shows. The SAR matches (1 to 13) put the contact inside GFW's ce
 
 | File | Content |
 |---|---|
-| `data/research/regional_identity.parquet` (3.8 MB) | the canonical table: all 78,615 contacts, D1 columns plus evidence columns, the full dark caveat on every row, `research_only` true, licence, attribution, dataset versions, access dates and caveats in the parquet file metadata |
-| `data/research/regional_identity.gpkg` (112.3 MB) | layers `contacts_4326`, `contacts_utm49n` (the same table with the full caveat on every row, as D1 requires) and `about` (method, rules, dataset versions, access dates, licence, attribution, caveats, cell alignment and presence calibration). Far over the 20 MB commit limit and over GitHub's 100 MB limit: SQLite stores the 323-character caveat 157,230 times. It is rebuilt in about two minutes from the cache with `python scripts/31_gfw_identity.py --steps outputs --offline`, so it must be git-ignored (`data/research/regional_identity.gpkg`); the parquet is the committed copy |
-| `data/research/regional_identity_summary.json` | counts by status, method and quality, identity kind, mission, length bin, sub-region, CNN verdict; length check; cell alignment check; presence calibration; attribution per dataset; hand-check sample with the raw GFW rows |
+| `data/research/regional_identity.parquet` (4.0 MB) | the canonical table: all 78,615 contacts, D1 columns plus evidence columns (CNN score and verdict on every row), the full dark caveat on every row, `research_only` true, licence, attribution, dataset versions, access dates and caveats in the parquet file metadata |
+| `data/research/regional_identity.gpkg` (112.5 MB) | layers `contacts_4326`, `contacts_utm49n` (the same table with the full caveat on every row, as D1 requires) and `about` (method, rules, dataset versions, access dates, licence, attribution, caveats, cell alignment and presence calibration). Far over the 20 MB commit limit and over GitHub's 100 MB limit: SQLite stores the 323-character caveat 157,230 times. It is rebuilt in about two minutes from the cache with `python scripts/31_gfw_identity.py --steps outputs --offline`, so it must be git-ignored (`data/research/regional_identity.gpkg`); the parquet is the committed copy |
+| `data/research/regional_identity_summary.json` | counts by status, method and quality, identity kind, mission, length bin, sub-region, CNN verdict (`cnn_source` names the score file); length check; cell alignment check; presence calibration; attribution per dataset; hand-check sample with the raw GFW rows |
 | `data/research/gfw_vessels.parquet` (0.7 MB) | identity records of the vessel ids used by the table (report fields plus vessels endpoint fields, `identity_kind`) |
 | `data/research/gfw_presence_passes.parquet` (2.2 MB) | GFW AIS presence rows per pass (vessel, cell, hour) with identity, 91,328 rows |
 | `data/research/gfw_presence_daily.parquet` (1.3 MB) | AIS presence hours and vessel counts per 0.1 degree cell and day, whole AOI, 557,348 cell-days |

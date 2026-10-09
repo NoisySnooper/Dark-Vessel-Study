@@ -30,7 +30,8 @@ Method (rules in darkvessel.ais.gfw_identity; the output's 'about' layer repeats
 
 Inputs: data/detections_regional.gpkg; data/cache/gfw/ (script 27 steps sar and grids);
   data/research/gfw_events_{gaps,encounters,loitering}.parquet (script 27 step outputs; evidence only, optional);
-  data/ml/shared_cells_cnn.parquet (CNN scores, read-only, optional).
+  data/ml/regional_cnn.parquet (CNN verifier scores of every regional contact, read-only, optional; falls back to
+  data/ml/shared_cells_cnn.parquet, shared cells only).
 Output (data/research/): regional_identity.gpkg (contacts_4326, contacts_utm49n, about; over 20 MB, rebuilt offline in
   minutes, so it stays out of git), regional_identity.parquet (canonical, licence and attribution in the file
   metadata), regional_identity_summary.json, gfw_vessels.parquet, gfw_presence_passes.parquet.
@@ -198,12 +199,14 @@ def load_events() -> dict:
     return out
 
 
-def load_cnn() -> pd.DataFrame | None:
-    p = DATA_DIR / "ml" / "shared_cells_cnn.parquet"
-    if not p.exists():
-        return None
-    cnn = pd.read_parquet(p, columns=["det_id", "cnn_score", "cnn_vessel"]).drop_duplicates("det_id")
-    return cnn
+def load_cnn() -> tuple[pd.DataFrame | None, str | None]:
+    """CNN verifier scores, read-only: data/ml/regional_cnn.parquet (every regional contact, docs/ml_verifier.md) when it
+    exists, else data/ml/shared_cells_cnn.parquet (shared cells only). Returns (det_id, cnn_score, cnn_vessel) and the path."""
+    for p in (DATA_DIR / "ml" / "regional_cnn.parquet", DATA_DIR / "ml" / "shared_cells_cnn.parquet"):
+        if p.exists():
+            cnn = pd.read_parquet(p, columns=["det_id", "cnn_score", "cnn_vessel"]).drop_duplicates("det_id")
+            return cnn, str(p.relative_to(DATA_DIR.parent)) if p.is_relative_to(DATA_DIR.parent) else str(p)
+    return None, None
 
 
 # -- the build -----------------------------------------------------------------------------------------------------
@@ -472,7 +475,8 @@ def main():
         st["identity_presence_passes"] = int(pres.pass_id.nunique())
         state_save(st)
         log("presence passes", st["identity_presence_passes"], "rows", len(pres), "wrote gfw_presence_passes.parquet")
-    events, cnn = load_events(), load_cnn()
+    events, (cnn, cnn_source) = load_events(), load_cnn()
+    log("cnn scores from", cnn_source or "none", 0 if cnn is None else len(cnn))
     if "identify" in steps:
         _, meta, needed = build(det, passes, c_off, gj, window, None, events, cnn)
         NEEDED_IDS.write_text(json.dumps(sorted(needed)))
@@ -500,7 +504,7 @@ def main():
         summary = {"generated_utc": pd.Timestamp.now("UTC").isoformat(), "run_id": I.RUN_ID, "use": G.RESEARCH_TAG, "licence": G.LICENCE,
                    "licence_url": G.LICENCE_URL, "terms_url": G.TERMS_URL, "accessed": acc_all, "accessed_by_dataset": acc,
                    "attribution": {k: G.attribution(v, window, acc[k]) for k, v in versions.items()},
-                   "caveat": DARK_CAVEAT, "gfw_caveat": G.GFW_CAVEAT,
+                   "caveat": DARK_CAVEAT, "gfw_caveat": G.GFW_CAVEAT, "cnn_source": cnn_source,
                    "datasets": versions, "window_presence_grid": list(window), "run_dates": sorted(det.date.unique()),
                    "passes": [{"pass_id": p.pass_id, "mission": p.mission, "t0": p.t0.isoformat(), "t1": p.t1.isoformat(), "n_scenes": p.n_scenes,
                                "presence_window": list(I.pass_window(p.t0, p.t1))} for p in passes.itertuples()],
@@ -520,6 +524,7 @@ def main():
                                                            "n_passes": int(len(passes)), "cell_alignment": json.dumps(meta["cell_alignment_check"]),
                                                            "presence_calibration": json.dumps(meta.get("presence_calibration", {})),
                                                            "cnn_vessel_in_gpkg": "1 = CNN verifier accepts, 0 = rejects, null = not scored (boolean in the parquet)",
+                                                           "cnn_source": cnn_source or "none",
                                                            "columns_gpkg": ", ".join(cols_for_about(df))})
         tags = G.research_tags(versions["sar"], window, acc_all, datasets=json.dumps(versions), accessed_by_dataset=json.dumps(acc),
                                run_id=I.RUN_ID, dark_caveat=DARK_CAVEAT)

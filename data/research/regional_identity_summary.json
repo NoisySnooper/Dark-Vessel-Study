@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-10-09T06:53:59.130105+00:00",
+ "generated_utc": "2026-10-09T13:51:36.995807+00:00",
  "run_id": "regional_2026-09",
  "use": "research build only, noncommercial (Global Fishing Watch data, CC BY-NC 4.0)",
  "licence": "CC BY-NC 4.0",
@@ -24,6 +24,7 @@
  },
  "caveat": "'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
  "gfw_caveat": "Global Fishing Watch detections and events are another model's output, not ground truth. GFW SAR detections cover industrial vessels and miss most vessels under 15 m (GFW data caveats; Paolo et al. 2024, doi:10.1038/s41586-023-06825-8). GFW's 'matched' flag is GFW's own AIS match, not ours. An AIS gap event is not proof of intent: GFW's own documentation calls the gaps dataset a prototype, and AIS can be off or unreceived for lawful and technical reasons. 'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "cnn_source": "data/ml/regional_cnn.parquet",
  "datasets": {
   "sar": "public-global-sar-presence:v4.0",
   "presence": "public-global-presence:v4.0",
@@ -631,14 +632,14 @@
   }
  },
  "cnn": {
-  "n_scored": 26799,
-  "n_cnn_vessel": 8109,
-  "matched_share_cnn_vessel": 0.1979,
-  "matched_share_cnn_rejected": 0.0526,
+  "n_scored": 78615,
+  "n_cnn_vessel": 24114,
+  "matched_share_cnn_vessel": 0.2689,
+  "matched_share_cnn_rejected": 0.0637,
   "status_cnn_vessel": {
-   "unmatched": 6498,
-   "matched": 1605,
-   "no_coverage": 6
+   "unmatched": 17615,
+   "matched": 6484,
+   "no_coverage": 15
   }
  },
  "length_check": {
