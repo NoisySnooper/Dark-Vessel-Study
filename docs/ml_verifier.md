@@ -274,6 +274,200 @@ of this scene or a lower noise floor of the 1D instrument cannot be separated fr
 scene (UNVERIFIED); the model's low acceptance of medium-class (VH-only) objects on 1D may
 be a symptom. No Sentinel-1D ground truth exists, so none of these numbers is an accuracy.
 
+## Regional application (September 2026 run)
+
+Purpose: verify detection before identification. Every radar contact of the 12-day regional run
+(20 September to 1 October 2026, `docs/scs_regional.md`) gets a verifier score, so that every
+contact in the product carries one. Before this run only the 35,626 objects in cells both
+satellites imaged had a score (`scripts/14_cnn_shared_cells.py`).
+
+**What was scored.** Phase "main": all 103,839 high, medium and fixed objects of
+`data/detections_regional_all.gpkg` (29,228 high, 49,387 medium, 25,224 fixed) on 118 scenes
+(26 Sentinel-1C, 92 Sentinel-1D). The high and medium objects are the 78,615 contacts of
+`data/detections_regional.gpkg`; the fixed objects are those of `data/structures_regional.gpkg`.
+Every one of the 103,839 has a score. Phase "low": the 823,285 low-class objects (weak VV only
+759,790, clutter zone 52,820, near fixed 5,727, oversized 4,948) on 119 scenes, run after the
+main phase at the lowest CPU priority. The low phase was still running when this section was
+written (9 October 2026, 05:55 UTC): 3 of 119 scenes done, 35,745 objects, 805 s, so about
+44 objects per second and 4.9 h for the remaining 787,540 objects on the CPU share it gets.
+On those 3 Sentinel-1C scenes the model accepts 549 of 35,745 low objects, 0.015 [0.014,
+0.017]; a preliminary figure from one satellite and one day, not a regional result. The
+outputs below hold the main phase only; the run rebuilds them with the low class when the
+phase is complete (`scored.low.complete` in the JSON).
+
+**Method** (`scripts/32_cnn_regional.py`, `src/darkvessel/ml/regional_verify.py`):
+- Chips exactly as in training and in `scripts/14_cnn_shared_cells.py`: 64 x 64 px (640 m) VV
+  and VH sigma0 in dB, thermal noise not removed, cut at the object's row and column, read
+  over HTTPS from the COGs of the AWS mirror (`sentinel-s1-l1c`, listed in the AWS Open Data
+  registry, https://registry.opendata.aws/sentinel-1/). No scene is downloaded.
+- Reads: per scene, objects are grouped by the 1024 x 1024 px COG tile that holds their centre.
+  One windowed read of VV and VH per group covers all chips of the group.
+- Score: model `verifier_v0_356af0ca`, mean of the 8 flip and rotation views, threshold
+  0.631783 (best F1 on the validation windows, shown as 0.632 elsewhere). `cnn_vessel` = score
+  at or above the threshold.
+- Reuse: a score of `data/ml/shared_cells_cnn.parquet` is kept when det_id, scene, row, column,
+  longitude and latitude all match exactly. All 35,626 matched; no object had a different
+  position. Their chips are still read, for the chip features, and a fixed random sample of
+  200 (seed 20261009) is rescored as a check.
+- Chip features per object: `cnn_chip_valid_frac` (finite share of the central 8 x 8 px, the
+  definition of `scripts/06_apply_verifier.py` and the live pass), `chip_valid_frac_full` (whole
+  chip), `bg_vv_db` and `bg_vh_db` (median dB outside the central 16 x 16 px, as script 14).
+- Checkpoint: one parquet per scene and phase under `data/cache/regional_cnn/`; a rerun skips a
+  scene only when its checkpoint has the same model id and the same det_id set. A scene that
+  fails (network) is retried once at the end of the phase; three failures in a row pause the run.
+- CPU: nice 10 (low phase nice 19), 2 torch threads, scoring under `torch.inference_mode()`
+  (same scores, about 20 % less CPU), on 4 cores shared with the live-pass pipeline.
+- Intervals: Wilson score 95 % (Wilson 1927, Journal of the American Statistical Association
+  22(158), doi:10.1080/01621459.1927.10502953).
+
+Run, resume, build:
+
+```
+python scripts/32_cnn_regional.py --detach --phases main,low                  # background; resumes from the checkpoints
+python scripts/32_cnn_regional.py --detach --if-incomplete --phases main,low  # same, but only if a scene is left
+python scripts/32_cnn_regional.py --status                                    # checkpoints done, last log lines
+python scripts/32_cnn_regional.py --build [--partial-low]                     # outputs from the checkpoints so far
+python scripts/32_cnn_regional.py --stop
+```
+
+**Outputs.**
+- `data/ml/regional_cnn.parquet`: one row per scored object (det_id, scene_id, mission,
+  confidence, cnn_score, cnn_vessel, cnn_threshold, cnn_model_id, cnn_score_source,
+  cnn_chip_valid_frac, chip_valid_frac_full, bg_vv_db, bg_vh_db, caveat); model id, threshold,
+  training data, transfer caveat and the dark caveat in the file metadata. 1.2 MB with the main
+  phase; about 11 MB expected with the low class.
+- `data/detections_regional_verified.gpkg` (18.5 MB): the 78,615 contacts with every column of
+  `data/detections_regional.gpkg` except lat and lon (the geometry), acq_utc (the scene start
+  time; in det_id and in the `scenes` table by scene_idx), ais_status (`not_checked` on every
+  row) and the per-row caveat, plus cnn_score and cnn_vessel. Layers
+  `detections_regional_verified_4326` and `detections_regional_verified_utm49n` (EPSG:32649),
+  a `scenes` table and an `about` layer (model id, threshold, training data and licence,
+  transfer caveat, dark caveat, column notes). The left-out columns are what keeps both CRS
+  layers in one file under 20 MB; with them the file is 37 MB.
+- `data/ml/regional_cnn.json`: acceptance with Wilson intervals by class, mission, length bin,
+  reporting box, wind speed and deep convection, inside and outside the shared cells, score
+  quartiles, chip background medians, run time and the reuse check.
+- `docs/figures/regional_cnn.png`: accepted share of high and medium contacts per 0.25 degree
+  cell, and acceptance by class and by length estimate.
+
+**Reuse check.** All 200 rescored objects reproduce the reused score within 1e-4 (largest
+difference 6.0e-8) and all 200 verdicts agree. The chip background of all 35,626 reused
+objects equals the value script 14 computed (largest difference 0.0 dB). The regional chips
+are therefore the same chips as in the shared-cell experiment.
+
+**Run time.** Main phase: 7,086 s summed over the 118 scenes (2.0 h; median 40 s per scene;
+14.7 objects per second). The work is network bound: CPU stayed mostly idle while windows were
+read from the mirror. The estimate after the first 3 scenes was 0.5 h; it was low because those
+scenes held 9,667 objects of which 8,588 were reused (read, not scored), and per-scene read time,
+not object count, sets the pace. Wall clock ran from 00:42 to 05:40 UTC on 9 October 2026 with
+two kinds of stops: restarts to fix reads after the mirror returned errors (31 failed scene
+attempts, all recovered by retry or rerun; no scene was lost) and a container stop from about
+02:20 to 05:00 UTC, after which the run resumed from the checkpoints.
+
+**Results, main phase.** Accepted = cnn_score >= 0.631783. Wilson 95 % intervals in brackets.
+
+| Group | n | Accepted | Share [95 % CI] | Score quartiles | Background VV / VH (dB) |
+|---|---|---|---|---|---|
+| high | 29,228 | 19,000 | 0.650 [0.645, 0.656] | 0.465 / 0.809 / 0.954 | -20.7 / -28.0 |
+| medium | 49,387 | 5,114 | 0.104 [0.101, 0.106] | 0.001 / 0.017 / 0.228 | -19.6 / -27.8 |
+| fixed | 25,224 | 6,108 | 0.242 [0.237, 0.247] | 0.007 / 0.135 / 0.612 | -20.4 / -27.4 |
+| contacts (high + medium) | 78,615 | 24,114 | 0.307 [0.304, 0.310] | 0.005 / 0.195 / 0.761 | -20.0 / -27.9 |
+
+By satellite:
+
+| Group | Sentinel-1C | Sentinel-1D |
+|---|---|---|
+| contacts | 3,838 / 13,283 = 0.289 [0.281, 0.297] | 20,276 / 65,332 = 0.310 [0.307, 0.314] |
+| high | 3,015 / 4,932 = 0.611 [0.598, 0.625] | 15,985 / 24,296 = 0.658 [0.652, 0.664] |
+| medium | 823 / 8,351 = 0.099 [0.092, 0.105] | 4,291 / 41,036 = 0.105 [0.102, 0.108] |
+| fixed | 846 / 4,969 = 0.170 [0.160, 0.181] | 5,262 / 20,255 = 0.260 [0.254, 0.266] |
+| high, in cells both imaged | 0.601 [0.587, 0.616] | 0.629 [0.616, 0.641] |
+| medium, in cells both imaged | 0.101 [0.094, 0.109] | 0.106 [0.100, 0.113] |
+| fixed, in cells both imaged | 0.204 [0.191, 0.218] | 0.230 [0.219, 0.242] |
+| contact chip background VV / VH | -20.6 / -27.3 dB | -19.9 / -28.0 dB |
+
+The "cells both imaged" rows are, by construction, the result of `data/ml/shared_cells_cnn.json`.
+
+By radar length estimate (contacts, then the high class alone):
+
+| Length | Contacts n | Contacts accepted share | High n | High accepted share |
+|---|---|---|---|---|
+| under 25 m | 29,324 | 0.009 [0.008, 0.010] | 1,333 | 0.014 [0.009, 0.022] |
+| 25 to 50 m | 16,268 | 0.142 [0.137, 0.147] | 6,151 | 0.251 [0.241, 0.262] |
+| 50 to 100 m | 18,179 | 0.512 [0.505, 0.519] | 11,191 | 0.685 [0.676, 0.693] |
+| 100 to 200 m | 9,918 | 0.801 [0.793, 0.809] | 7,362 | 0.915 [0.909, 0.921] |
+| 200 m and longer | 4,926 | 0.871 [0.862, 0.881] | 3,191 | 0.951 [0.943, 0.958] |
+
+By reporting box (boxes of `scripts/21_viirs_regions.py`; reporting boxes, not boundaries),
+contacts and then the high class alone:
+
+| Box | Contacts n | Contacts accepted share | High accepted share |
+|---|---|---|---|
+| Gulf of Tonkin | 17,965 | 0.376 [0.369, 0.383] | 0.653 [0.643, 0.663] |
+| North shelf | 13,330 | 0.436 [0.427, 0.444] | 0.751 [0.740, 0.762] |
+| Gulf of Thailand | 18,796 | 0.240 [0.234, 0.246] | 0.564 [0.551, 0.576] |
+| South Vietnam shelf | 7,934 | 0.255 [0.245, 0.264] | 0.586 [0.567, 0.604] |
+| Central sea | 1,265 | 0.098 [0.083, 0.116] | 0.599 [0.521, 0.672] |
+| Southern sea | 8,690 | 0.315 [0.305, 0.325] | 0.703 [0.686, 0.719] |
+| outside every box | 10,635 | 0.203 [0.195, 0.211] | 0.608 [0.589, 0.627] |
+
+By 10 m wind at the radar time (GFS, `data/weather_context.parquet`), high class: 0 to 3 m/s
+0.604 [0.594, 0.613] (n 10,143), 3 to 6 m/s 0.665 [0.657, 0.673] (n 14,295), 6 to 9 m/s 0.698
+[0.684, 0.712] (n 4,258), 9 m/s and more 0.705 [0.654, 0.751] (n 339). Medium class: 0.088,
+0.112, 0.105 and 0.126. Under deep convection (Himawari cloud tops) the high class is accepted
+at 0.626 [0.615, 0.638] against 0.657 [0.651, 0.664] without.
+
+**What this means.**
+1. Every high, medium and fixed object of the regional run now carries a verifier score and a
+   verdict, so the product can show detection evidence before any identity evidence.
+2. The CNN accepts two thirds of the high class and one tenth of the medium class. Acceptance
+   rises steeply with the radar length estimate: under 1 % below 25 m, 80 to 87 % from 100 m.
+   Region and wind differences largely follow this length and class mix (the median length of
+   high-class contacts is 64 m in calm air and 79 m at 3 to 6 m/s), so they are not evidence of
+   a weather effect on the model by themselves.
+3. Sentinel-1C and 1D look alike to the model in the same sea: within 3 points for the high
+   and medium classes in the cells both imaged. The larger gap for fixed objects overall (0.170
+   against 0.260) shrinks to 0.204 against 0.230 in the shared cells, so most of it is where
+   each satellite imaged, not the sensor.
+4. The Ca Mau scene of 29 September 2026 (section above) is part of the regional run. Inside the
+   Ca Mau box (104.7E to 105.9E, 8.0N to 9.2N) the regional run has 128 high-class contacts on
+   that scene, of which 0.461 [0.377, 0.547] are accepted, against 0.27 of 285 in the earlier
+   baseline run. The two runs used different detector settings and class rules
+   (`docs/scs_regional.md`), so their high classes hold different objects; the medium (0.043
+   [0.021, 0.085] of 164 against 0.03 of 435) and fixed (0.163 [0.124, 0.212] of 270 against
+   0.16 of 349) shares agree.
+
+**What this does not mean.**
+1. Acceptance is not precision and rejection is not a false alarm. The model was trained on
+   Sentinel-1A/1B and no Sentinel-1C/1D truth exists yet. The owner's labels from the demo page
+   (`scripts/12_score_labels.py`) will give the first 1C/1D precision and recall.
+2. The near-total rejection of contacts under 25 m cannot be read as "they are clutter". Two
+   explanations fit and cannot be separated now: many small medium-class objects are sea
+   clutter, rain cells or wake fragments; or the model does not recognise small boats, because
+   its training labels hold almost none (the held-out sample with AIS lengths had 2 labels of
+   15 to 25 m and none under 15 m). Small fishing boats are the population the dark-vessel
+   question is about, so the CNN verdict must not be used to drop small contacts. Use the score
+   as evidence next to persistence, VIIRS lights and optical checks, not as a filter.
+3. A fixed object the model accepts is not a ship. A single chip cannot tell an anchored ship
+   from a platform or turbine; the persistence class keeps precedence.
+4. Nothing here involves AIS. A verified contact is a radar object that looks like a vessel to
+   a 1A/1B-trained model; who it is, and whether it was broadcasting AIS, is decided elsewhere.
+
+Caveat: "dark" means only that no AIS position was matched to a radar contact. It does not mean
+illegal. Many vessels need not carry AIS, AIS can be off for lawful reasons, and satellite and
+terrestrial AIS have blind spots. An AIS gap is not proof of intent.
+
+Sources resolved on 9 October 2026: AI2 label licence,
+https://raw.githubusercontent.com/allenai/vessel-detection-sentinels/main/LICENSE (Apache License
+2.0; the repository page itself returned HTTP 403 through this environment's proxy); AWS mirror
+object `GRD/2026/9/28/IW/DV/S1D_IW_GRDH_1SDV_20260928T103247_20260928T103316_004777_008F4D_3671/manifest.safe`
+at https://sentinel-s1-l1c.s3.amazonaws.com (HTTP 200); https://registry.opendata.aws/sentinel-1/
+(HTTP 200); Wilson (1927) through the Crossref record
+https://api.crossref.org/works/10.1080/01621459.1927.10502953 (the doi.org link returned HTTP 403
+from the publisher to this environment).
+
+<!-- regional-cnn-section-end -->
+
 ## Transfer caveats
 
 - Trained on Sentinel-1A and 1B acquisitions of 2020 to 2022; applied to Sentinel-1D of 2026.
