@@ -61,3 +61,6 @@ data/ml/build_log.txt
 app/frontend/node_modules/
 app/frontend/dist/
 app/**/__pycache__/
+
+# Rebuilt in about 2 min by scripts/31_gfw_identity.py --steps outputs --offline (112 MB); the parquet is the committed copy
+data/research/regional_identity.gpkg
