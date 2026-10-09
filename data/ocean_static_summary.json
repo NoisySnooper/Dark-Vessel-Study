@@ -1,0 +1,503 @@
+{
+ "generated_utc": "2026-10-09T14:02:01Z",
+ "script": "scripts/22_static_layers.py",
+ "aoi": "south_china_sea",
+ "aoi_bounds": [
+  99.1607,
+  -3.2194,
+  122.2662,
+  23.7596
+ ],
+ "raster_box": [
+  99.16,
+  -3.22,
+  122.27,
+  23.76
+ ],
+ "fine_grid": {
+  "res_deg": 0.01,
+  "shape": [
+   2698,
+   2311
+  ],
+  "origin": [
+   99.16,
+   23.76
+  ]
+ },
+ "model_grid": {
+  "res_deg": 0.25,
+  "shape": [
+   109,
+   94
+  ],
+  "origin": [
+   99.0,
+   24.0
+  ]
+ },
+ "sea_mask": "fine cell centre not in Natural Earth 10 m land and GEBCO_2026 mean below sea level; rasters cover the whole AOI bounding box, the table and key numbers use AOI sea cells only",
+ "gebco_file_attributes": {
+  "title": "The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals",
+  "id": "DOI: 10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+  "date_created": "2026-04-17",
+  "license": "The GEBCO Grid is placed in the public domain and may be used free of charge. Use of the GEBCO Grid indicates that the user accepts the conditions of use and disclaimer information: https://www.gebco.net/",
+  "comment": "The data in the GEBCO_2026 Grid should not be used for navigation or any purpose relating to safety at sea."
+ },
+ "sources": [
+  {
+   "key": "gebco",
+   "name": "GEBCO_2026 Grid (15 arc-second global terrain model), netCDF at CEDA/BODC",
+   "url": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/ice_surface_elevation/netcdf/GEBCO_2026.nc",
+   "version": "GEBCO_2026, date_created 2026-04-17, doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+   "licence": "GEBCO terms of use: 'The GEBCO Grid is placed in the public domain and may be used free of charge'; users may copy, adapt and commercially exploit it and must acknowledge the source; not for navigation",
+   "licence_url": "https://www.gebco.net/data-products/gridded-bathymetry/terms-of-use",
+   "citation": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:01Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "key": "ne_land",
+   "name": "Natural Earth 10 m land polygons (coastline)",
+   "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson",
+   "version": "natural-earth-vector master, VERSION file 5.2.0-pre",
+   "licence": "Public domain",
+   "licence_url": "https://www.naturalearthdata.com/about/terms-of-use/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:05Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "key": "ne_ports",
+   "name": "Natural Earth 10 m ports",
+   "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_ports.geojson",
+   "version": "natural-earth-vector master, VERSION file 5.2.0-pre",
+   "licence": "Public domain",
+   "licence_url": "https://www.naturalearthdata.com/about/terms-of-use/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:08Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "key": "wpi",
+   "name": "NGA World Port Index (Pub 150), Maritime Safety Information publications API",
+   "url": "https://msi.nga.mil/api/publications/world-port-index?output=csv",
+   "version": "as served by the MSI API on the access date; the WPI is maintained continuously and the API output carries no edition number",
+   "licence": "msi.nga.mil Commercial Use Warning: 'NGA claims no copyright or other intellectual property right in the nautical products posted on this website for public use'; the NGA name, seal or initials may not be used to imply endorsement (10 U.S.C. 425). Legal disclaimer: provided 'as is', no warranty.",
+   "licence_url": "https://msi.nga.mil/api/pageContent/getByTitle?pageTitle=Commercial%20Use%20Warning",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:09Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 206
+  },
+  {
+   "key": "marineregions",
+   "name": "Marine Regions Maritime Boundaries v12: EEZ polygons and boundary lines (Flanders Marine Institute, VLIZ)",
+   "url": "https://geo.vliz.be/geoserver/MarineRegions/wfs?service=WFS&version=2.0.0&request=GetCapabilities",
+   "version": "Maritime Boundaries v12, record date 2023-10-25 (WFS layers MarineRegions:eez 'Exclusive Economic Zones (200 NM) (v12, world, 2023)' and MarineRegions:eez_boundaries 'Maritime Boundaries (v12, world, 2023)'), doi:10.14284/632",
+   "licence": "CC BY 4.0 (dataset record: 'This dataset is licensed under a Creative Commons Attribution 4.0 International License'). Terms of use on marineregions.org/disclaimer.php: not meant for legal, economical or navigational purposes; 'VLIZ expresses no opinion about the legal state neither of any country, territory or area nor concerning its delimitation'; users are kindly asked not to make the products available for download elsewhere; where these terms differ from the CC licence, the CC licence prevails",
+   "licence_url": "https://www.marineregions.org/disclaimer.php",
+   "citation": "Flanders Marine Institute (2023). Maritime Boundaries Geodatabase: Maritime Boundaries and Exclusive Economic Zones (200NM), version 12. Available online at https://www.marineregions.org/. https://doi.org/10.14284/632",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:11Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 206
+  },
+  {
+   "key": "worldbank",
+   "name": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only)",
+   "url": "https://datacatalog.worldbank.org/search/dataset/0037580",
+   "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+   "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+   "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+   "citation": "World Bank Group, with IMF (Cerdeiro, Komaromi, Liu and Saeed, 2020), Global Shipping Traffic Density, https://datacatalog.worldbank.org/search/dataset/0037580",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:14Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "key": "worldbank_readme",
+   "name": "World Bank shipping density readme (units)",
+   "url": "https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0084213/readme.txt",
+   "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+   "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:17Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "key": "worldbank_types",
+   "name": "World Bank shipping density readme (vessel types per layer)",
+   "url": "https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt",
+   "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+   "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:18Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  }
+ ],
+ "outputs": {
+  "data/eez_marineregions.gpkg": {
+   "bytes": 14962688,
+   "mb": 14.96
+  },
+  "data/ocean_context.gpkg": {
+   "bytes": 2179072,
+   "mb": 2.18
+  },
+  "data/ocean_static_cells.parquet": {
+   "bytes": 346692,
+   "mb": 0.35
+  },
+  "data/outputs/small/depth_m_4326.tif": {
+   "bytes": 11098502,
+   "mb": 11.1
+  },
+  "data/outputs/small/depth_m_utm49n.tif": {
+   "bytes": 14357035,
+   "mb": 14.36
+  },
+  "data/outputs/small/dist_coast_km_4326.tif": {
+   "bytes": 8740974,
+   "mb": 8.74
+  },
+  "data/outputs/small/dist_coast_km_utm49n.tif": {
+   "bytes": 11451454,
+   "mb": 11.45
+  },
+  "data/outputs/small/dist_port_km_4326.tif": {
+   "bytes": 6448789,
+   "mb": 6.45
+  },
+  "data/outputs/small/dist_port_km_utm49n.tif": {
+   "bytes": 9199863,
+   "mb": 9.2
+  },
+  "data/outputs/small/ship_density_all_4326.tif": {
+   "bytes": 12552020,
+   "mb": 12.55
+  },
+  "data/outputs/small/ship_density_all_utm49n.tif": {
+   "bytes": 16636043,
+   "mb": 16.64
+  },
+  "data/outputs/small/ship_density_commercial_4326.tif": {
+   "bytes": 12487436,
+   "mb": 12.49
+  },
+  "data/outputs/small/ship_density_commercial_utm49n.tif": {
+   "bytes": 16583238,
+   "mb": 16.58
+  },
+  "data/outputs/small/ship_density_fishing_4326.tif": {
+   "bytes": 1705193,
+   "mb": 1.71
+  },
+  "data/outputs/small/ship_density_fishing_utm49n.tif": {
+   "bytes": 2441054,
+   "mb": 2.44
+  },
+  "data/outputs/small/ship_density_leisure_4326.tif": {
+   "bytes": 1434883,
+   "mb": 1.43
+  },
+  "data/outputs/small/ship_density_leisure_utm49n.tif": {
+   "bytes": 1757872,
+   "mb": 1.76
+  },
+  "data/outputs/small/ship_density_oilgas_4326.tif": {
+   "bytes": 1885847,
+   "mb": 1.89
+  },
+  "data/outputs/small/ship_density_oilgas_utm49n.tif": {
+   "bytes": 2381876,
+   "mb": 2.38
+  },
+  "data/outputs/small/ship_density_passenger_4326.tif": {
+   "bytes": 3436600,
+   "mb": 3.44
+  },
+  "data/outputs/small/ship_density_passenger_utm49n.tif": {
+   "bytes": 5534932,
+   "mb": 5.53
+  }
+ },
+ "outputs_over_20mb": [],
+ "key_numbers": {
+  "aoi_sea_area_km2": 3560250,
+  "aoi_sea_area_shallower_200m_km2": 1854571,
+  "aoi_sea_share_shallower_200m": 0.5209,
+  "aoi_sea_share_shallower_50m": 0.2555,
+  "aoi_sea_share_deeper_1000m": 0.4076,
+  "aoi_sea_depth_median_m": 138.0,
+  "aoi_sea_depth_max_m": 5217.2,
+  "aoi_sea_share_within_20km_of_coast": 0.1116,
+  "aoi_sea_share_within_50km_of_coast": 0.2702,
+  "aoi_sea_dist_coast_max_km": 426.7,
+  "aoi_sea_share_within_100km_of_major_port": 0.1098,
+  "aoi_sea_dist_port_max_km": 741.7,
+  "ports_total_in_bounds_plus_1deg": 236,
+  "ports_wpi_by_harbour_size": {
+   "Very Small": 123,
+   "Small": 39,
+   "Medium": 24,
+   "Large": 9
+  },
+  "ports_natural_earth": 41,
+  "ports_major": 74,
+  "depth_contours_lines_by_level": {
+   "50": 627,
+   "200": 168,
+   "1000": 194
+  },
+  "depth_contours_km_by_level": {
+   "50": 52916,
+   "200": 24330,
+   "1000": 26511
+  },
+  "eez_features": {
+   "eez": 12,
+   "eez_boundaries": 77
+  },
+  "eez_pol_types": {
+   "200NM": 9,
+   "Overlapping claim": 3
+  },
+  "eez_line_types": {
+   "Connection line": 19,
+   "Straight baseline": 15,
+   "Median line": 14,
+   "Treaty": 13,
+   "Unsettled (land)": 5,
+   "Archipelagic baseline": 4,
+   "Unsettled median line (land)": 4,
+   "Unsettled (maritime)": 3
+  },
+  "eez_published_overlaps": [
+   {
+    "a": "Thailand Exclusive Economic Zone",
+    "b": "Malaysian Exclusive Economic Zone",
+    "area_km2": 0.1
+   },
+   {
+    "a": "Indonesian Exclusive Economic Zone",
+    "b": "Malaysian Exclusive Economic Zone",
+    "area_km2": 0.4
+   },
+   {
+    "a": "Malaysian Exclusive Economic Zone",
+    "b": "Bruneian Exclusive Economic Zone",
+    "area_km2": 4.5
+   },
+   {
+    "a": "Malaysian Exclusive Economic Zone",
+    "b": "Overlapping claim: South China Sea",
+    "area_km2": 67.5
+   }
+  ],
+  "model_cells_rows": 5116,
+  "model_cells_aoi_centre": 4778,
+  "model_cells_with_aoi_sea": 5095,
+  "model_cells_by_region": {
+   "Central sea": 1362,
+   "other": 1131,
+   "Southern sea": 893,
+   "North shelf": 575,
+   "Gulf of Thailand": 506,
+   "South Vietnam shelf": 382,
+   "Gulf of Tonkin": 267
+  },
+  "eez_overlap_aoi_sea_km2": 68.7,
+  "model_cells_with_eez_overlap": 12,
+  "ship_presence_all_share_aoi_sea_cells": 0.6686,
+  "ship_presence_all_aoi_sea_km2": 2375589,
+  "ship_values_all_nonzero_cells": 1976693,
+  "ship_values_all_share_of_nonzero_above_1e4": 0.4994,
+  "ship_values_all_nonzero_between_10e2.5_and_10e4": 155,
+  "ship_values_all_nonzero_between_10e3_and_10e5.5": 36137,
+  "ship_values_all_nonzero_above_10e5.5": 951102,
+  "ship_values_all_nonzero_min_max": [
+   1.0,
+   113464232.0
+  ],
+  "ship_values_all_share_above_period_hours_beyond_100km_of_major_port": 0.4644,
+  "ship_presence_fishing_share_aoi_sea_cells": 0.0075,
+  "ship_presence_fishing_aoi_sea_km2": 26493,
+  "ship_values_fishing_nonzero_cells": 22317,
+  "ship_values_fishing_share_of_nonzero_above_1e4": 0.0071,
+  "ship_values_fishing_nonzero_between_10e2.5_and_10e4": 1,
+  "ship_values_fishing_nonzero_between_10e3_and_10e5.5": 0,
+  "ship_values_fishing_nonzero_above_10e5.5": 158,
+  "ship_values_fishing_nonzero_min_max": [
+   1.0,
+   1119688.0
+  ],
+  "ship_values_fishing_share_above_period_hours_beyond_100km_of_major_port": 0.0037,
+  "ship_presence_commercial_share_aoi_sea_cells": 0.6647,
+  "ship_presence_commercial_aoi_sea_km2": 2361614,
+  "ship_values_commercial_nonzero_cells": 1965079,
+  "ship_values_commercial_share_of_nonzero_above_1e4": 0.4987,
+  "ship_values_commercial_nonzero_between_10e2.5_and_10e4": 57,
+  "ship_values_commercial_nonzero_between_10e3_and_10e5.5": 29903,
+  "ship_values_commercial_nonzero_above_10e5.5": 950197,
+  "ship_values_commercial_nonzero_min_max": [
+   1.0,
+   112729848.0
+  ],
+  "ship_values_commercial_share_above_period_hours_beyond_100km_of_major_port": 0.4645,
+  "ship_presence_oilgas_share_aoi_sea_cells": 0.0065,
+  "ship_presence_oilgas_aoi_sea_km2": 22924,
+  "ship_values_oilgas_nonzero_cells": 19102,
+  "ship_values_oilgas_share_of_nonzero_above_1e4": 1.0,
+  "ship_values_oilgas_nonzero_between_10e2.5_and_10e4": 0,
+  "ship_values_oilgas_nonzero_between_10e3_and_10e5.5": 18330,
+  "ship_values_oilgas_nonzero_above_10e5.5": 772,
+  "ship_values_oilgas_nonzero_min_max": [
+   23514.0,
+   2629975.0
+  ],
+  "ship_values_oilgas_share_above_period_hours_beyond_100km_of_major_port": 0.6161,
+  "ship_presence_passenger_share_aoi_sea_cells": 0.0346,
+  "ship_presence_passenger_aoi_sea_km2": 122649,
+  "ship_values_passenger_nonzero_cells": 102248,
+  "ship_values_passenger_share_of_nonzero_above_1e4": 0.0002,
+  "ship_values_passenger_nonzero_between_10e2.5_and_10e4": 704,
+  "ship_values_passenger_nonzero_between_10e3_and_10e5.5": 295,
+  "ship_values_passenger_nonzero_above_10e5.5": 0,
+  "ship_values_passenger_nonzero_min_max": [
+   1.0,
+   133847.0
+  ],
+  "ship_values_passenger_share_above_period_hours_beyond_100km_of_major_port": 0.0,
+  "ship_presence_leisure_share_aoi_sea_cells": 0.0025,
+  "ship_presence_leisure_aoi_sea_km2": 8849,
+  "ship_values_leisure_nonzero_cells": 7333,
+  "ship_values_leisure_share_of_nonzero_above_1e4": 1.0,
+  "ship_values_leisure_nonzero_between_10e2.5_and_10e4": 0,
+  "ship_values_leisure_nonzero_between_10e3_and_10e5.5": 4550,
+  "ship_values_leisure_nonzero_above_10e5.5": 2783,
+  "ship_values_leisure_nonzero_min_max": [
+   138549.0,
+   3311302.0
+  ],
+  "ship_values_leisure_share_above_period_hours_beyond_100km_of_major_port": 1.0
+ },
+ "table_columns": {
+  "row, col": "model grid (0.25 degree, origin 99.0E 24.0N, 109 x 94) indices, row 0 at the north; same grid as scripts/15_viirs_lights.py and data/ocean_daily_cells.parquet (join on row, col)",
+  "lon, lat": "cell centre, degrees",
+  "region": "reporting box of the cell centre (scripts/21_viirs_regions.py), 'other' outside every box; not a boundary",
+  "aoi_centre": "True when the cell centre lies in the AOI polygon (the definition of an AOI cell in the daily table)",
+  "aoi_share": "share of the cell's 625 fine cells (0.01 degree) whose centres lie in the AOI polygon",
+  "n_sea": "number of 0.01 degree fine cells in the cell that are sea and inside the AOI polygon (of 625)",
+  "sea_share": "n_sea / 625",
+  "sea_area_km2": "spherical area of those fine cells, km2",
+  "depth_mean_m, depth_median_m, depth_min_m, depth_max_m, depth_std_m": "GEBCO_2026 depth over the AOI sea fine cells, m positive down",
+  "share_shallower_50m, share_shallower_200m": "share of AOI sea fine cells with depth below the threshold",
+  "share_shelf_break_150_250m": "share of AOI sea fine cells with 150 <= depth < 250 m",
+  "slope_mean_m_per_km": "mean magnitude of the depth gradient (m per km) over AOI sea fine cells with sea neighbours",
+  "dist_coast_km, dist_coast_min_km": "mean and minimum great-circle distance to the Natural Earth 10 m coastline over AOI sea fine cells, km",
+  "dist_port_km, dist_port_min_km": "mean and minimum distance to the nearest major port (major = WPI harbour size L (Large) or M (Medium), or any Natural Earth 10 m port; WPI S (Small) and V (Very Small) are kept in the layer but not used for dist_port_km), km",
+  "ship_presence_share_<type>": "ship_presence_share_<type> = share of the model cell's AOI sea 0.01 degree cells whose World Bank value is above 0 (any AIS record of that vessel type in the four 0.005 degree source cells, 2015 to 2021); the magnitude is not used; types: all, fishing, commercial, oilgas, passenger, leisure. The World Bank magnitudes are not in the table: in five of the six layers many of them cannot be counts (shipping_density_warning)",
+  "marineregions_mrgid, marineregions_geoname, marineregions_pol_type": "MRGID, geoname and pol_type, as published, of the Marine Regions v12 EEZ polygon that covers most of the cell's AOI sea fine cells (unsimplified published polygons; where two published polygons overlap, the later in the published order); empty where no polygon covers the sea. No position taken; for display and lookup only, not a model feature",
+  "marineregions_share": "share of the cell's AOI sea fine cells in that polygon",
+  "marineregions_n": "number of distinct Marine Regions polygons among the cell's AOI sea fine cells",
+  "marineregions_overlap_share": "share of the cell's AOI sea fine cells covered by two or more published Marine Regions polygons (published overlaps, reported, not resolved; display only)"
+ },
+ "shipping_density_unit": "values as published by the World Bank/IMF (the readme: 'total number of AIS positions' per 0.005 degree cell, January 2015 to February 2021), summed over the four source cells whose centres fall in the 0.01 degree cell; in five of the six layers many values cannot be counts (see the shipping warning), so read only value > 0 (presence), not the magnitude",
+ "shipping_density_warning": "Values UNVERIFIED as counts. The World Bank readme says each cell holds 'the total number of AIS positions' from hourly AIS, January 2015 to February 2021, but in five of the six layers a large share of the values cannot be counts: (1) in the raw leisure GeoTIFF, window 103.5 to 104.5E, 1.0 to 1.5N (Singapore Strait), all 1,857 nonzero 0.005 degree cells lie between 151,669 and 430,408, every value is distinct and none is below 100,000; the file's own histogram (.aux.xml, 256 buckets of 11,706 from 0 to 2,996,838) has two flat plateaus, about 19,000 cells per bucket up to 0.69 million and about 10,100 per bucket up to 2.29 million, then almost none, where counts would thin out as the value rises; (2) over AOI sea 0.01 degree cells the nonzero values form two modes with a gap between them: values above 10,000 are 50 % of the nonzero cells in 'all' and 'commercial' and 100 % in 'oilgas' and 'leisure'; 'all' has 155 of 1,976,693 nonzero cells between 10^2.5 and 10^4; 'fishing' has 158 of 22,317 nonzero cells above 10^5.5 and none between 10^3 and 10^5.5; only 'passenger' has a continuous tail (1 to 133,847); (3) along the row 11.99 to 12.00N, 111.0 to 112.5E of the 'all' layer, 97 of 150 cells hold 1 to 10, while 15 separate cells hold near-identical values from 10,709,621 to 10,711,838 and one holds 21,423,646, exactly 2 x 10,711,823; (4) 46 % of the nonzero 'all' cells more than 100 km from a major port exceed 54,024, the number of hours in the period, which at one position per ship per hour would need more than one ship in that 1 km cell for every hour of six years. Magnitude, rank and log scale are therefore not usable. Presence (value > 0) is the only reading used here, for every layer, and even that assumes a zero means no AIS record. The encoding is UNVERIFIED until the World Bank data team confirms it.",
+ "shipping_presence_rule": "ship_presence_share_<type> = share of the model cell's AOI sea 0.01 degree cells whose World Bank value is above 0 (any AIS record of that vessel type in the four 0.005 degree source cells, 2015 to 2021); the magnitude is not used",
+ "shipping_period_hours": 54024,
+ "shipping_density_types": {
+  "all": "all ship types combined",
+  "commercial": "cargo, tanker, container, bulk, tug, supply, offshore, research, patrol and other working ships",
+  "fishing": "FISHING VESSEL, TRAWLER",
+  "oilgas": "PLATFORM, FLOATING STORAGE/PRODUCTION, DRILLING JACK UP, DRILLING RIG, WELL STIMULATION VESSEL",
+  "passenger": "PASSENGER SHIP, RO-RO/PASSENGER SHIP",
+  "leisure": "YACHT, SAILING VESSEL"
+ },
+ "eez_statement": "Lines and polygons as published by Marine Regions (Flanders Marine Institute, VLIZ), Maritime Boundaries v12, with every published attribute. In this sea many zones overlap or are disputed; the source marks them with pol_type (eez) and line_type (eez_boundaries). This project takes no position on any boundary or claim, and the product shows this layer off by default. Marine Regions states: 'VLIZ expresses no opinion about the legal state neither of any country, territory or area nor concerning its delimitation, frontier or borders. The data has no legal value whatsoever.' Geometry is clipped to the AOI bounding box (the straight box edges are clip edges, not boundaries). Boundary lines keep the published vertices; polygons are simplified at 10 m in UTM 49N to keep the file small (largest area change 2.5e-05 of a polygon).",
+ "eez_stats": {
+  "eez": {
+   "features": 12,
+   "vertices_published_clipped": 948627,
+   "simplify_m": 10.0,
+   "max_relative_area_change": 2.4904334209319146e-05,
+   "vertices_written": 425671,
+   "wfs_request": "https://geo.vliz.be/geoserver/MarineRegions/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=MarineRegions:eez&bbox=98.16,-4.22,123.27,24.76,EPSG:4326&outputFormat=application/json&count=1000"
+  },
+  "eez_boundaries": {
+   "features": 77,
+   "vertices_published_clipped": 28916,
+   "simplify_m": 0.0,
+   "vertices_written": 28916,
+   "wfs_request": "https://geo.vliz.be/geoserver/MarineRegions/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=MarineRegions:eez_boundaries&bbox=98.16,-4.22,123.27,24.76,EPSG:4326&outputFormat=application/json&count=1000"
+  }
+ },
+ "major_port_rule": "major = WPI harbour size L (Large) or M (Medium), or any Natural Earth 10 m port; WPI S (Small) and V (Very Small) are kept in the layer but not used for dist_port_km",
+ "reporting_boxes": {
+  "Gulf of Tonkin": [
+   105.5,
+   17.0,
+   110.0,
+   22.5
+  ],
+  "North shelf": [
+   110.0,
+   18.0,
+   118.0,
+   23.5
+  ],
+  "Gulf of Thailand": [
+   99.0,
+   6.0,
+   105.0,
+   14.0
+  ],
+  "South Vietnam shelf": [
+   105.0,
+   6.0,
+   110.0,
+   12.0
+  ],
+  "Central sea": [
+   110.0,
+   6.0,
+   118.0,
+   17.0
+  ],
+  "Southern sea": [
+   102.0,
+   -3.5,
+   110.0,
+   6.0
+  ]
+ },
+ "caveat": "Ocean and weather layers describe the sea, not what any vessel does. Expected activity says where lit boats or radar candidates usually are, given the sea and the weather; a cell above or below it is a lead for review, not evidence. Dark = no AIS match. Not evidence of illegal activity.",
+ "dark_caveat": "'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "blocked": [
+  "none of the static layers needed a key; download.gebco.net (client-side app) was not used, the GEBCO file was read directly from CEDA"
+ ]
+}

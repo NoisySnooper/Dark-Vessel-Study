@@ -1,0 +1,1456 @@
+{
+ "generated_utc": "2026-10-09T14:04Z",
+ "window": {
+  "nights": [
+   "2026-09-05",
+   "2026-09-06",
+   "2026-09-07",
+   "2026-09-08",
+   "2026-09-09",
+   "2026-09-10",
+   "2026-09-11",
+   "2026-09-12",
+   "2026-09-13",
+   "2026-09-14",
+   "2026-09-15",
+   "2026-09-16",
+   "2026-09-17",
+   "2026-09-18",
+   "2026-09-19",
+   "2026-09-20",
+   "2026-09-21",
+   "2026-09-22",
+   "2026-09-23",
+   "2026-09-24",
+   "2026-09-25",
+   "2026-09-26",
+   "2026-09-27",
+   "2026-09-28",
+   "2026-09-29",
+   "2026-09-30",
+   "2026-10-01"
+  ],
+  "scene_utc_dates": [
+   "2026-09-20",
+   "2026-09-21",
+   "2026-09-22",
+   "2026-09-23",
+   "2026-09-24",
+   "2026-09-26",
+   "2026-09-27",
+   "2026-09-28",
+   "2026-09-29",
+   "2026-09-30",
+   "2026-10-01"
+  ],
+  "days": [
+   "2026-09-05",
+   "2026-09-06",
+   "2026-09-07",
+   "2026-09-08",
+   "2026-09-09",
+   "2026-09-10",
+   "2026-09-11",
+   "2026-09-12",
+   "2026-09-13",
+   "2026-09-14",
+   "2026-09-15",
+   "2026-09-16",
+   "2026-09-17",
+   "2026-09-18",
+   "2026-09-19",
+   "2026-09-20",
+   "2026-09-21",
+   "2026-09-22",
+   "2026-09-23",
+   "2026-09-24",
+   "2026-09-25",
+   "2026-09-26",
+   "2026-09-27",
+   "2026-09-28",
+   "2026-09-29",
+   "2026-09-30",
+   "2026-10-01"
+  ],
+  "scenes": [
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260920T104816_20260920T104845_009530_012F70_2DA4",
+    "start_utc": "2026-09-20 10:48:16+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260920T104845_20260920T104919_009530_012F70_A595",
+    "start_utc": "2026-09-20 10:48:45+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T113435_20260920T113500_004661_008B4A_3FFC",
+    "start_utc": "2026-09-20 11:34:35+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T113500_20260920T113525_004661_008B4A_7273",
+    "start_utc": "2026-09-20 11:35:00+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T113525_20260920T113550_004661_008B4A_7B3A",
+    "start_utc": "2026-09-20 11:35:25+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T113550_20260920T113615_004661_008B4A_BF5D",
+    "start_utc": "2026-09-20 11:35:50+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T221343_20260920T221412_004667_008B85_2DF9",
+    "start_utc": "2026-09-20 22:13:43+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T221412_20260920T221437_004667_008B85_05E3",
+    "start_utc": "2026-09-20 22:14:12+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T221437_20260920T221502_004667_008B85_0E9A",
+    "start_utc": "2026-09-20 22:14:37+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260920T221552_20260920T221617_004667_008B85_054E",
+    "start_utc": "2026-09-20 22:15:52+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260920T230037_20260920T230102_009537_012FAC_2F96",
+    "start_utc": "2026-09-20 23:00:37+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T104031_20260921T104100_004675_008BC0_0834",
+    "start_utc": "2026-09-21 10:40:31+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T104100_20260921T104125_004675_008BC0_1993",
+    "start_utc": "2026-09-21 10:41:00+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T225018_20260921T225043_004682_008BFD_3573",
+    "start_utc": "2026-09-21 22:50:18+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T225043_20260921T225108_004682_008BFD_19F3",
+    "start_utc": "2026-09-21 22:50:43+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T225108_20260921T225133_004682_008BFD_D652",
+    "start_utc": "2026-09-21 22:51:08+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T225248_20260921T225313_004682_008BFD_8205",
+    "start_utc": "2026-09-21 22:52:48+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T225313_20260921T225337_004682_008BFD_52D4",
+    "start_utc": "2026-09-21 22:53:13+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T225424_20260921T225454_004682_008BFE_BA70",
+    "start_utc": "2026-09-21 22:54:24+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260921T225454_20260921T225519_004682_008BFE_E765",
+    "start_utc": "2026-09-21 22:54:54+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111530_20260922T111555_004689_008C3D_EA8F",
+    "start_utc": "2026-09-22 11:15:30+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111555_20260922T111620_004689_008C3D_7893",
+    "start_utc": "2026-09-22 11:15:55+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111620_20260922T111645_004689_008C3D_D54C",
+    "start_utc": "2026-09-22 11:16:20+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111645_20260922T111710_004690_008C3D_3B1E",
+    "start_utc": "2026-09-22 11:16:45+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111710_20260922T111735_004690_008C3D_93C3",
+    "start_utc": "2026-09-22 11:17:10+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111735_20260922T111800_004690_008C3D_2412",
+    "start_utc": "2026-09-22 11:17:35+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111800_20260922T111825_004690_008C3D_2466",
+    "start_utc": "2026-09-22 11:18:00+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111825_20260922T111850_004690_008C3D_1624",
+    "start_utc": "2026-09-22 11:18:25+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111850_20260922T111915_004690_008C3D_11BF",
+    "start_utc": "2026-09-22 11:18:50+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111915_20260922T111940_004690_008C3D_7C41",
+    "start_utc": "2026-09-22 11:19:15+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T111940_20260922T112005_004690_008C3D_1CF5",
+    "start_utc": "2026-09-22 11:19:40+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T215324_20260922T215354_004696_008C73_62CF",
+    "start_utc": "2026-09-22 21:53:24+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T215354_20260922T215419_004696_008C73_6A24",
+    "start_utc": "2026-09-22 21:53:54+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T215419_20260922T215433_004696_008C73_642E",
+    "start_utc": "2026-09-22 21:54:19+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T215517_20260922T215547_004696_008C74_B407",
+    "start_utc": "2026-09-22 21:55:17+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T215547_20260922T215612_004696_008C74_EE44",
+    "start_utc": "2026-09-22 21:55:47+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T215612_20260922T215637_004696_008C74_12C7",
+    "start_utc": "2026-09-22 21:56:12+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260922T215637_20260922T215702_004696_008C74_876B",
+    "start_utc": "2026-09-22 21:56:37+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260922T224255_20260922T224324_009566_013094_A985",
+    "start_utc": "2026-09-22 22:42:55+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260922T224439_20260922T224504_009566_013094_1542",
+    "start_utc": "2026-09-22 22:44:39+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T102451_20260923T102520_004704_008CB9_0199",
+    "start_utc": "2026-09-23 10:24:51+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260923T111046_20260923T111116_009574_0130D7_9EC9",
+    "start_utc": "2026-09-23 11:10:46+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223520_20260923T223549_004711_008CFD_4986",
+    "start_utc": "2026-09-23 22:35:20+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223549_20260923T223614_004711_008CFD_0562",
+    "start_utc": "2026-09-23 22:35:49+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223614_20260923T223639_004711_008CFD_2484",
+    "start_utc": "2026-09-23 22:36:14+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223639_20260923T223707_004711_008CFD_E278",
+    "start_utc": "2026-09-23 22:36:39+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223836_20260923T223905_004711_008CFE_E3E5",
+    "start_utc": "2026-09-23 22:38:36+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223905_20260923T223930_004711_008CFE_5A70",
+    "start_utc": "2026-09-23 22:39:05+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223930_20260923T223955_004711_008CFE_CCBA",
+    "start_utc": "2026-09-23 22:39:30+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T223955_20260923T224020_004711_008CFE_5C4B",
+    "start_utc": "2026-09-23 22:39:55+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260923T224020_20260923T224045_004711_008CFE_8806",
+    "start_utc": "2026-09-23 22:40:20+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260924T110238_20260924T110308_004719_008D42_3047",
+    "start_utc": "2026-09-24 11:02:38+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260924T110423_20260924T110448_004719_008D42_2D57",
+    "start_utc": "2026-09-24 11:04:23+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260924T110448_20260924T110513_004719_008D42_F063",
+    "start_utc": "2026-09-24 11:04:48+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260924T110513_20260924T110538_004719_008D42_00E0",
+    "start_utc": "2026-09-24 11:05:13+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260926T095846_20260926T095911_009617_01323A_4EB3",
+    "start_utc": "2026-09-26 09:58:46+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260926T095911_20260926T095925_009617_01323A_DDFA",
+    "start_utc": "2026-09-26 09:59:11+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260926T095951_20260926T100021_009617_01323B_FA65",
+    "start_utc": "2026-09-26 09:59:51+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T104832_20260926T104901_004748_008E3C_D104",
+    "start_utc": "2026-09-26 10:48:32+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T104901_20260926T104926_004748_008E3C_BD90",
+    "start_utc": "2026-09-26 10:49:01+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T104926_20260926T104951_004748_008E3C_C6B2",
+    "start_utc": "2026-09-26 10:49:26+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T230043_20260926T230108_004755_008E7F_C94D",
+    "start_utc": "2026-09-26 23:00:43+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T230108_20260926T230133_004755_008E7F_7BEE",
+    "start_utc": "2026-09-26 23:01:08+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T230133_20260926T230158_004755_008E7F_B97B",
+    "start_utc": "2026-09-26 23:01:33+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T230158_20260926T230223_004755_008E7F_7D69",
+    "start_utc": "2026-09-26 23:01:58+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260926T230223_20260926T230248_004755_008E7F_1019",
+    "start_utc": "2026-09-26 23:02:23+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112355_20260927T112420_004762_008EC4_EC7B",
+    "start_utc": "2026-09-27 11:23:55+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112420_20260927T112445_004762_008EC4_9A11",
+    "start_utc": "2026-09-27 11:24:20+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112445_20260927T112510_004762_008EC4_D69E",
+    "start_utc": "2026-09-27 11:24:45+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112510_20260927T112535_004763_008EC4_72BF",
+    "start_utc": "2026-09-27 11:25:10+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112535_20260927T112600_004763_008EC4_9F09",
+    "start_utc": "2026-09-27 11:25:35+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112600_20260927T112625_004763_008EC4_F25E",
+    "start_utc": "2026-09-27 11:26:00+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112625_20260927T112650_004763_008EC4_BED5",
+    "start_utc": "2026-09-27 11:26:25+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112650_20260927T112715_004763_008EC4_2223",
+    "start_utc": "2026-09-27 11:26:50+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112715_20260927T112740_004763_008EC4_D849",
+    "start_utc": "2026-09-27 11:27:15+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112740_20260927T112805_004763_008EC4_B5BE",
+    "start_utc": "2026-09-27 11:27:40+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T112805_20260927T112830_004763_008EC4_1F47",
+    "start_utc": "2026-09-27 11:28:05+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T220501_20260927T220530_004769_008EFE_A7BB",
+    "start_utc": "2026-09-27 22:05:01+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260927T220530_20260927T220555_004769_008EFE_153D",
+    "start_utc": "2026-09-27 22:05:30+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260927T225047_20260927T225116_009639_0132F9_A4BB",
+    "start_utc": "2026-09-27 22:50:47+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260927T225231_20260927T225307_009639_0132F9_E342",
+    "start_utc": "2026-09-27 22:52:31+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260928T103247_20260928T103316_004777_008F4D_3671",
+    "start_utc": "2026-09-28 10:32:47+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260928T103316_20260928T103341_004777_008F4D_782E",
+    "start_utc": "2026-09-28 10:33:16+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260928T111904_20260928T111933_009647_01333F_7FE0",
+    "start_utc": "2026-09-28 11:19:04+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260928T111933_20260928T111958_009647_01333F_51CB",
+    "start_utc": "2026-09-28 11:19:33+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260928T215153_20260928T215218_009653_01336F_1AB0",
+    "start_utc": "2026-09-28 21:51:53+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260928T215218_20260928T215232_009653_01336F_1287",
+    "start_utc": "2026-09-28 21:52:18+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260928T215314_20260928T215343_009653_013370_B1BF",
+    "start_utc": "2026-09-28 21:53:14+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260928T215343_20260928T215408_009653_013370_4EC5",
+    "start_utc": "2026-09-28 21:53:43+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260928T215408_20260928T215422_009653_013370_A8DF",
+    "start_utc": "2026-09-28 21:54:08+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260928T224257_20260928T224326_004784_008F8A_65C3",
+    "start_utc": "2026-09-28 22:42:57+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260928T224326_20260928T224351_004784_008F8A_7100",
+    "start_utc": "2026-09-28 22:43:26+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260928T224506_20260928T224531_004784_008F8A_9B63",
+    "start_utc": "2026-09-28 22:45:06+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260928T224531_20260928T224550_004784_008F8A_C300",
+    "start_utc": "2026-09-28 22:45:31+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260929T110710_20260929T110737_004791_008FC5_6E0D",
+    "start_utc": "2026-09-29 11:07:10+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260929T111023_20260929T111053_004792_008FC8_A5CA",
+    "start_utc": "2026-09-29 11:10:23+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260929T111053_20260929T111118_004792_008FC8_6B16",
+    "start_utc": "2026-09-29 11:10:53+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260929T223510_20260929T223539_009668_0133F9_A9A9",
+    "start_utc": "2026-09-29 22:35:10+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260929T223539_20260929T223604_009668_0133F9_6407",
+    "start_utc": "2026-09-29 22:35:39+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260929T223604_20260929T223629_009668_0133F9_DB47",
+    "start_utc": "2026-09-29 22:36:04+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20260929T223629_20260929T223646_009668_0133F9_826B",
+    "start_utc": "2026-09-29 22:36:29+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20260930T101650_20260930T101719_004806_00904A_0D14",
+    "start_utc": "2026-09-30 10:16:50+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20261001T100536_20261001T100601_009690_0134BE_6097",
+    "start_utc": "2026-10-01 10:05:36+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20261001T100601_20261001T100626_009690_0134BE_3FEA",
+    "start_utc": "2026-10-01 10:06:01+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20261001T100626_20261001T100651_009690_0134BE_5B95",
+    "start_utc": "2026-10-01 10:06:26+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1C_IW_GRDH_1SDV_20261001T100651_20261001T100723_009690_0134BE_AF99",
+    "start_utc": "2026-10-01 10:06:51+00:00",
+    "mission": "S1C"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105438_20261001T105507_004821_0090D7_F6D0",
+    "start_utc": "2026-10-01 10:54:38+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105507_20261001T105532_004821_0090D7_7FB9",
+    "start_utc": "2026-10-01 10:55:07+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105532_20261001T105557_004821_0090D7_9C64",
+    "start_utc": "2026-10-01 10:55:32+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105557_20261001T105622_004821_0090D7_352A",
+    "start_utc": "2026-10-01 10:55:57+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105622_20261001T105647_004821_0090D7_9C29",
+    "start_utc": "2026-10-01 10:56:22+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105647_20261001T105712_004821_0090D7_6478",
+    "start_utc": "2026-10-01 10:56:47+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105712_20261001T105737_004821_0090D7_F932",
+    "start_utc": "2026-10-01 10:57:12+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T105737_20261001T105802_004821_0090D7_4AF3",
+    "start_utc": "2026-10-01 10:57:37+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T230840_20261001T230905_004828_00911A_9B80",
+    "start_utc": "2026-10-01 23:08:40+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T230905_20261001T230930_004828_00911A_F685",
+    "start_utc": "2026-10-01 23:09:05+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T230930_20261001T230955_004828_00911A_9C8F",
+    "start_utc": "2026-10-01 23:09:30+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T230955_20261001T231020_004828_00911A_6240",
+    "start_utc": "2026-10-01 23:09:55+00:00",
+    "mission": "S1D"
+   },
+   {
+    "product_id": "S1D_IW_GRDH_1SDV_20261001T231020_20261001T231045_004828_00911A_31B0",
+    "start_utc": "2026-10-01 23:10:20+00:00",
+    "mission": "S1D"
+   }
+  ]
+ },
+ "showcase_night": {
+  "night": "2026-09-29",
+  "clear_sea_km2_all_regions": 7504589,
+  "why": "largest total clear_sea_km2 over the six reporting boxes in data/viirs_nightly_by_region.csv",
+  "moon_illum_pct": 88.3,
+  "front_lines": 2823,
+  "front_km": 57452
+ },
+ "front_rule": {
+  "text": "3x3 median filter, gradient magnitude degC/km with dx scaled by cos(lat), hysteresis low 0.0393 high 0.0578 (window 90% and 97% quantiles of AOI sea gradient), no fronts within 2 km of the coast or on MUR land/ice",
+  "median_filter_px": 3,
+  "quantiles": [
+   0.9,
+   0.97
+  ],
+  "low_c_per_km": 0.0393,
+  "high_c_per_km": 0.0578,
+  "coast_exclusion_km": 2.0,
+  "min_component_px": 3,
+  "min_line_km": 10.0,
+  "pooled_from": "every 5th fine pixel of AOI sea outside the coast buffer on 27 days"
+ },
+ "grids": {
+  "fine": "0.01 degree, origin 99.16E 23.76N, 2698 x 2311 (SST, gradient, fronts)",
+  "0.05": "0.05 degree, origin 99.15E 23.80N, 541 x 463 (chlorophyll, RTOFS)",
+  "model": "0.25 degree, origin 99.0E 24.0N, 109 x 94 (tables, waves, wind)"
+ },
+ "sources": [
+  {
+   "name": "MUR v4.1 sea surface temperature (JPL PO.DAAC MEaSUREs), analysed_sst and mask",
+   "dataset_id": "jplMURSST41",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/jplMURSST41/index.json",
+   "version": "04.1 (id MUR-JPL-L4-GLOB-v04.1)",
+   "resolution": "0.01 degree, daily 09 UTC",
+   "dataset_doi": "https://doi.org/10.5067/GHGMR-4FJ04",
+   "licence": "ERDDAP 'license' attribute: 'These data are available free of charge under the JPL PO.DAAC data policy. The data may be used and redistributed for free but is not intended for legal use, since it may contain inaccuracies ...' Acknowledgement requested: 'These data were provided by JPL under support by NASA MEaSUREs program.'",
+   "access_date": "2026-10-08",
+   "days_used": 27,
+   "checked_utc": "2026-10-09T14:04:43Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "NOAA OISST v2.1 (fallback for a missing MUR day)",
+   "dataset_id": "noaa-cdr-sea-surface-temp-optimum-interpolation-pds, data/v2.1/avhrr",
+   "url": "https://noaa-cdr-sea-surface-temp-optimum-interpolation-pds.s3.amazonaws.com/?list-type=2&prefix=data/v2.1/avhrr/202609/",
+   "version": "v02r01, preliminary files from 2026-09-23",
+   "resolution": "0.25 degree daily",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "licence_url": "https://registry.opendata.aws/noaa-cdr-oceanic/",
+   "access_date": "2026-10-08",
+   "days_used": 0,
+   "checked_utc": "2026-10-09T14:05:04Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 206
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, DINEOF gap-filled, 2 km, science quality (VIIRS S-NPP, NOAA-20, Sentinel-3A OLCI)",
+   "dataset_id": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/noaacwNPPN20S3ASCIDINEOF2kmDaily/index.json",
+   "version": "time_coverage_end 2026-09-26 on the access date",
+   "resolution": "1/48 degree (about 2 km), daily",
+   "licence": "ERDDAP 'license' attribute: produced by NOAA, not subject to copyright in the United States, NOAA waives rights worldwide through CC0-1.0",
+   "access_date": "2026-10-08",
+   "days_used": 23,
+   "checked_utc": "2026-10-09T14:05:05Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, DINEOF gap-filled, 9 km, science quality (VIIRS S-NPP, NOAA-20, Sentinel-3A OLCI)",
+   "dataset_id": "nesdisNPPN20S3ASCIDINEOFDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisNPPN20S3ASCIDINEOFDaily/index.json",
+   "version": "time_coverage_end 2026-09-27 on the access date",
+   "resolution": "1/12 degree, daily",
+   "licence": "ERDDAP 'license' attribute: CC0-1.0 with the NOAA no-warranty text",
+   "access_date": "2026-10-08",
+   "days_used": 0,
+   "checked_utc": "2026-10-09T14:05:05Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, DINEOF gap-filled, 9 km, near-real-time (VIIRS S-NPP, NOAA-20)",
+   "dataset_id": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily/index.json",
+   "version": "time_coverage_end 2026-10-06 on the access date",
+   "resolution": "1/12 degree, daily",
+   "licence": "ERDDAP 'license' attribute: 'The data may be used and redistributed for free but is not intended for legal use ...' (NOAA no-warranty text)",
+   "access_date": "2026-10-08",
+   "days_used": 4,
+   "checked_utc": "2026-10-09T14:05:06Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, daily 4 km, science quality, VIIRS S-NPP, not gap-filled (valid-day share)",
+   "dataset_id": "nesdisVHNSQchlaDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisVHNSQchlaDaily/index.json",
+   "version": "time_coverage_end 2026-09-28 on the access date",
+   "resolution": "0.0375 degree, daily",
+   "licence": "ERDDAP 'license' attribute points to the NASA Earth science data policy (the URL it gives, science.nasa.gov/earth-science/earth-science-data/data-information-policy/, answered 404 on 2026-10-09; the NASA Earthdata page 'NASA promotes the full and open sharing of data' resolves) and asks for the acknowledgement 'These data were provided by NOAA's Center for Satellite Applications and Research (STAR) and the CoastWatch program.'",
+   "licence_url": "https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-information-guidance",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:06Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, daily 4 km, near-real-time, VIIRS S-NPP, not gap-filled (valid-day share, last days)",
+   "dataset_id": "nesdisVHNchlaDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisVHNchlaDaily/index.json",
+   "version": "time_coverage_end 2026-10-05 on the access date",
+   "resolution": "0.0375 degree, daily",
+   "licence": "ERDDAP 'license' attribute: NASA Earth science data policy link plus the NOAA no-warranty text",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:08Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "NOAA RTOFS global nowcast, 2-D diagnostics (ssh, barotropic u and v, mixed-layer and boundary-layer thickness)",
+   "dataset_id": "noaa-nws-rtofs-pds, rtofs.YYYYMMDD/rtofs_glo_2ds_nHHH_diag.nc",
+   "url": "https://noaa-nws-rtofs-pds.s3.amazonaws.com/?list-type=2&prefix=rtofs.20260921/rtofs_glo_2ds_n",
+   "version": "files of 2026-09-06 to 2026-10-02 (valid time read from each file's Date variable)",
+   "resolution": "1/12 degree (0.08 degree) in the AOI, hourly nowcast",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "licence_url": "https://registry.opendata.aws/noaa-rtofs/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:08Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "name": "NOAA GFS-Wave global 0.25 degree, significant height of combined wind waves and swell (HTSGW)",
+   "dataset_id": "noaa-gfs-bdp-pds, gfs.YYYYMMDD/HH/wave/gridded/gfswave.tHHz.global.0p25.fFFF.grib2 (+ .idx)",
+   "url": "https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.20260920/18/wave/gridded/gfswave.t18z.global.0p25.f000.grib2.idx",
+   "version": "operational GFS, cycles 00/06/12/18 UTC",
+   "resolution": "0.25 degree, hourly steps",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "licence_url": "https://registry.opendata.aws/noaa-gfs-bdp-pds/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:09Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200
+  },
+  {
+   "name": "NOAA GFS 0.25 degree 10 m wind (darkvessel.weather.gfs_wind)",
+   "dataset_id": "noaa-gfs-bdp-pds, gfs.YYYYMMDD/HH/atmos/gfs.tHHz.pgrb2.0p25.fFFF",
+   "url": "https://registry.opendata.aws/noaa-gfs-bdp-pds/",
+   "version": "operational GFS",
+   "resolution": "0.25 degree",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:10Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "Natural Earth 10 m land (coast buffer) and marine polygons (AOI)",
+   "dataset_id": "ne_10m_land, ne_10m_geography_marine_polys",
+   "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/LICENSE.md",
+   "version": "master branch of nvkelso/natural-earth-vector",
+   "licence": "Public domain ('All versions of Natural Earth raster + vector map data found on this website are in the public domain', LICENSE.md; terms page https://www.naturalearthdata.com/about/terms-of-use/ says the same)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:10Z",
+   "resolved": true,
+   "resolved_status": 206
+  },
+  {
+   "name": "Belkin, I. M. and O'Reilly, J. E. (2009), An algorithm for oceanic front detection in chlorophyll and SST satellite imagery, Journal of Marine Systems 78, 319-326",
+   "url": "https://doi.org/10.1016/j.jmarsys.2008.11.018",
+   "version": "bibliographic record from https://api.crossref.org/works/10.1016/j.jmarsys.2008.11.018; full text not read in this session",
+   "licence": "not applicable (reference)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:11Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "Cayula, J.-F. and Cornillon, P. (1992), Edge detection algorithm for SST images, Journal of Atmospheric and Oceanic Technology 9, 67-80",
+   "url": "https://doi.org/10.1175/1520-0426(1992)009<0067:EDAFSI>2.0.CO;2",
+   "version": "bibliographic record from Crossref (api.crossref.org/works/...); the publisher page answered 403 to this session, full text not read",
+   "licence": "not applicable (reference)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:12Z",
+   "resolved": true,
+   "resolved_status": 200
+  },
+  {
+   "name": "ecCodes Python bindings (GRIB2 JPEG2000 decoding of GFS-Wave), new pip dependency",
+   "url": "https://pypi.org/project/eccodes/",
+   "version": "eccodes 2.49.0 with eccodeslib 2.49.0.30",
+   "licence": "Apache License 2.0 (PyPI page)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:14Z",
+   "resolved": true,
+   "resolved_status": 206
+  }
+ ],
+ "days_found": {
+  "mur_sst": {
+   "requested": 27,
+   "found": 27,
+   "missing": []
+  },
+  "oisst_fallback": {
+   "requested": 27,
+   "found": 0,
+   "missing": [
+    "2026-09-05",
+    "2026-09-06",
+    "2026-09-07",
+    "2026-09-08",
+    "2026-09-09",
+    "2026-09-10",
+    "2026-09-11",
+    "2026-09-12",
+    "2026-09-13",
+    "2026-09-14",
+    "2026-09-15",
+    "2026-09-16",
+    "2026-09-17",
+    "2026-09-18",
+    "2026-09-19",
+    "2026-09-20",
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25",
+    "2026-09-26",
+    "2026-09-27",
+    "2026-09-28",
+    "2026-09-29",
+    "2026-09-30",
+    "2026-10-01"
+   ]
+  },
+  "chl_gapfilled": {
+   "requested": 27,
+   "found": 27,
+   "missing": []
+  },
+  "chl_daily_observed": {
+   "requested": 27,
+   "found": 27,
+   "missing": []
+  },
+  "rtofs_18utc": {
+   "requested": 27,
+   "found": 27,
+   "missing": []
+  },
+  "gfswave_18utc": {
+   "requested": 27,
+   "found": 27,
+   "missing": []
+  },
+  "gfs_wind_18utc": {
+   "requested": 27,
+   "found": 27,
+   "missing": []
+  },
+  "gfswave_scene_hours": {
+   "requested": 28,
+   "found": 28
+  }
+ },
+ "download_failures": {},
+ "per_day": {
+  "2026-09-05": {
+   "night": "2026-09-05",
+   "front_share_sea": 0.0927902656581033,
+   "sst_min": 26.938751220703125,
+   "sst_max": 32.00325012207031,
+   "sst_mean": 29.383499145507812,
+   "front_pixels": 271677,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-06": {
+   "night": "2026-09-06",
+   "front_share_sea": 0.10345812181657531,
+   "sst_min": 26.35274887084961,
+   "sst_max": 32.14350128173828,
+   "sst_mean": 29.422353744506836,
+   "front_pixels": 302911,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-07": {
+   "night": "2026-09-07",
+   "front_share_sea": 0.11670977549822208,
+   "sst_min": 26.20924949645996,
+   "sst_max": 32.14925003051758,
+   "sst_mean": 29.457204818725586,
+   "front_pixels": 341710,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-08": {
+   "night": "2026-09-08",
+   "front_share_sea": 0.11541599823215651,
+   "sst_min": 26.06974983215332,
+   "sst_max": 31.800251007080078,
+   "sst_mean": 29.470232009887695,
+   "front_pixels": 337922,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-09": {
+   "night": "2026-09-09",
+   "front_share_sea": 0.0885455286299452,
+   "sst_min": 25.905500411987305,
+   "sst_max": 31.49625015258789,
+   "sst_mean": 29.45431137084961,
+   "front_pixels": 259249,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-10": {
+   "night": "2026-09-10",
+   "front_share_sea": 0.05522393310338162,
+   "sst_min": 25.976499557495117,
+   "sst_max": 31.31599998474121,
+   "sst_mean": 29.41494369506836,
+   "front_pixels": 161688,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-11": {
+   "night": "2026-09-11",
+   "front_share_sea": 0.043771886711835024,
+   "sst_min": 25.822750091552734,
+   "sst_max": 31.448999404907227,
+   "sst_mean": 29.385356903076172,
+   "front_pixels": 128158,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-12": {
+   "night": "2026-09-12",
+   "front_share_sea": 0.049853801119656975,
+   "sst_min": 25.648500442504883,
+   "sst_max": 31.684749603271484,
+   "sst_mean": 29.428556442260742,
+   "front_pixels": 145965,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-13": {
+   "night": "2026-09-13",
+   "front_share_sea": 0.08568986027683691,
+   "sst_min": 25.652000427246094,
+   "sst_max": 31.838748931884766,
+   "sst_mean": 29.39671516418457,
+   "front_pixels": 250888,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-14": {
+   "night": "2026-09-14",
+   "front_share_sea": 0.10535336206192848,
+   "sst_min": 25.84200096130371,
+   "sst_max": 31.89474868774414,
+   "sst_mean": 29.359853744506836,
+   "front_pixels": 308460,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-15": {
+   "night": "2026-09-15",
+   "front_share_sea": 0.10650061597869571,
+   "sst_min": 26.17650032043457,
+   "sst_max": 31.978500366210938,
+   "sst_mean": 29.34851837158203,
+   "front_pixels": 311819,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-16": {
+   "night": "2026-09-16",
+   "front_share_sea": 0.1028330921447432,
+   "sst_min": 26.5,
+   "sst_max": 31.383251190185547,
+   "sst_mean": 29.350879669189453,
+   "front_pixels": 301081,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-17": {
+   "night": "2026-09-17",
+   "front_share_sea": 0.08675924164432669,
+   "sst_min": 26.46500015258789,
+   "sst_max": 31.545249938964844,
+   "sst_mean": 29.390575408935547,
+   "front_pixels": 254019,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-18": {
+   "night": "2026-09-18",
+   "front_share_sea": 0.07711499965333053,
+   "sst_min": 26.381999969482422,
+   "sst_max": 31.50724983215332,
+   "sst_mean": 29.4803524017334,
+   "front_pixels": 225782,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-19": {
+   "night": "2026-09-19",
+   "front_share_sea": 0.08802808603277273,
+   "sst_min": 26.62725067138672,
+   "sst_max": 31.376501083374023,
+   "sst_mean": 29.498897552490234,
+   "front_pixels": 257734,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-20": {
+   "night": "2026-09-20",
+   "front_share_sea": 0.08738392976989003,
+   "sst_min": 26.921499252319336,
+   "sst_max": 31.453248977661133,
+   "sst_mean": 29.490097045898438,
+   "front_pixels": 255848,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-21": {
+   "night": "2026-09-21",
+   "front_share_sea": 0.05228048735920182,
+   "sst_min": 27.002248764038086,
+   "sst_max": 31.43324851989746,
+   "sst_mean": 29.512117385864258,
+   "front_pixels": 153070,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-22": {
+   "night": "2026-09-22",
+   "front_share_sea": 0.048938457119378276,
+   "sst_min": 27.11549949645996,
+   "sst_max": 31.574501037597656,
+   "sst_mean": 29.546306610107422,
+   "front_pixels": 143285,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-23": {
+   "night": "2026-09-23",
+   "front_share_sea": 0.041154617654321705,
+   "sst_min": 27.227998733520508,
+   "sst_max": 31.424501419067383,
+   "sst_mean": 29.512454986572266,
+   "front_pixels": 120495,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-24": {
+   "night": "2026-09-24",
+   "front_share_sea": 0.043556029469978254,
+   "sst_min": 27.387500762939453,
+   "sst_max": 31.39699935913086,
+   "sst_mean": 29.6020565032959,
+   "front_pixels": 127526,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-25": {
+   "night": "2026-09-25",
+   "front_share_sea": 0.06921400981808905,
+   "sst_min": 27.625749588012695,
+   "sst_max": 31.45949935913086,
+   "sst_mean": 29.674110412597656,
+   "front_pixels": 202649,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-26": {
+   "night": "2026-09-26",
+   "front_share_sea": 0.09914883254362143,
+   "sst_min": 27.373498916625977,
+   "sst_max": 31.55875015258789,
+   "sst_mean": 29.764476776123047,
+   "front_pixels": 290294,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-27": {
+   "night": "2026-09-27",
+   "front_share_sea": 0.0994951604601448,
+   "sst_min": 27.35124969482422,
+   "sst_max": 31.48025131225586,
+   "sst_mean": 29.862712860107422,
+   "front_pixels": 291308,
+   "sst_source": "mur",
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-28": {
+   "night": "2026-09-28",
+   "front_share_sea": 0.0768250268711527,
+   "sst_min": 27.26074981689453,
+   "sst_max": 31.546751022338867,
+   "sst_mean": 29.943815231323242,
+   "front_pixels": 224933,
+   "sst_source": "mur",
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-29": {
+   "night": "2026-09-29",
+   "front_share_sea": 0.10704709000871285,
+   "sst_min": 27.13599967956543,
+   "sst_max": 31.778249740600586,
+   "sst_mean": 30.08824348449707,
+   "front_pixels": 313419,
+   "sst_source": "mur",
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily",
+   "chl_obs_dataset": "nesdisVHNSQchlaDaily"
+  },
+  "2026-09-30": {
+   "night": "2026-09-30",
+   "front_share_sea": 0.12502130394851396,
+   "sst_min": 27.252500534057617,
+   "sst_max": 31.756250381469727,
+   "sst_mean": 30.14072608947754,
+   "front_pixels": 366045,
+   "sst_source": "mur",
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily",
+   "chl_obs_dataset": "nesdisVHNchlaDaily"
+  },
+  "2026-10-01": {
+   "night": "2026-10-01",
+   "front_share_sea": 0.07814612783871912,
+   "sst_min": 27.387250900268555,
+   "sst_max": 31.813749313354492,
+   "sst_mean": 30.157005310058594,
+   "front_pixels": 228801,
+   "sst_source": "mur",
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily",
+   "chl_obs_dataset": "nesdisVHNchlaDaily"
+  }
+ },
+ "files": [
+  {
+   "path": "data/outputs/small/sst_mean_c_4326.tif",
+   "bytes": 3925640
+  },
+  {
+   "path": "data/outputs/small/sst_mean_c_utm49n.tif",
+   "bytes": 7182410
+  },
+  {
+   "path": "data/outputs/small/sst_grad_mean_c_per_km_4326.tif",
+   "bytes": 11108192
+  },
+  {
+   "path": "data/outputs/small/sst_grad_mean_c_per_km_utm49n.tif",
+   "bytes": 11454402
+  },
+  {
+   "path": "data/outputs/small/front_freq_4326.tif",
+   "bytes": 6191307
+  },
+  {
+   "path": "data/outputs/small/front_freq_utm49n.tif",
+   "bytes": 11159306
+  },
+  {
+   "path": "data/outputs/small/sst_showcase_c_4326.tif",
+   "bytes": 5481229
+  },
+  {
+   "path": "data/outputs/small/sst_showcase_c_utm49n.tif",
+   "bytes": 8541820
+  },
+  {
+   "path": "data/outputs/small/chl_mean_mg_m3_4326.tif",
+   "bytes": 433723
+  },
+  {
+   "path": "data/outputs/small/chl_mean_mg_m3_utm49n.tif",
+   "bytes": 465785
+  },
+  {
+   "path": "data/outputs/small/chl_valid_share_4326.tif",
+   "bytes": 344026
+  },
+  {
+   "path": "data/outputs/small/chl_valid_share_utm49n.tif",
+   "bytes": 463766
+  },
+  {
+   "path": "data/outputs/small/current_speed_mean_ms_4326.tif",
+   "bytes": 279729
+  },
+  {
+   "path": "data/outputs/small/current_speed_mean_ms_utm49n.tif",
+   "bytes": 462628
+  },
+  {
+   "path": "data/outputs/small/mld_mean_m_4326.tif",
+   "bytes": 248903
+  },
+  {
+   "path": "data/outputs/small/mld_mean_m_utm49n.tif",
+   "bytes": 424467
+  },
+  {
+   "path": "data/outputs/small/ssh_grad_mean_4326.tif",
+   "bytes": 279740
+  },
+  {
+   "path": "data/outputs/small/ssh_grad_mean_utm49n.tif",
+   "bytes": 440806
+  },
+  {
+   "path": "data/outputs/small/wave_hs_mean_m_4326.tif",
+   "bytes": 16389
+  },
+  {
+   "path": "data/outputs/small/wave_hs_mean_m_utm49n.tif",
+   "bytes": 20259
+  },
+  {
+   "path": "data/outputs/small/wind_mean_ms_4326.tif",
+   "bytes": 17905
+  },
+  {
+   "path": "data/outputs/small/wind_mean_ms_utm49n.tif",
+   "bytes": 20078
+  },
+  {
+   "path": "data/ocean_fronts.gpkg",
+   "bytes": 4460544
+  },
+  {
+   "path": "data/ocean_daily_cells.parquet",
+   "bytes": 3027409
+  },
+  {
+   "path": "data/ocean_radar_pass_cells.parquet",
+   "bytes": 176319
+  },
+  {
+   "path": "docs/figures/ocean_showcase_fronts.png",
+   "bytes": 656583
+  }
+ ],
+ "key_numbers": {
+  "front_share_of_aoi_sea_mean": 0.0832,
+  "front_freq_pixels_ge_0_25_share": 0.0417,
+  "sst_aoi_sea_min_c": 25.65,
+  "sst_aoi_sea_max_c": 32.15,
+  "sst_aoi_sea_mean_c": 29.58,
+  "sst_grad_median_c_per_km": 0.0186,
+  "front_thresholds_c_per_km": {
+   "low": 0.0393,
+   "high": 0.0578
+  },
+  "chl_median_mg_m3_by_region": {
+   "Central sea": 0.148,
+   "Gulf of Thailand": 0.286,
+   "Gulf of Tonkin": 0.546,
+   "North shelf": 0.142,
+   "South Vietnam shelf": 0.282,
+   "Southern sea": 0.3,
+   "other": 0.126
+  },
+  "chl_valid_share_mean": 0.148,
+  "current_speed_median_ms": 0.048,
+  "mld_median_m": 19.2,
+  "ssh_anom_sd_m": 0.0457,
+  "wave_hs_median_m": 0.67,
+  "wave_hs_max_m": 3.23,
+  "wind_median_ms": 4.5,
+  "dist_front_median_km": 20.0,
+  "showcase_front_lines": 2823,
+  "showcase_front_km": 57452,
+  "sea_cells_model_grid": 4777,
+  "cell_nights": 128979,
+  "radar_pass_cell_rows": 4407,
+  "regional_medians": {
+   "Central sea": {
+    "sst_mean_c": 29.67,
+    "front_share": 0.0,
+    "wave_hs_m": 0.81,
+    "current_speed_ms": 0.026
+   },
+   "Gulf of Thailand": {
+    "sst_mean_c": 29.67,
+    "front_share": 0.0,
+    "wave_hs_m": 0.51,
+    "current_speed_ms": 0.062
+   },
+   "Gulf of Tonkin": {
+    "sst_mean_c": 29.24,
+    "front_share": 0.0176,
+    "wave_hs_m": 0.57,
+    "current_speed_ms": 0.072
+   },
+   "North shelf": {
+    "sst_mean_c": 29.11,
+    "front_share": 0.024,
+    "wave_hs_m": 0.87,
+    "current_speed_ms": 0.07
+   },
+   "South Vietnam shelf": {
+    "sst_mean_c": 29.74,
+    "front_share": 0.0,
+    "wave_hs_m": 0.62,
+    "current_speed_ms": 0.129
+   },
+   "Southern sea": {
+    "sst_mean_c": 29.75,
+    "front_share": 0.0,
+    "wave_hs_m": 0.55,
+    "current_speed_ms": 0.09
+   },
+   "other": {
+    "sst_mean_c": 29.61,
+    "front_share": 0.0,
+    "wave_hs_m": 0.7,
+    "current_speed_ms": 0.033
+   }
+  }
+ },
+ "caveat": "Ocean and weather layers describe the sea, not what any vessel does. Expected activity says where lit boats or radar candidates usually are, given the sea and the weather; a cell above or below it is a lead for review, not evidence. Dark = no AIS match. Not evidence of illegal activity.",
+ "limits": [
+  "MUR is a merged multi-sensor analysis (ERDDAP comment: 'Multi-Resolution Variational Analysis (MRVA) method for interpolation'); where cloud hides the sea its 1 km detail is interpolated, so fronts on such days are likely smoother than reality (not quantified)",
+  "front thresholds are relative (window quantiles of this sea's gradient), not an absolute front strength",
+  "DINEOF chlorophyll is gap-filled; chl_valid_share says how often a direct retrieval anchored it",
+  "RTOFS currents are depth-averaged (barotropic) model output, not surface currents; the SSH gradient is used as a proxy for eddy edges, not as a detection",
+  "waves and wind are model fields at 0.25 degree, bilinear at cell centres",
+  "no political boundaries in any layer; region names are reporting boxes"
+ ],
+ "not_used": [
+  "Global Fishing Watch fishing effort: research build only (CC BY-NC 4.0), pulled by scripts/27_gfw_pull.py, never mixed into these open layers",
+  "Copernicus Marine surface currents (would need CMEMS credentials) as an alternative to RTOFS barotropic currents: not attempted",
+  "NASA PO.DAAC direct MUR access (EARTHDATA_TOKEN) not needed: the CoastWatch ERDDAP copy served every day"
+ ],
+ "dark_caveat": "'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "sampling": {
+  "sst_front_cells": "daily SST and gradient statistics per model cell over the cell's fine pixels inside the AOI polygon",
+  "chl_valid_share": "retrieval pixels whose centre is AOI sea outside the 2 km coast buffer",
+  "waves_wind": "bilinear at the cell centre (mean of the four GFS 0.25 degree cells around it), NaN-aware",
+  "rtofs": "nearest native cell for 0.05 degree rasters, bin mean of native cells for 0.25 degree cells",
+  "region": "reporting box of the cell centre, 'other' outside every box"
+ }
+}
