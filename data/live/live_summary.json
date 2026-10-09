@@ -1,0 +1,139 @@
+{
+ "generated_utc": "2026-10-09T07:37:06Z",
+ "since_utc": "2026-10-08T14:30:00+00:00",
+ "caveat": "'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "ais_recorded_hours": 11,
+ "cnn_model_id": "verifier_v0_356af0ca",
+ "passes": {
+  "live_S1D_20261008T2258": {
+   "run_id": "live_S1D_20261008T2258",
+   "mission": "S1D",
+   "pass_start_utc": "2026-10-08T23:00:43+00:00",
+   "pass_end_utc": "2026-10-08T23:02:48+00:00",
+   "scenes": 5,
+   "scene_ids": [
+    "S1D_IW_GRDH_1SDV_20261008T230043_20261008T230108_004930_0094A6_B8C6",
+    "S1D_IW_GRDH_1SDV_20261008T230108_20261008T230133_004930_0094A6_78A4",
+    "S1D_IW_GRDH_1SDV_20261008T230133_20261008T230158_004930_0094A6_4DFE",
+    "S1D_IW_GRDH_1SDV_20261008T230158_20261008T230223_004930_0094A6_1808",
+    "S1D_IW_GRDH_1SDV_20261008T230223_20261008T230248_004930_0094A6_F8E9"
+   ],
+   "tested_km2": 143755.1,
+   "objects_all_classes": 128364,
+   "low_objects": 125283,
+   "contacts": 3081,
+   "contacts_by_class": {
+    "medium": 1507,
+    "high": 983,
+    "fixed": 591
+   },
+   "cnn": {
+    "scored": 3081,
+    "vessel": 1063
+   },
+   "ais_status": {
+    "matched": 0,
+    "unmatched": 0,
+    "no_coverage": 3081
+   },
+   "ais_status_by_class": {
+    "high": {
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 983
+    },
+    "medium": {
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 1507
+    },
+    "fixed": {
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 591
+    }
+   },
+   "dark_leads": 0,
+   "dark_leads_note": "unmatched high or medium contacts; fixed contacts are structures and never leads; no_coverage is not a lead",
+   "matched_with_static_identity": 0,
+   "matched_with_ais_length": 0,
+   "match_quality": {},
+   "match_dist_m_median": null,
+   "ais_only": 0,
+   "ais_only_on_tested_sea": 0,
+   "ais_only_with_weak_return_within_500m": 0,
+   "ais_window": {
+    "aoi_positions_sum_over_scenes": 44707,
+    "aoi_mmsi_max_per_scene": 1012,
+    "footprint_positions_sum_over_scenes": 0,
+    "footprint_mmsi_max_per_scene": 0,
+    "near_footprint_mmsi_max_per_scene": 0,
+    "note": "aoi = heard anywhere in the AOI during the window (the feed was up); footprint = inside the scene footprint; near_footprint = within 0.3 degree of it"
+   },
+   "io_retries": 98,
+   "detect_attempts_max": 2,
+   "by_length_bin": {
+    "0-15 m": {
+     "contacts": 0,
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 0,
+     "ais_only": 0
+    },
+    "15-25 m": {
+     "contacts": 1036,
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 1036,
+     "ais_only": 0
+    },
+    "25-50 m": {
+     "contacts": 549,
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 549,
+     "ais_only": 0
+    },
+    "50-100 m": {
+     "contacts": 746,
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 746,
+     "ais_only": 0
+    },
+    "100-200 m": {
+     "contacts": 570,
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 570,
+     "ais_only": 0
+    },
+    "200-500 m": {
+     "contacts": 180,
+     "matched": 0,
+     "unmatched": 0,
+     "no_coverage": 180,
+     "ais_only": 0
+    }
+   },
+   "recall_by_ais_length": {}
+  }
+ },
+ "files": [
+  "data/live/live_S1D_20261008T2258.gpkg",
+  "data/live/live_contacts.gpkg"
+ ],
+ "totals": {
+  "passes": 1,
+  "scenes": 5,
+  "tested_km2": 143755.1,
+  "contacts": 3081,
+  "ais_status": {
+   "matched": 0,
+   "unmatched": 0,
+   "no_coverage": 3081
+  },
+  "dark_leads": 0,
+  "ais_only": 0
+ }
+}
