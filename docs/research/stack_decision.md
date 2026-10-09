@@ -1,6 +1,6 @@
 # SCS Vessel Watch: stack decision
 
-Research note for the product build. Written 2026-10-08/09 (UTC) by task R1-T4; revised 2026-10-09 07:00 to 08:00 UTC after review (Python pins, route order, bundle measurements on the real files, real chip sizes). Every version, date and licence below comes from the npm registry or PyPI, read in this session; every size and timing was measured in this session on the shared 4-core container (headless Chromium, software rendering), in a scratch build that is not part of the repo. Sources are listed at the end with what each one confirmed.
+Research note for the product build. Written 2026-10-08/09 (UTC) by task R1-T4; revised 2026-10-09 07:00 to 08:00 UTC after review (Python pins, route order, bundle measurements on the real files, real chip sizes); data numbers re-measured 13:50 to 14:10 UTC after the live pass rerun and the research identity rebuild, with the `geo`, `events`, `passes` and `leads` parts measured for the first time. Every version, date and licence below comes from the npm registry or PyPI, read in this session; every size and timing was measured in this session on the shared 4-core container (headless Chromium, software rendering), in a scratch build that is not part of the repo. Sources are listed at the end with what each one confirmed.
 
 The product spec is `docs/product_design.md`; the data contract is `app/CONTRACT.md`.
 
@@ -139,7 +139,7 @@ Load time, measured with pyogrio (Arrow) in the env: contacts `detections_region
 
 ## 5. Size budget inputs (single-file page, limit 16 MB)
 
-Two kinds of numbers. The trial measurements (frontend shell, map libraries) come from the scratch builds of section 4. The data numbers were re-measured at 07:00 UTC on 2026-10-09, after review, by encoding the real files exactly as `app/CONTRACT.md` section 6.2 specifies (typed little-endian columns in base64, `dict8`/`dict16` for categories, `detid` and `lightid` ids, `ref16` vessel references, `const` for the caveat) and taking the length of the serialised JSON. The measuring script is a scratch file, not part of the repo; round 2's `build_single.py` reproduces the numbers with the real encoder and prints them per part.
+Two kinds of numbers. The trial measurements (frontend shell, map libraries) come from the scratch builds of section 4. The data numbers were measured at 07:00 UTC on 2026-10-09, after review, and again at 13:55 UTC, by encoding the real files exactly as `app/CONTRACT.md` section 6.2 specifies (typed little-endian columns in base64, `dict8`/`dict16` for categories, `detid` and `lightid` ids, `ref16` vessel references, `const` for the caveat) and taking the length of the serialised JSON. The measuring script is a scratch file, not part of the repo; round 2's `build_single.py` reproduces the numbers with the real encoder and prints them per part.
 
 | Item | Measured | Note |
 |---|---|---|
@@ -147,19 +147,24 @@ Two kinds of numbers. The trial measurements (frontend shell, map libraries) com
 | Shell plus Leaflet | 1,774 KB | chosen stack, before app code |
 | Demo page v8 regional columns | 46.7 bytes per contact in base64 typed columns (16 columns, 103,839 rows, 4.85 MB) | earlier demo encoding, for comparison |
 | Open contacts: September run, 78,615 rows, `not_checked`, CNN scores from `data/ml/regional_cnn.parquet` | 2.73 MB | D1 numeric fields that are not null in the open build |
-| Open contacts: live pass `live_S1D_20261008T2258` (813), Ca Mau (6,005), structures (25,224) | 0.03, 0.21, 0.30 MB | |
+| Open contacts: live pass `live_S1D_20261008T2258` (3,081 contacts from 5 scenes since the 07:37 UTC rerun; 813 from 2 scenes before), Ca Mau (6,005), structures (25,224) | 0.11, 0.21, 0.30 MB | a pass of about 3,000 contacts adds about 0.11 MB |
 | Research contacts: September, 78,615 rows with every D1 numeric field plus `vessel_ref` and `nearest_ref` | 4.72 MB | identity by reference (contract section 6.2) |
 | Same, with the matched contacts' identity strings as JSON records instead (9,954 rows, 10 fields) | 3.82 MB more | why identity is stored by reference |
 | Research vessels: 8,924 `gfw_vessels.parquet` rows plus 2,407 nearest-AIS stubs, identity strings once per vessel | 1.27 MB | |
 | Open vessels: 1,277 aisstream vessels; 1,094 tracks simplified at 0.002 degree (3,122 vertices) | 0.11 MB; 0.06 MB | |
 | Lights: 48,692 rows (position, time, radiance, quality, satellite, nights seen) plus the `lightid` index | 1.10 MB plus 0.26 MB | the id is rebuilt from satellite, time and a 6-digit index; this holds for every row |
 | Cells: 5,116 static rows; their `marineregions_*` block; one night of daily fields | 0.35, 0.08, 0.10 MB | |
+| Geo layers in a compact geometry encoding (i32 lon, lat x 10,000 plus u32 ring and feature offsets): land 0.10, AOI 0.01, EEZ boundary lines 0.01, depth contours 0.17, fronts 0.13, footprint archive 0.06 MB | 0.49 MB | the same layers as GeoJSON text: about 1.05 MB; EEZ polygons would add 0.51 MB and are left out of the page |
+| Research events: 5 gaps, 952 encounters within 10 km and 24 h of a September contact as rows, the other 12,564 as 1,770 cell counts, 12,509 loitering cells, 410 port anchorages | 0.47 MB | all 13,516 encounters as rows: about 1.5 MB |
+| Passes: 88 planned footprints and 119 regional scene footprints, as GeoJSON | 0.05 MB | |
+| Leads, research estimate: 12,124 L1 candidates under the spec rule, columnar at 17 bytes raw (about 23 in base64) each | about 0.28 MB | lead scoring is not built yet |
+| Records (fields outside the bulk columns, nulls left out) | 343 bytes per research September contact, 472 per live contact | 500-row samples |
 | Same tables as plain JSON (`orient=split`), trial | contacts 10.3 MB, lights 8.0 MB | why the bundle uses typed columns |
 | Radar chips, 130 x 64 px WebP q70, real 64 px GRD windows (400 CNN training chips in `data/chips/*.npz`, Sentinel-1A and 1B, 10 m pixels, from 51 scenes) | 4,006 bytes mean per chip entry (key, data-URI prefix and base64), median 4,390, 90th percentile 4,594; JPEG q80 5,052 | the first estimate, 2,804 bytes, came from upscaled 98 x 48 px demo JPEG chips and was too low; chips are therefore capped by bytes |
 | Ocean raster overlays at 0.05 degree (462 x 540 px), WebP q80, trial | 1 KB (AIS reach) to 47 KB (front frequency); SST 12, depth 19, shipping density 33, chlorophyll 14, distance to coast 15 | colour-mapped, transparent outside data |
 | Ca Mau radar backdrop from `data/outputs/small/sigma0_vv_db_utm48n_40m_u8.tif`, WebP | 0.49 MB at 2,562 x 2,600 px q75; 0.36 MB at q60; 0.11 MB at half size q75 | the demo page carried it as a 1.56 MB base64 JPEG |
 
-The per-part budgets that follow from these numbers are fixed in `app/CONTRACT.md` section 6.3: planned 13.05 MB (open) and 14.45 MB (research), hard cap 15.0 MB, limit 16 MB, with a drop rule per part.
+The per-part budgets that follow from these numbers are fixed in `app/CONTRACT.md` section 6.3: planned 13.55 MB (open) and 14.35 MB (research), hard cap 15.0 MB, limit 16 MB, with a drop rule per part.
 
 ## 6. Risks and how the spec handles them
 
@@ -168,7 +173,7 @@ The per-part budgets that follow from these numbers are fixed in `app/CONTRACT.m
 3. **Software WebGL deprecation in Chromium.** Avoided by choosing Canvas 2D.
 4. **aisstream.io terms.** The operator publishes no terms of use: `/terms`, `/tos` and `/terms-of-service` return 404, only `/privacypolicy` exists (checked 2026-10-08). The open build therefore cannot yet be called fully commercial-clean while it shows aisstream identity. Owner question in the spec (section 18).
 5. **aisstream forbids direct browser connections** ("Direct browser connections are not permitted", aisstream documentation). The frontend never opens the AIS stream; only the recorder does, server side, with the key from `.env`.
-6. **Bundle growth.** Each part has a byte budget and its own drop rule (contract section 6.3); the build script prints the per-part sizes and fails when a part is still over its budget after its drops or the page exceeds 15.0 MB. A live pass of about 800 contacts adds about 0.03 MB; the open contacts budget (3.8 MB against 3.27 MB measured plus about 0.23 MB of chip-contact records) leaves room for about 10 more such passes before drop rule 4 starts, and drop rule 4 frees 1.5 MB more.
+6. **Bundle growth.** Each part has a byte budget and its own drop rule (contract section 6.3); the build script prints the per-part sizes and fails when a part is still over its budget after its drops or the page exceeds 15.0 MB. The first live pass, rerun with five scenes, has 3,081 contacts and adds 0.11 MB. The open contacts budget (4.4 MB against 3.35 MB measured plus about 0.24 MB of chip-contact records) leaves room for about 7 more such passes before drop rule 4 starts; rule 4 frees 1.53 MB more, and rule 7 then moves whole older live passes out of the page, so the page never grows past the cap. The watcher processes every Sentinel-1C/1D scene over the AOI and the plan lists 39 pass groups in 15 days, so the page cannot hold every live pass for long: the local app holds them all.
 7. **Unpinned transitive Python packages.** FastAPI's open-ended `starlette>=0.46.0` would pull a Starlette release younger than 14 days; pinned in section 3.2.
 
 ## 7. Sources (resolved in this session)
