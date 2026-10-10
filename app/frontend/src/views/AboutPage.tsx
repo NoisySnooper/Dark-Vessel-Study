@@ -33,23 +33,23 @@ export function AboutPage() {
       </Section>
       <Section title="Sources and licences, as published" compact collapsible>
         <SectionCard>
-          <table className="bp6-html-table bp6-compact" style={{ width: "100%" }}>
+          <div className="scs-table-scroll"><table className="bp6-html-table bp6-compact" style={{ width: "100%" }}>
             <thead><tr><th>key</th><th>source</th><th>method, script</th><th>licence</th><th>access date</th></tr></thead>
             <tbody>
               {meta.sources.map((s) => (
                 <tr key={s.key}><td>{s.key}</td><td>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{s.name}</a> : s.name}</td><td>{s.method}{s.script ? `; ${s.script}` : ""}</td><td>{s.licence}{s.licence_url ? <> (<a href={s.licence_url} target="_blank" rel="noreferrer">text</a>)</> : null}</td><td>{s.access_date}</td></tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           <p className="scs-muted" style={{ fontSize: 12 }}>{DATA_CREDIT}. {meta.sources.filter((s) => s.credit).map((s) => s.credit).filter((c, i, a) => a.indexOf(c) === i).join(". ")}.</p>
         </SectionCard>
       </Section>
       <Section title="Third-party software" compact collapsible>
         <SectionCard>
-          <table className="bp6-html-table bp6-compact" style={{ width: "100%" }}>
+          <div className="scs-table-scroll"><table className="bp6-html-table bp6-compact" style={{ width: "100%" }}>
             <thead><tr><th>package</th><th>version</th><th>licence</th></tr></thead>
             <tbody>{THIRD_PARTY.packages.map((p) => <tr key={p.name}><td>{p.name}</td><td>{p.version}</td><td>{p.licence}</td></tr>)}</tbody>
-          </table>
+          </table></div>
           {THIRD_PARTY.texts.map((t) => (
             <details key={t.name} style={{ marginTop: 8 }}><summary>{t.name}</summary><pre>{t.text}</pre></details>
           ))}

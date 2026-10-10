@@ -2,7 +2,8 @@
 
 Board D6.2 and the review of R3-T11: every L1 lead of the fixture stands on an unmatched, unambiguous contact (a lead
 whose contact is now ambiguous, matched or without AIS coverage is stale and stays out); the Pearl River pass carries
-matched contacts of every quality with their hand-check notes, ambiguous contacts with candidates, no_coverage
+matched contacts of every quality with their hand-check notes, ambiguous contacts with candidates (both cases: one
+candidate MMSI and two or more), no_coverage
 contacts including hand-checked ones, and AIS-only vessels; the file stays under about 1 MB.
 
 Usage: /home/user/.mamba/envs/darkvessel/bin/python -m pytest -q app/frontend/fixtures/test_fixture_content.py
@@ -79,6 +80,10 @@ def test_ambiguous_contacts_have_candidates_and_no_lead(contacts):
         assert c["ais_status"] == "unmatched"
         assert c.get("ambiguous_mmsi") and all(len(m) == 9 for m in str(c["ambiguous_mmsi"]).split(";"))
         assert not c.get("lead_ids"), d
+    # both cases of docs/live_pass.md item 11, which the page words differently: one candidate (another radar contact
+    # fits the same vessel) and two or more (several vessels fit this return)
+    n_cand = [len(str(by_id[d]["ambiguous_mmsi"]).split(";")) for d in amb]
+    assert 1 in n_cand and any(n >= 2 for n in n_cand), n_cand
 
 
 def test_pearl_river_pass_roles(parts, contacts):

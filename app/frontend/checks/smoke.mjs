@@ -14,7 +14,11 @@
 // Local-app mode (--http=URL): the same routes against the running backend at 1280 and 390 px in dark and light, with
 // every non-GET API call intercepted so nothing is written. Fails on any console error or page error, a missing
 // caveat banner, an EEZ layer on at load, a request off the page's origin, a failed request, a horizontal scroll at
-// 390 px, a map that does not fill the centre column, an overlapping tablet layout, or an icon that is not bundled.
+// 390 px, an element that ends past the 16 px right gutter at 390 px outside a scroll box or a map (html and body hide
+// horizontal overflow on phone, so scrollWidth alone cannot see cut content) or a tag whose text is cut, a map that does
+// not fill the centre column, an overlapping tablet layout, or an icon that is not bundled. Board D6.2 is checked on
+// every match of low quality or graded doubtful; ambiguity is checked per case (one candidate MMSI: another contact also
+// fits that vessel; two or more: the return fits several vessels).
 // Run: NODE_PATH=/opt/node-tools/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node checks/smoke.mjs [page.html] [shot_dir]
 //      ... node checks/smoke.mjs --http=http://127.0.0.1:8750 [shot_dir]
 // Never run playwright install: the preinstalled browser is used.
@@ -288,6 +292,38 @@ try {
         A("phone side gutter at least 16 px");
         const gutter = await page.evaluate(() => { const el = document.querySelector(".scs-page, .scs-rail"); if (!el) return null; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return { left: r.left, pl: parseFloat(cs.paddingLeft) }; });
         if (gutter && Math.round(gutter.left + gutter.pl) < 16) fail(`${label} ${name}: side gutter ${gutter.left + gutter.pl} px under 16`);
+        // html and body hide horizontal overflow on phone, so scrollWidth cannot see content cut at the right edge: every
+        // visible element of the page, the rail and the inspector must end inside the 16 px right gutter, unless it sits in
+        // a box that scrolls on its own (wide tables, preformatted text) or in a map; and no tag text may be cut short.
+        A("phone: every element ends inside the 16 px right gutter (outside scroll boxes and maps), no tag text cut");
+        const edge = await page.evaluate(() => {
+          const vw = document.documentElement.clientWidth;
+          const roots = Array.from(document.querySelectorAll(".scs-page, .scs-rail, .scs-inspector"));
+          const inScroller = (el) => {
+            for (let a = el.parentElement; a && !roots.includes(a); a = a.parentElement) {
+              const ox = getComputedStyle(a).overflowX;
+              if (ox === "auto" || ox === "scroll") return true;
+            }
+            return false;
+          };
+          const desc = (el) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : ""} "${(el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 50)}"`;
+          const out = [];
+          const cut = [];
+          for (const root of roots) {
+            for (const el of root.querySelectorAll("*")) {
+              if (el.closest(".leaflet-container, .scs-object-map, .scs-map-area, svg")) continue;
+              const r = el.getBoundingClientRect();
+              if (r.width === 0 || r.height === 0) continue;
+              const cs = getComputedStyle(el);
+              if (cs.visibility === "hidden" || cs.position === "fixed") continue;
+              if (r.right > vw - 16 + 0.5 && !inScroller(el)) out.push(`${desc(el)} right=${Math.round(r.right)}`);
+              if (el.matches(".bp6-tag > .bp6-text-overflow-ellipsis") && el.scrollWidth > el.clientWidth + 1) cut.push(desc(el));
+            }
+          }
+          return { vw, out: [...new Set(out)], cut: [...new Set(cut)] };
+        });
+        if (edge.out.length) fail(`${label} ${name}: ${edge.out.length} elements end past the 16 px right gutter (viewport ${edge.vw}): ${edge.out.slice(0, 6).join("; ")}`);
+        if (edge.cut.length) fail(`${label} ${name}: tag text cut short: ${edge.cut.slice(0, 6).join("; ")}`);
       }
       if (opts.objectPage) {
         A("short caveat under the title of every object page");
@@ -546,13 +582,15 @@ try {
           rows.push(...await page.$$eval("[data-pass-contacts] [data-det-id]", (els) => els.map((e) => ({
             id: e.getAttribute("data-det-id"), text: e.textContent || "",
             quality: e.querySelector("[data-quality]")?.getAttribute("data-quality") || null,
+            grade: e.querySelector("[data-review-grade]")?.getAttribute("data-review-grade") || null,
+            ambCase: e.querySelector("[data-ambiguous]")?.getAttribute("data-ambiguity-case") || null,
             low: !!e.querySelector("[data-low-quality]"),
             amb: !!e.querySelector("[data-ambiguous]"), cand: Array.from(e.querySelectorAll("[data-ambiguous] a")).map((a) => a.textContent || ""),
             dark: !!e.querySelector("[data-dark-lead]"), lead: e.querySelectorAll("[data-dark-lead] a[href^='#/lead/']").length,
             mmsi: Array.from(e.querySelectorAll("a[href^='#/vessel/']")).map((a) => a.textContent || ""),
             nearestName: e.querySelector("[data-nearest] a[href^='#/vessel/']")?.textContent || null,
           }))));
-          if (t === "unmatched" && rows.some((r) => r.amb) && (rows.some((r) => r.lead) || (k >= 2 && rows.some((r) => r.dark)))) break;
+          if (t === "unmatched" && rows.some((r) => r.ambCase === "vessels") && rows.some((r) => r.ambCase === "shared") && (rows.some((r) => r.lead) || (k >= 2 && rows.some((r) => r.dark)))) break;
           const next = await page.$("[aria-label='Next contacts']");
           if (!next || !(await next.isEnabled())) break;
           await next.click();
@@ -568,20 +606,28 @@ try {
             if (!r.mmsi.some((m) => /^\d{9}$/.test(m))) fail(`${label} pass ${passId}: matched row ${r.id} without an MMSI`);
             if (!["high", "medium", "low"].includes(r.quality || "")) fail(`${label} pass ${passId}: matched row ${r.id} without a quality`);
             if (r.quality === "low" && !r.low) fail(`${label} pass ${passId}: low-quality row ${r.id} without "${LOW_QUALITY_LABEL}"`);
+            if (r.grade === "doubtful" && !r.low) fail(`${label} pass ${passId}: row ${r.id} graded doubtful by the hand check without "${LOW_QUALITY_LABEL}"`);
+            if (r.low && r.quality !== "low" && r.grade !== "doubtful") fail(`${label} pass ${passId}: row ${r.id} (${r.quality}, ${r.grade || "no grade"}) labelled low quality`);
           }
-          A("D6.2: every low-quality match carries the low-quality label");
+          A("D6.2: every low-quality match and every match graded doubtful carries the low-quality label, no other does");
+          if (pr && !rows.some((r) => r.grade)) fail(`${label} pass ${passId}: no hand-check grade on any matched row`);
           if (pr && !rows.some((r) => r.quality === "low")) fail(`${label} pass ${passId}: no low-quality match listed (the pass has 7)`);
           if (pr && !rows.some((r) => r.low && /low-quality pairing, identity not confirmed/.test(r.text))) fail(`${label} pass ${passId}: the low-quality label text is not shown`);
           roles.matched_high = roles.matched_high || rows.find((r) => r.quality === "high" && !r.low)?.id;
           roles.matched_low = roles.matched_low || rows.find((r) => r.quality === "low")?.id;
-          if (pr) ok(`${label} pass ${passId}: ${rows.length} matched rows (${rows.filter((r) => r.quality === "low").length} low, each labelled)`);
+          roles.matched_doubtful = roles.matched_doubtful || rows.find((r) => r.quality !== "low" && r.grade === "doubtful")?.id;
+          if (pr) ok(`${label} pass ${passId}: ${rows.length} matched rows (${rows.filter((r) => r.low).length} labelled: ${rows.filter((r) => r.quality === "low").length} low, ${rows.filter((r) => r.quality !== "low" && r.grade === "doubtful").length} graded doubtful)`);
         }
         if (t === "unmatched" && rows.length) {
           A("ambiguous contacts list candidates and are not leads; dark leads link their lead");
           for (const r of rows.filter((x) => x.amb)) {
             if (!r.cand.some((m) => /^\d{9}$/.test(m))) fail(`${label} pass ${passId}: ambiguous row ${r.id} lists no candidate MMSI`);
             if (r.lead || !/not a lead/.test(r.text)) fail(`${label} pass ${passId}: ambiguous row ${r.id} shown as a lead`);
+            const n = r.cand.filter((m) => /^\d{9}$/.test(m)).length;
+            if (n === 1 && (r.ambCase !== "shared" || !/another radar contact also fits/.test(r.text))) fail(`${label} pass ${passId}: ambiguous row ${r.id} with one candidate does not say another contact also fits it: ${r.text.slice(0, 120)}`);
+            if (n > 1 && r.ambCase !== "vessels") fail(`${label} pass ${passId}: ambiguous row ${r.id} with ${n} candidates not worded as ambiguity between vessels`);
           }
+          A("ambiguity worded by case: one candidate (another contact also fits it) or two or more (between vessels)");
           if (pr && !rows.some((r) => r.amb)) fail(`${label} pass ${passId}: no ambiguous contact found in ${rows.length} unmatched rows`);
           if (pr) {
             A("unmatched rows name the nearest AIS vessel where the vessel table has a name");
@@ -590,7 +636,8 @@ try {
             if (withNearest && !named) fail(`${label} pass ${passId}: no unmatched row names its nearest AIS vessel (${withNearest} rows by bare MMSI)`);
             else ok(`${label} pass ${passId}: nearest AIS vessel named on ${named} of ${withNearest} unmatched rows`);
           }
-          roles.ambiguous = roles.ambiguous || rows.find((r) => r.amb)?.id;
+          roles.ambiguous = roles.ambiguous || rows.find((r) => r.amb && r.ambCase === "vessels")?.id || (HTTP ? rows.find((r) => r.amb)?.id : undefined);
+          roles.ambiguous_shared = roles.ambiguous_shared || rows.find((r) => r.amb && r.ambCase === "shared")?.id;
           // a dark lead with its lead; a build whose leads do not cover this pass (the research build's leads are the
           // September run's) has dark lead candidates without a lead
           if (!roles.unmatched_dark) {
@@ -623,8 +670,12 @@ try {
     if (!HTTP && fileIds.contact.not_checked) statusContacts.not_checked = fileIds.contact.not_checked;
     statusContacts.no_coverage_noted = HTTP ? (await httpDiscovery(page)).noted : fileNoCovNoted;
     if (!statusContacts.no_coverage_noted) fail(`${label}: no hand-checked no_coverage contact found`);
-    for (const want of ["matched_high", "matched_low", "unmatched_dark", "ambiguous", "no_coverage"]) if (!statusContacts[want]) fail(`${label}: no ${want} contact found on the Pearl River pass page`);
-    const STATUS_OF = { matched_high: "matched", matched_low: "matched", unmatched_dark: "unmatched", ambiguous: "unmatched", no_coverage: "no_coverage", no_coverage_noted: "no_coverage", not_checked: "not_checked" };
+    // The fixture holds both ambiguity cases and a medium match graded doubtful; the local app's first pages by CNN score
+    // may not, so there only one ambiguous contact of either case is required and a missing case is reported.
+    for (const want of ["matched_high", "matched_low", "unmatched_dark", "ambiguous", "no_coverage", ...(HTTP ? [] : ["matched_doubtful", "ambiguous_shared"])]) if (!statusContacts[want]) fail(`${label}: no ${want} contact found on the Pearl River pass page`);
+    for (const want of ["matched_doubtful", "ambiguous_shared"]) if (HTTP && !statusContacts[want]) ok(`${label}: no ${want} contact on the pages read; that case is checked in file mode`);
+    const STATUS_OF = { matched_high: "matched", matched_low: "matched", matched_doubtful: "matched", unmatched_dark: "unmatched", ambiguous: "unmatched", ambiguous_shared: "unmatched", no_coverage: "no_coverage", no_coverage_noted: "no_coverage", not_checked: "not_checked" };
+    let lowMatch = null;
     for (const [role, det] of Object.entries(statusContacts)) {
       if (!det) continue;
       const st = STATUS_OF[role];
@@ -634,21 +685,22 @@ try {
       if (!block) fail(`${label} contact ${role}: Identification block for ${st} missing`);
       const sec = await page.evaluate(() => { const s = document.querySelector("[data-identification]")?.closest(".bp6-section"); return { text: s?.innerText || "", chips: s?.querySelectorAll(".scs-prov-chip").length || 0 }; });
       if (sec.chips < 2) fail(`${label} contact ${role}: only ${sec.chips} provenance chips in Identification`);
-      if (role === "matched_high" || role === "matched_low") {
+      if (role === "matched_high" || role === "matched_low" || role === "matched_doubtful") {
         A("matched contact: identity (name, MMSI, quality) with provenance and the aisstream label");
         const head = await page.evaluate(() => document.querySelector("[data-identity-headline]")?.textContent || "");
         if (!/\d{9}/.test(head) || !/quality/.test(head)) fail(`${label} contact ${role}: identity headline lacks MMSI or quality: ${head}`);
         if (!sec.text.includes(AISSTREAM_LABEL)) fail(`${label} contact ${role}: aisstream identity without the label`);
         for (const f of ["mmsi", "vessel_name", "call_sign", "flag", "ship_type", "match_quality"]) if (!(await page.$(`[data-identification='matched'] [data-field='${f}'] .scs-prov-chip`))) fail(`${label} contact ${role}: field ${f} without its chip`);
         const lowShown = await page.$("[data-identification='matched'][data-low-quality='1']");
-        if (role === "matched_low") {
-          A("D6.2: a low-quality match says 'low-quality pairing, identity not confirmed' on the Contact page");
+        if (role === "matched_low" || role === "matched_doubtful") {
+          A("D6.2: a low-quality match, or one graded doubtful, says 'low-quality pairing, identity not confirmed' on the Contact page");
           if (!lowShown || !sec.text.includes(LOW_QUALITY_LABEL)) fail(`${label} contact ${role}: low-quality match without "${LOW_QUALITY_LABEL}"`);
           if (!(await page.$("[data-review-note]"))) fail(`${label} contact ${role}: hand-check note not shown`);
           const note = await page.evaluate(() => document.querySelector("[data-low-quality-note]")?.textContent || "");
           if (!/not a confirmed identity/.test(note)) fail(`${label} contact ${role}: the D6.2 note does not say the shown vessel is not a confirmed identity: ${note}`);
         }
         if (role === "matched_high" && lowShown) fail(`${label} contact ${role}: a high-quality match is labelled low quality`);
+        if (role === "matched_low") lowMatch = { det, vkey: await page.evaluate(() => { const a = document.querySelector("[data-identification='matched'] a[href^='#/vessel/']"); return a ? decodeURIComponent(a.getAttribute("href").slice("#/vessel/".length)) : null; }) };
       }
       if (role === "unmatched_dark") {
         A("unmatched dark lead: its evidence (nearest AIS vessel, distance, vessels within 10 km, reach, length and class, lead)");
@@ -656,10 +708,15 @@ try {
         for (const f of ["nearest_ais_mmsi", "nearest_ais_dist_m", "n_ais_10km", "ais_reach", "length_est_m", "dark_lead", "lead_ids"]) if (!(await page.$(`[data-identification='unmatched'] [data-field='${f}']`))) fail(`${label} contact ${role}: evidence field ${f} missing`);
         if (roleHasLead && !(await page.$("[data-identification='unmatched'] a[href^='#/lead/']"))) fail(`${label} contact ${role}: no link to its lead`);
       }
-      if (role === "ambiguous") {
+      if (role === "ambiguous" || role === "ambiguous_shared") {
         A("ambiguous contact: candidate MMSIs, never a lead");
         const cand = await page.$$eval("[data-candidates] a", (els) => els.map((e) => e.textContent || ""));
         if (!cand.some((m) => /^\d{9}$/.test(m))) fail(`${label} contact ${role}: no candidate MMSI`);
+        A("ambiguous contact: the note matches its case (one candidate: another contact also fits; two or more: between vessels)");
+        const amb = await page.evaluate(() => ({ kase: document.querySelector("[data-ambiguity-case]")?.getAttribute("data-ambiguity-case") || null, note: document.querySelector("[data-ambiguous-note]")?.textContent || "" }));
+        const n = cand.filter((m) => /^\d{9}$/.test(m)).length;
+        if (n === 1 && (amb.kase !== "shared" || !/other radar contact/.test(amb.note) || /which of these AIS vessels/.test(amb.note))) fail(`${label} contact ${role}: one candidate but the note says: ${amb.note}`);
+        if (n > 1 && (amb.kase !== "vessels" || !/which of these AIS vessels/.test(amb.note))) fail(`${label} contact ${role}: ${n} candidates but the note says: ${amb.note}`);
         if (!/never forms a lead/.test(sec.text) || (await page.$("[data-identification='unmatched'] a[href^='#/lead/']"))) fail(`${label} contact ${role}: ambiguous contact shown as a lead`);
         A("ambiguous contact page has no Lead section");
         if (await page.$("[data-lead-section]")) fail(`${label} contact ${role}: an ambiguous contact's page has a Lead section`);
@@ -687,6 +744,21 @@ try {
       }
       contextSeen[ctx || "missing"] = (contextSeen[ctx || "missing"] || 0) + 1;
       if (!(await page.evaluate((n) => (document.body.innerText || "").includes(n), OCEAN_NOTE))) fail(`${label} contact ${role}: ocean caveat missing`);
+    }
+    // The vessel of the low-quality match: its page lists the matched contact with the D6.2 label in its own scroll box
+    // (at 390 px check() also probes the right gutter)
+    if (lowMatch) {
+      const { det, vkey } = lowMatch;
+      if (!vkey) fail(`${label} contact matched_low: no link to the matched vessel`);
+      else {
+        await check(`#/vessel/${encodeURIComponent(vkey)}`, "vessel_of_low_match");
+        A("Vessel page of a low-quality match: the matched contact listed with the D6.2 label (table in its own scroll box, cards on phone)");
+        const vm = await page.evaluate((d) => { const t = document.querySelector("[data-vessel-matched]"); const row = t?.querySelector(`[data-det-id="${d}"]`); return { kind: t?.getAttribute("data-vessel-matched") || null, table: !!t, boxed: t?.getAttribute("data-vessel-matched") === "cards" || !!t?.closest(".scs-table-scroll"), label: !!row?.querySelector("[data-low-quality]"), caveat: !!document.querySelector("[data-page] .scs-caveat-line"), missing: /Vessel not in this build/.test(document.body.innerText || "") }; }, det);
+        if (!vm.missing && vm.kind !== (vp.name === "phone" ? "cards" : "table")) fail(`${label} vessel ${vkey}: matched contacts shown as ${vm.kind} at ${vp.width} px`);
+        if (vm.missing) ok(`${label} vessel ${vkey}: not in this build`);
+        else if (!vm.table || !vm.boxed || !vm.label || !vm.caveat) fail(`${label} vessel ${vkey}: matched-contacts table or caveat ${JSON.stringify(vm)}`);
+        else ok(`${label} vessel ${vkey}: ${det} listed with the D6.2 label`);
+      }
     }
     // Light page with its Context section
     let lightId = HTTP ? await page.evaluate(async () => { const j = await (await fetch("/api/v1/lights?limit=1")).json(); return j.items?.[0]?.light_id || null; }) : fileIds?.light || null;

@@ -67,6 +67,7 @@ export function Field({ label, value, rec, field, judgment, modelId, children }:
 export function ProvenanceTable({ rec, fields }: { rec: Provenanced; fields: string[] }) {
   const { meta } = useApp();
   return (
+    <div className="scs-table-scroll">
     <table className="scs-provtable bp6-html-table bp6-compact">
       <thead><tr><th>field</th><th>source</th><th>licence</th><th>access date</th></tr></thead>
       <tbody>
@@ -81,5 +82,6 @@ export function ProvenanceTable({ rec, fields }: { rec: Provenanced; fields: str
         })}
       </tbody>
     </table>
+    </div>
   );
 }

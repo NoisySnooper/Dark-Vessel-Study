@@ -168,8 +168,22 @@ a { color: var(--link); }
 .scs-chip-box img { image-rendering: pixelated; width: 260px; height: 128px; border: 1px solid var(--border); background: #000; }
 .scs-object-map { height: 260px; margin: 8px 0; border: 1px solid var(--border); background: var(--map-sea); }
 .scs-linklist { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-.scs-linklist li { padding: 3px 0; border-bottom: 1px solid var(--border); }
+.scs-linklist li { padding: 3px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .scs-tagrow { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; }
+/* Object headers wrap inside the page at every width: the title, the tag row (status chip, identity, the board D6.2
+   label) and the subtitle never run past the right gutter, and no tag text is cut. Action rows wrap the same way. */
+.scs-page .bp6-entity-title { align-items: flex-start; min-width: 0; }
+.scs-page .bp6-entity-title-text { min-width: 0; flex: 1 1 auto; }
+.scs-page .bp6-entity-title-title-and-tags { flex-wrap: wrap; min-width: 0; }
+.scs-page .bp6-entity-title-title { overflow-wrap: anywhere; }
+.scs-page .bp6-entity-title-tags-container { min-width: 0; max-width: 100%; margin-left: 0; }
+.scs-page .bp6-entity-title-subtitle { overflow-wrap: anywhere; }
+.scs-tagrow .bp6-tag { max-width: 100%; height: auto; }
+.scs-tagrow .bp6-tag > .bp6-text-overflow-ellipsis { white-space: normal; overflow-wrap: anywhere; }
+.scs-page .bp6-button-group { flex-wrap: wrap; max-width: 100%; }
+/* Blueprint sizes the select's content box to 100% and adds its 32 px padding: count the padding inside the width. */
+.bp6-html-select select { box-sizing: border-box; max-width: 100%; }
+.scs-page p { overflow-wrap: break-word; }
 .scs-back { margin-bottom: 8px; }
 .scs-kbd { font-size: 11px; color: var(--text-muted); }
 .scs-export-area { width: 100%; min-height: 80px; font-family: monospace; font-size: 11px; }

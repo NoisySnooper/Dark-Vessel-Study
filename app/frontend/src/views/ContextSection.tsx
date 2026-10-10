@@ -38,7 +38,7 @@ export function ContextSection({ ctx, kind }: { ctx: ObjectContext | null | unde
             <p className="scs-muted" style={{ fontSize: 12 }} data-context="1">
               Sampled at {fmtTime(ctx.time_utc, tz)}{ctx.cell_id ? <>, cell <ObjectLink type="cell" id={ctx.cell_id} /></> : null}{ctx.region ? `, ${ctx.region} (reporting box, not a boundary)` : ""}.
             </p>
-            <table className="bp6-html-table bp6-compact scs-context-table" data-context-table="1">
+            <div className="scs-table-scroll"><table className="bp6-html-table bp6-compact scs-context-table" data-context-table="1">
               <thead><tr><th>field</th><th>value</th><th>valid</th><th>source</th></tr></thead>
               <tbody>
                 {CONTEXT_FIELDS.filter((f) => ctx.fields[f.name] !== undefined).map((f) => {
@@ -55,7 +55,7 @@ export function ContextSection({ ctx, kind }: { ctx: ObjectContext | null | unde
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
             <p className="scs-muted" style={{ fontSize: 12 }}>Shipping: {SHIPPING_PRESENCE_NOTE}. {ctx.caveat && ctx.caveat !== OCEAN_NOTE ? ctx.caveat : OCEAN_CAVEAT}</p>
           </>
         )}

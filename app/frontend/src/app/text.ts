@@ -32,9 +32,15 @@ export const AISSTREAM_NOTE = "Live AIS relayed by aisstream.io; terms UNVERIFIE
 export const AISSTREAM_LABEL = "live AIS relayed by aisstream.io; terms UNVERIFIED";
 /** Board D6.2: a low-quality or doubtful pairing stays in the files and is shown with this label, never as an identification. */
 export const LOW_QUALITY_LABEL = "low-quality pairing, identity not confirmed";
+// Ambiguity (docs/live_pass.md method item 11) has two cases, told apart by the number of candidate MMSIs: two or more
+// AIS vessels fit this return, or this return and another radar contact both fit one AIS vessel.
 export const AMBIGUOUS_NOTE =
   "Ambiguous: the pairing could not tell which of these AIS vessels this return is (for example two ships alongside each other " +
   "give one return and two MMSIs). It is very likely one of them, so it names neither and is never a lead.";
+export const AMBIGUOUS_SHARED_NOTE =
+  "Ambiguous: this return and at least one other radar contact both fit this one AIS vessel, and the pairing could not tell " +
+  "which of them it is (for example a ship and a second return beside it). One of them is very likely that vessel, so the " +
+  "vessel is named for none of them, and this contact is never a lead.";
 /** A lead whose primary contact changed status after the lead was built (the leads file predates a rematch). */
 export const STALE_LEAD_LABEL = "stale: not a lead";
 export const STALE_LEAD_NOTE =

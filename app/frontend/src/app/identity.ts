@@ -1,9 +1,10 @@
 // Identification rules shared by the Contact page, the Pass page and the lead card (board D4.7 and D6.2).
 // A match is shown as an identification only when it is high or medium quality and its hand check (review_note) is not
 // doubtful; any other match keeps its row, its MMSI and its quality, and carries LOW_QUALITY_LABEL. An ambiguous contact
-// (the pairing could not tell which of two or more AIS vessels it is) lists its candidates and is never a dark lead.
+// (the pairing could not tell which of two or more AIS vessels it is, or which of two or more contacts one vessel is) lists
+// its candidates and is never a dark lead.
 import type { Contact, Lead } from "../adapters/types";
-import { AISSTREAM_LABEL } from "./text";
+import { AISSTREAM_LABEL, AMBIGUOUS_NOTE, AMBIGUOUS_SHARED_NOTE } from "./text";
 
 export type ReviewGrade = "confirmed" | "plausible" | "doubtful";
 
@@ -39,6 +40,24 @@ export function isAmbiguous(c: Pick<Contact, "match_ambiguous" | "ambiguous_mmsi
   return c.match_ambiguous === true || ambiguousCandidates(c).length > 0;
 }
 
+/** The ambiguity case (docs/live_pass.md item 11): one candidate MMSI means this return and another radar contact both fit
+ * that vessel ("shared"); two or more mean two or more AIS vessels fit this return ("vessels"). */
+export function ambiguityCase(c: Pick<Contact, "match_ambiguous" | "ambiguous_mmsi">): "shared" | "vessels" {
+  return ambiguousCandidates(c).length === 1 ? "shared" : "vessels";
+}
+
+/** The ambiguity note for the contact's case. */
+export function ambiguousNote(c: Pick<Contact, "match_ambiguous" | "ambiguous_mmsi">): string {
+  return ambiguityCase(c) === "shared" ? AMBIGUOUS_SHARED_NOTE : AMBIGUOUS_NOTE;
+}
+
+/** One line on the ambiguity, without the "never a lead" clause the caller adds. */
+export function ambiguityPhrase(c: Pick<Contact, "match_ambiguous" | "ambiguous_mmsi">): string {
+  const cand = ambiguousCandidates(c);
+  if (cand.length === 1) return `this return and another radar contact both fit AIS vessel ${cand[0]}; the pairing cannot tell which one it is`;
+  return `ambiguous between ${cand.length ? `AIS vessels ${cand.join(", ")}` : "two or more AIS vessels"}`;
+}
+
 /** Why an L1 lead no longer stands against its primary contact's current record, or null when it stands. An L1 lead is
  * formed only from an unmatched, unambiguous contact; a leads file older than the live pass file's rematch can still cite
  * a contact that is now ambiguous, matched or without AIS coverage. Such a lead is stale and is never shown as a lead. */
@@ -46,6 +65,7 @@ export function staleLeadReason(lead: Pick<Lead, "lead_type" | "primary_type">, 
   if (!c || lead.lead_type !== "L1" || lead.primary_type !== "contact") return null;
   if (c.ais_status === "unmatched" && isAmbiguous(c)) {
     const cand = ambiguousCandidates(c);
+    if (cand.length === 1) return `its primary contact is now ambiguous: it and another radar contact both fit AIS vessel ${cand[0]}, and an ambiguous contact never forms a lead`;
     return `its primary contact is now ambiguous between AIS vessels${cand.length ? ` (${cand.join(", ")})` : ""}, and an ambiguous contact never forms a lead`;
   }
   if (c.ais_status === "matched") return "its primary contact is now matched to an AIS vessel";

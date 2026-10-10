@@ -7,7 +7,7 @@ import type { Contact, Lead, LeadState } from "../adapters/types";
 import { useApp, useAsync } from "../app/state";
 import { CHANGE_TEXT, EXPLAINED_REASONS, FACTOR_LABEL, FALSE_ALARM_REASONS, LAWFUL_TEXT, LEAD_TYPE_NAME, LOW_QUALITY_LABEL, STALE_LEAD_LABEL, STALE_LEAD_NOTE, STATE_LABEL, STORAGE_WARNING, UNCALIBRATED, codeText } from "../app/text";
 import { fmtMetres, fmtNum, fmtRelative, fmtTime, pct, priorityBand } from "../app/format";
-import { ambiguousCandidates, identityLabel, isAmbiguous, lowQualityPairing, staleLeadReason } from "../app/identity";
+import { ambiguityCase, ambiguityPhrase, identityLabel, isAmbiguous, lowQualityPairing, staleLeadReason } from "../app/identity";
 import { Field, ProvChip, sourceFor } from "./Provenance";
 import { CaveatCallout, ObjectLink, StatusChip, downloadText } from "./common";
 import { ChipImage } from "./ChipImage";
@@ -217,8 +217,7 @@ function LeadIdentity({ c }: { c: Contact }) {
     body = <span data-lead-identity="matched">{c.vessel_name || "no name heard"}, MMSI {c.mmsi ? <ObjectLink type="vessel" id={c.vessel_key || `mmsi:${c.mmsi}`} label={c.mmsi} /> : "unknown"}, <span className="judgment">{c.match_quality || "?"} quality</span>
       {lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</span>;
   } else if (c.ais_status === "unmatched" && isAmbiguous(c)) {
-    const cand = ambiguousCandidates(c);
-    body = <span data-lead-identity="ambiguous">ambiguous between {cand.length ? cand.join(", ") : "two or more AIS vessels"}; an ambiguous contact is never a lead</span>;
+    body = <span data-lead-identity="ambiguous" data-ambiguity-case={ambiguityCase(c)}>{ambiguityPhrase(c)}; an ambiguous contact is never a lead</span>;
   } else if (c.ais_status === "unmatched") {
     body = <span data-lead-identity="unmatched">no AIS match; nearest AIS vessel {c.nearest_ais_mmsi ? <ObjectLink type="vessel" id={c.nearest_vessel_key || `mmsi:${c.nearest_ais_mmsi}`} label={c.nearest_vessel_name || c.nearest_ais_mmsi} /> : "none heard"}{c.nearest_ais_dist_m !== null ? `, ${fmtMetres(c.nearest_ais_dist_m, units)}` : ""}; {fmtNum(c.n_ais_10km)} AIS vessels within 10 km; reach {pct(c.ais_reach)}</span>;
   } else {

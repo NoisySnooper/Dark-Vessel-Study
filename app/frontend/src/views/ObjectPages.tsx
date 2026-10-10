@@ -4,10 +4,10 @@ import { Button, ButtonGroup, Callout, Section, SectionCard, Tag } from "@bluepr
 import type { CellRecord, Contact, EventRecord, Lead, LeadEvidence, Light, Pass, Track, Vessel } from "../adapters/types";
 import { useApp, useAsync } from "../app/state";
 import {
-  AISSTREAM_LABEL, AIS_STATUS_LABEL, AIS_STATUS_MEANING, AMBIGUOUS_NOTE, CHANGE_TEXT, CNN_HELD_OUT, CNN_LIMITS, DARK_CAVEAT_SHORT, EEZ_STATEMENT, FACTOR_LABEL,
+  AISSTREAM_LABEL, AIS_STATUS_LABEL, AIS_STATUS_MEANING, CHANGE_TEXT, CNN_HELD_OUT, CNN_LIMITS, DARK_CAVEAT_SHORT, EEZ_STATEMENT, FACTOR_LABEL,
   GAP_NOTE, IDENTITY_NOTE, LAWFUL_TEXT, LENGTH_NOTE, LIGHT_NOTE, LOW_QUALITY_LABEL, OCEAN_NOTE, PRODUCT_CAVEAT, STALE_LEAD_LABEL, codeText,
 } from "../app/text";
-import { ambiguousCandidates, identityLabel, isAmbiguous, lowQualityPairing, reviewGrade, reviewReason, shipTypeText, staleLeadReason } from "../app/identity";
+import { ambiguityCase, ambiguityPhrase, ambiguousCandidates, ambiguousNote, identityLabel, isAmbiguous, lowQualityPairing, reviewGrade, reviewReason, shipTypeText, staleLeadReason } from "../app/identity";
 import { fmtDtg, fmtDuration, fmtMetres, fmtNum, fmtRelative, fmtTime, pct, sentinelName } from "../app/format";
 import { Field, ProvenanceTable } from "./Provenance";
 import { CaveatCallout, ConfidenceTag, CoordBlock, Loading, Missing, NotBuilt, ObjectHeader, ObjectLink, StatusChip, copyText, downloadText } from "./common";
@@ -181,7 +181,7 @@ function Identification({ c, nearestName, staleIds }: { c: Contact; nearestName:
             <Field label="Method" rec={c} field="match_method" value={c.match_method} />
             <Field label="Match quality" rec={c} field="match_quality" judgment value={c.match_quality ? <>{c.match_quality}{lowQ ? <strong data-low-quality-label="1">: {LOW_QUALITY_LABEL}</strong> : null} <span className="scs-muted">(rule: {aisstream && meta.live_rules?.match_quality_rule ? meta.live_rules.match_quality_rule : "stated in the source file's about layer and summary"})</span></> : null} />
             {handCheck}
-            {c.match_ambiguous ? <Field label="Ambiguity" rec={c} field="match_ambiguous" judgment value="the pairing could not tell this contact apart from two or more AIS vessels" /> : null}
+            {c.match_ambiguous ? <Field label="Ambiguity" rec={c} field="match_ambiguous" judgment value={ambiguityPhrase(c)} /> : null}
             {c.ais_class ? <Field label="AIS class" rec={c} field="ais_class" value={c.ais_class} /> : null}
             <Field label="Identity source" rec={c} field="identity_source" value={c.identity_source} />
             {c.vessel_key && !c.vessel_key.startsWith("mmsi:") && <Field label="Source vessel id" rec={c} field="vessel_key" value={c.vessel_key} />}
@@ -190,9 +190,9 @@ function Identification({ c, nearestName, staleIds }: { c: Contact; nearestName:
         {ident === "matched" && lowQ && <Callout compact intent="warning" data-low-quality-note="1" style={{ margin: "6px 0" }}>{LOW_QUALITY_LABEL}: the name and MMSI shown are the AIS vessel this contact was paired with, kept for review (board D6.2). They are not a confirmed identity of the contact.</Callout>}
         {ident === "matched" && <p className="scs-muted" style={{ fontSize: 12 }}>{sourceLine ? `Identity source: ${sourceLine}. ` : ""}{IDENTITY_NOTE}</p>}
         {ident === "unmatched" && ambiguous && (
-          <div className="scs-fields" data-identification="unmatched" data-ambiguous="1">
-            <p style={{ margin: "4px 0" }} data-ambiguous-note="1">{AMBIGUOUS_NOTE}</p>
-            <Field label="Candidate AIS vessels" rec={c} field="ambiguous_mmsi" value={candidates.length ? <span data-candidates="1">{candidates.map((m, i) => <span key={m}>{i ? ", " : ""}<ObjectLink type="vessel" id={`mmsi:${m}`} label={m} /></span>)}</span> : "not listed in this record"} />
+          <div className="scs-fields" data-identification="unmatched" data-ambiguous="1" data-ambiguity-case={ambiguityCase(c)}>
+            <p style={{ margin: "4px 0" }} data-ambiguous-note="1">{ambiguousNote(c)}</p>
+            <Field label={candidates.length === 1 ? "Candidate AIS vessel (another contact also fits it)" : "Candidate AIS vessels"} rec={c} field="ambiguous_mmsi" value={candidates.length ? <span data-candidates="1">{candidates.map((m, i) => <span key={m}>{i ? ", " : ""}<ObjectLink type="vessel" id={`mmsi:${m}`} label={m} /></span>)}</span> : "not listed in this record"} />
             {typeof c.match_alt_dist_m === "number" && <Field label="Distance of the closest alternative" rec={c} field="match_alt_dist_m" value={fmtMetres(c.match_alt_dist_m, units)} />}
             <Field label="Nearest AIS vessel" rec={c} field="nearest_ais_mmsi" value={c.nearest_ais_mmsi && nearestKey ? <><ObjectLink type="vessel" id={nearestKey} label={c.nearest_vessel_name || nearestName || c.nearest_ais_mmsi} /> (MMSI {c.nearest_ais_mmsi}), {fmtMetres(c.nearest_ais_dist_m, units)}</> : "none heard"} />
             <Field label="Lead" rec={c} field="lead_ids" value={`none: an ambiguous contact never forms a lead${staleIds.length ? "; a lead built before the rematch still cites it and is marked stale under Links" : ""}`} />
@@ -247,7 +247,7 @@ function Identification({ c, nearestName, staleIds }: { c: Contact; nearestName:
 }
 
 export function VesselPage({ id }: { id: string }) {
-  const { adapter, tz, units, meta } = useApp();
+  const { adapter, tz, units, meta, phone } = useApp();
   const { data: v, loading } = useAsync(() => adapter.vessel(id), [adapter, id]);
   const { data: track } = useAsync(() => adapter.track(id), [adapter, id]);
   const { data: matched } = useAsync(async () => (v ? (await Promise.all(v.contacts_matched.map((d) => adapter.contact(d)))).filter(Boolean) as Contact[] : []), [adapter, v?.vessel_key]);
@@ -299,12 +299,23 @@ export function VesselPage({ id }: { id: string }) {
       </Section>
       <Section title="Contacts matched" compact collapsible>
         <SectionCard>
-          {matched && matched.length ? (
-            <table className="bp6-html-table bp6-compact" style={{ width: "100%" }}>
-              <thead><tr><th>det_id</th><th>time</th><th>match distance</th><th>time offset</th><th>quality</th></tr></thead>
-              <tbody>{matched.map((c) => <tr key={c.det_id}><td><ObjectLink type="contact" id={c.det_id} /></td><td>{fmtTime(c.acq_utc, tz)}</td><td>{fmtMetres(c.match_dist_m, units)}</td><td>{fmtDuration(c.match_dt_s)}</td><td className="judgment">{c.match_quality}{lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</td></tr>)}</tbody>
-            </table>
-          ) : <p className="scs-muted">No radar contact matched to this vessel in this build.</p>}
+          {matched && matched.length ? (phone ? (
+            // phone: one card per contact, the quality and the board D6.2 label in view without scrolling
+            <div className="scs-cards" data-vessel-matched="cards">
+              {matched.map((c) => (
+                <div key={c.det_id} className="scs-card" data-det-id={c.det_id}>
+                  <div className="title"><ObjectLink type="contact" id={c.det_id} /></div>
+                  <div className="row"><span className="judgment">{c.match_quality || "?"} quality</span>{lowQualityPairing(c) ? <Tag minimal intent="warning" data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</div>
+                  <div className="row"><span>{fmtTime(c.acq_utc, tz)}</span><span>{fmtMetres(c.match_dist_m, units)}, {fmtDuration(c.match_dt_s)}</span></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="scs-table-scroll"><table className="bp6-html-table bp6-compact" style={{ width: "100%" }} data-vessel-matched="table">
+              <thead><tr><th>det_id</th><th>quality</th><th>time</th><th>match distance</th><th>time offset</th></tr></thead>
+              <tbody>{matched.map((c) => <tr key={c.det_id} data-det-id={c.det_id}><td><ObjectLink type="contact" id={c.det_id} /></td><td className="judgment">{c.match_quality}{lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</td><td>{fmtTime(c.acq_utc, tz)}</td><td>{fmtMetres(c.match_dist_m, units)}</td><td>{fmtDuration(c.match_dt_s)}</td></tr>)}</tbody>
+            </table></div>
+          )) : <p className="scs-muted">No radar contact matched to this vessel in this build.</p>}
         </SectionCard>
       </Section>
       <Section title="Events" compact collapsible><SectionCard><NotBuilt what="aisstream events (silences, encounters, loitering, identity changes)" /></SectionCard></Section>

@@ -23,11 +23,29 @@ interface Envelope<T> {
   [k: string]: unknown;
 }
 
+// Single records read twice within one page view (the Pass page reads its matched contacts for the result line and again
+// for the table, and the nearest-vessel names of its rows) share one request. Entries expire after RECORD_TTL_MS, so a
+// backend that reloads its files is seen within a minute; a failed read is never kept.
+const RECORD_TTL_MS = 60_000;
+const RECORD_CACHE_MAX = 2000;
+
 export class HttpAdapter implements DataAdapter {
   readonly kind = "http" as const;
   private base: string;
   private decisions: Decision[] = [];
   private metaCache: Meta | null = null;
+  private records = new Map<string, { t: number; p: Promise<unknown> }>();
+
+  private memo<T>(key: string, load: () => Promise<T>): Promise<T> {
+    const now = Date.now();
+    const hit = this.records.get(key);
+    if (hit && now - hit.t < RECORD_TTL_MS) return hit.p as Promise<T>;
+    const p = load();
+    p.catch(() => this.records.delete(key));
+    if (this.records.size >= RECORD_CACHE_MAX) this.records.delete(this.records.keys().next().value as string);
+    this.records.set(key, { t: now, p });
+    return p;
+  }
 
   constructor(base = "") {
     this.base = base.replace(/\/$/, "") + "/api/v1";
@@ -75,9 +93,11 @@ export class HttpAdapter implements DataAdapter {
     return this.list(await this.get<Contact>("/contacts", q));
   }
   async contact(det_id: string): Promise<Contact | null> {
-    const c = await this.getOrNull<Contact>(`/contacts/${encodeURIComponent(det_id)}`);
-    if (c) c.object_context = normalizeObjectContext(c.object_context);
-    return c;
+    return this.memo(`contact:${det_id}`, async () => {
+      const c = await this.getOrNull<Contact>(`/contacts/${encodeURIComponent(det_id)}`);
+      if (c) c.object_context = normalizeObjectContext(c.object_context);
+      return c;
+    });
   }
   private async cols(name: string, kind: "contacts" | "lights" | "vessels"): Promise<PointLayerData | null> {
     const r = await fetch(`${this.base}/layers/${name}.cols`);
@@ -94,7 +114,7 @@ export class HttpAdapter implements DataAdapter {
     return this.list(await this.get<Vessel>("/vessels", q));
   }
   async vessel(vessel_key: string): Promise<Vessel | null> {
-    return this.getOrNull<Vessel>(`/vessels/${encodeURIComponent(vessel_key)}`);
+    return this.memo(`vessel:${vessel_key}`, () => this.getOrNull<Vessel>(`/vessels/${encodeURIComponent(vessel_key)}`));
   }
   async vesselPoints(): Promise<PointLayerData | null> {
     return this.cols("vessels", "vessels");

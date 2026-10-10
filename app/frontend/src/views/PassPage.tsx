@@ -126,14 +126,16 @@ export function PassPage({ id }: { id: string }) {
 function MatchedSplit({ pass, matched }: { pass: Pass; matched: number }) {
   const { adapter } = useApp();
   const { data } = useAsync(async () => {
-    if (!matched) return { ident: 0, low: 0, of: 0 };
+    if (!matched) return { ident: 0, low: 0, of: 0, graded: true };
     const r = await adapter.contacts({ pass_id: pass.pass_id, ais_status: "matched", limit: 500 });
-    const rows = adapter.kind === "http" && r.items.length <= 200 ? await Promise.all(r.items.map((c) => adapter.contact(c.det_id).catch(() => null).then((x) => x || c))) : r.items;
+    const full = adapter.kind !== "http" || r.items.length <= 200;
+    const rows = adapter.kind === "http" && full ? await Promise.all(r.items.map((c) => adapter.contact(c.det_id).catch(() => null).then((x) => x || c))) : r.items;
     const low = rows.filter((c) => lowQualityPairing(c)).length;
-    return { ident: rows.length - low, low, of: rows.length };
+    return { ident: rows.length - low, low, of: rows.length, graded: full || rows.some((c) => reviewGrade(c) !== null) };
   }, [adapter, pass.pass_id, matched]);
   if (!matched) return <>0 matched to an AIS vessel</>;
   if (!data || data.of !== matched) return <span data-matched-split="pending">{fmtNum(matched)} matched to an AIS vessel (named below with the quality of each pairing)</span>;
+  if (!data.graded) return <span data-matched-split="quality-only">{fmtNum(matched)} matched to an AIS vessel: {fmtNum(data.low)} {data.low === 1 ? "is a low-quality pairing" : "are low-quality pairings"} whose identity is not confirmed; hand-check grades are shown on each Contact page (too many matches to read here)</span>;
   return <span data-matched-split="1"><strong>{fmtNum(data.ident)} identified</strong> (an AIS pairing of high or medium quality that the hand check does not doubt), {fmtNum(data.low)} {data.low === 1 ? "low-quality pairing" : "low-quality pairings"} whose identity is not confirmed</span>;
 }
 
@@ -220,7 +222,7 @@ function ContactTable({ items, tab }: { items: Contact[]; tab: AisStatus }) {
               {tab === "matched" && <>
                 <td>{c.vessel_name || <span className="scs-muted">no name heard</span>}</td>
                 <td>{c.mmsi ? <ObjectLink type="vessel" id={c.vessel_key || `mmsi:${c.mmsi}`} label={c.mmsi} /> : "?"}</td>
-                <td className="judgment" data-quality={c.match_quality || ""}>{c.match_quality || "?"}{c.match_ambiguous ? " (ambiguous)" : ""}{lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</td>
+                <td className="judgment" data-quality={c.match_quality || ""} data-review-grade={reviewGrade(c) || ""}>{c.match_quality || "?"}{c.match_ambiguous ? " (ambiguous)" : ""}{lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</td>
                 <td className="judgment">{reviewGrade(c) || (c.review_note ? "noted" : "not checked")}</td>
                 <td>{fmtMetres(c.match_dist_m, units)}</td><td>{fmtDuration(c.match_dt_s)}</td>
                 <td>{shipTypeText(c.ship_type) || "?"}</td><td>{c.length_ais_m === null ? "?" : `${fmtNum(c.length_ais_m)} m`}</td>
@@ -255,7 +257,7 @@ function ContactCards({ items }: { items: Contact[] }) {
         <div key={c.det_id} className="scs-card" data-det-id={c.det_id}>
           <div className="title"><ObjectLink type="contact" id={c.det_id} /></div>
           <div className="row"><StatusChip status={c.ais_status} short /><span>{c.length_est_m === null ? "?" : `${fmtNum(c.length_est_m)} m`}, {c.confidence}, CNN {c.cnn_score === null ? "none" : c.cnn_score.toFixed(2)}</span></div>
-          {c.ais_status === "matched" && <div className="row" style={{ flexWrap: "wrap" }}><span>{c.vessel_name || "no name heard"}</span><span>MMSI {c.mmsi ? <ObjectLink type="vessel" id={c.vessel_key || `mmsi:${c.mmsi}`} label={c.mmsi} /> : "?"}</span><span>{c.call_sign || ""} {c.flag || ""} {shipTypeText(c.ship_type) || ""}</span><span>{fmtMetres(c.match_dist_m, units)}, {fmtDuration(c.match_dt_s)}, <span className="judgment" data-quality={c.match_quality || ""}>{c.match_quality || "?"} quality</span></span>{lowQualityPairing(c) ? <Tag minimal intent="warning" data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</div>}
+          {c.ais_status === "matched" && <div className="row" style={{ flexWrap: "wrap" }}><span>{c.vessel_name || "no name heard"}</span><span>MMSI {c.mmsi ? <ObjectLink type="vessel" id={c.vessel_key || `mmsi:${c.mmsi}`} label={c.mmsi} /> : "?"}</span><span>{c.call_sign || ""} {c.flag || ""} {shipTypeText(c.ship_type) || ""}</span><span>{fmtMetres(c.match_dist_m, units)}, {fmtDuration(c.match_dt_s)}, <span className="judgment" data-quality={c.match_quality || ""} data-review-grade={reviewGrade(c) || ""}>{c.match_quality || "?"} quality</span></span>{lowQualityPairing(c) ? <Tag minimal intent="warning" data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</div>}
           {c.ais_status === "unmatched" && <div className="row" style={{ flexWrap: "wrap" }}><span data-nearest="1">nearest AIS {c.nearest_ais_mmsi ? <ObjectLink type="vessel" id={c.nearest_vessel_key || `mmsi:${c.nearest_ais_mmsi}`} label={c.nearest_vessel_name || c.nearest_ais_mmsi} /> : "none"}</span><span>{fmtMetres(c.nearest_ais_dist_m, units)}, {fmtDuration(c.nearest_ais_dt_s)}</span><LeadOrAmbiguity c={c} /></div>}
           {c.ais_status === "no_coverage" && <div className="row"><span>nothing heard in the cell or within 20 km</span></div>}
         </div>
@@ -268,7 +270,8 @@ function ContactCards({ items }: { items: Contact[] }) {
 function LeadOrAmbiguity({ c }: { c: Contact }) {
   if (isAmbiguous(c)) {
     const cand = ambiguousCandidates(c);
-    return <span data-ambiguous="1">ambiguous, not a lead; candidates {cand.length ? cand.map((m, i) => <span key={m}>{i ? ", " : ""}<ObjectLink type="vessel" id={`mmsi:${m}`} label={m} /></span>) : "in the record"}</span>;
+    if (cand.length === 1) return <span data-ambiguous="1" data-ambiguity-case="shared">ambiguous, not a lead; candidate <ObjectLink type="vessel" id={`mmsi:${cand[0]}`} label={cand[0]} />, which another radar contact also fits</span>;
+    return <span data-ambiguous="1" data-ambiguity-case="vessels">ambiguous, not a lead; candidates {cand.length ? cand.map((m, i) => <span key={m}>{i ? ", " : ""}<ObjectLink type="vessel" id={`mmsi:${m}`} label={m} /></span>) : "in the record"}</span>;
   }
   if (c.lead_ids && c.lead_ids.length) return <span data-dark-lead="1">dark lead: {c.lead_ids.map((l) => <ObjectLink key={l} type="lead" id={l} label={l.replace(/^L1-/, "L1 ")} />)}</span>;
   if (c.dark_lead) return <span data-dark-lead="1">dark lead candidate (no lead in this build)</span>;
