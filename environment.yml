@@ -37,7 +37,16 @@ dependencies:
   - pytest
   - jupyterlab
   - pip
+  # Node 22 (with npm 10) is needed for the app/frontend builds (make app-build). It is not part of
+  # this conda env: install it from https://nodejs.org or the system package manager.
+  # - nodejs=22
   - pip:
       - mgrs
       - websockets   # aisstream.io live AIS
+      - eccodes==2.49.0      # GRIB decoding for darkvessel.ocean.daily (Apache 2.0)
+      # Product backend (app/backend, docs/research/stack_decision.md section 3.2)
+      - fastapi==0.141.1
+      - uvicorn==0.53.0
+      - starlette==1.7.0
+      - annotated-doc==0.0.5
       - -e .

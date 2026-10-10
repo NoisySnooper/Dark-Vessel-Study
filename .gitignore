@@ -24,6 +24,7 @@ data/raw/
 data/cache/
 data/interim/
 data/chips/
+data/cache/chips/
 data/models/
 data/*_perpol.gpkg
 data/detections_regional_all.gpkg
@@ -60,6 +61,8 @@ data/ml/build_log.txt
 # Product app build artefacts
 app/frontend/node_modules/
 app/frontend/dist/
+app/frontend/dist-single/
+app/frontend/fixtures/*.html
 app/**/__pycache__/
 
 # Rebuilt in about 2 min by scripts/31_gfw_identity.py --steps outputs --offline (112 MB); the parquet is the committed copy

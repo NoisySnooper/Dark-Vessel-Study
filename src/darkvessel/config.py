@@ -57,6 +57,17 @@ DARK_CAVEAT = (
     "Treat every unmatched detection as a lead for review, not as evidence of wrongdoing."
 )
 DARK_CAVEAT_SHORT = "Dark = no AIS match. Not evidence of illegal activity."
+# Product caveat (app/CONTRACT.md section 1.1, board decision D4.2): DARK_CAVEAT extended to the
+# terrestrial AIS blind spot, because the open build's live AIS comes from shore receivers. Used
+# unchanged in every API record, export and lead view of SCS Vessel Watch.
+PRODUCT_CAVEAT = (
+    "'Dark' means only that no AIS position was matched to this radar contact. It does not "
+    "mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful "
+    "reasons, and both satellite and terrestrial AIS have blind spots: satellite AIS misses "
+    "messages in busy coastal waters, and shore receivers cover only the waters within their "
+    "radio range. Treat every unmatched contact as a lead for review, not as evidence of "
+    "wrongdoing. An AIS gap is not proof of intent."
+)
 
 # AWS Open Data mirror of Sentinel-1 GRD (anonymous reads worked on 2026-10-02).
 AWS_S1_BUCKET_URL = "https://sentinel-s1-l1c.s3.amazonaws.com"

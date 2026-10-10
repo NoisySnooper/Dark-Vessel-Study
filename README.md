@@ -2,10 +2,13 @@
 
 A sovereign, sensor-agnostic pipeline that detects vessels in satellite SAR imagery, correlates them with AIS, and flags the ones that do not broadcast. Area of interest: the South China Sea, Gulf of Tonkin and Gulf of Thailand (3.58 million km2), with the waters off Ca Mau, Vietnam, as the scene-detail sub-area.
 
-> **"Dark" does not mean illegal.** A dark detection only means no AIS position was matched to a radar return. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Every vessel product in this repo carries this caveat.
+> **"Dark" does not mean illegal.** A dark detection only means no AIS position was matched to a radar return. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Every vessel product in this repo carries this caveat; the product views carry the fuller product caveat (`app/CONTRACT.md` section 1.1).
 
 ## Why not just use Global Fishing Watch
 Three reasons, each with its source and verification status in `docs/data_landscape.md`: GFW data carries a noncommercial license, its SAR detections lag acquisition by days, and Sentinel-1A, the satellite behind most published SAR vessel work, ended operations in June 2026 (the constellation is now Sentinel-1C and 1D). This project builds its own detector and tests how it transfers to the new satellites.
+
+## Product
+**SCS Vessel Watch** is the product built on this pipeline. Its core is dark vessel detection and identification: a leads triage queue, object pages (Contact, Vessel, Light, Event, Lead), a map, a timeline and search, with the source of every field shown. Two builds: **open** (commercial-clean, no Global Fishing Watch data; live AIS relayed by aisstream.io, terms UNVERIFIED) and **research** (adds Global Fishing Watch data, CC BY-NC 4.0, noncommercial, labelled as such). Run it locally with `make serve` (`BUILD=open` or `research`, `PORT=8750`) after `make app-build` (Node 22). The same frontend also builds a shareable single-file page. Spec: `docs/product_design.md`; data contract and the product caveat: `app/CONTRACT.md`; package choices: `docs/research/stack_decision.md`. Every view carries the product caveat of `app/CONTRACT.md` section 1.1: shore AIS receivers also have blind spots, and an AIS gap is not proof of intent.
 
 ## Status
 See `docs/STATUS.md` for what is done, what is blocked, and the next tasks. Actions only the owner can take (network access, keys, labels, decisions) are in `docs/OWNER_ACTIONS.md`.
@@ -21,7 +24,11 @@ scripts/             01 AOI, 02 scene search, 03 Ca Mau baseline, 04-06 ML verif
                      11 clutter-rule check, 12 label scoring, 13 noise floor, 14 CNN on shared 1C/1D sea,
                      15 VIIRS night lights, 16 weather context, 17 look probability,
                      18 VIIRS and radar of one night, 19 Sentinel-2 optical check, 20 Satlas check,
-                     21 VIIRS nightly rates by region
+                     21 VIIRS nightly rates by region, 22-23 ocean static and daily layers,
+                     25 object context, 26 aisstream recorder, 27 GFW pull (research), 28 AIS reach
+                     and pass plan, 29 watchdog, 30 live passes, 31 GFW identity (research),
+                     32 CNN on the regional run, 33 leads, 34 expected activity
+app/                 SCS Vessel Watch: backend/ (FastAPI), frontend/ (React, Blueprint), CONTRACT.md
 tests/               offline unit tests (pytest)
 data/                small derived outputs (GeoPackage, CSV) are committed; raw data is gitignored
 docs/                reports, figures, status
@@ -29,7 +36,16 @@ notebooks/           exploration
 ```
 
 ## Run
-The `Makefile` runs everything in dependency order: `make test`, `make regional`, `make context` (weather and VIIRS), `make camau`, `make demo OUT=page.html`, or `make all`. Each script checkpoints, so a rerun skips finished work. Step by step:
+The `Makefile` runs everything in dependency order: `make test`, `make regional`, `make context` (weather, VIIRS, optical and Satlas checks), `make camau`, `make demo OUT=page.html`, or `make all`. Each script checkpoints, so a rerun skips finished work. Further targets (the Makefile header describes each):
+
+- live AIS and live passes: `make ais-watchdog`, `make ais-status`, `make ais-reach`, `make ais-passes`, `make live`, `make live-watch` (only the recorder that `make ais-watchdog` starts needs `AISSTREAM_API_KEY`; the others use the recording);
+- CNN verification of the regional run: `make cnn-regional`, `make cnn-regional-build`, `make cnn-regional-status`;
+- context and model: `make ocean`, `make object-context`, `make expected`;
+- leads: `make leads` (open), `make leads-research` (research);
+- research only, never in `make all`: `make gfw` (needs `GFW_API_TOKEN`; outputs under `data/research/`, CC BY-NC 4.0);
+- product: `make serve`, `make app-build`.
+
+Keys live only in the git-ignored `.env` at the repo root. The rest of the open pipeline needs none. Step by step:
 ```bash
 conda env create -f environment.yml && conda activate darkvessel
 python scripts/01_make_aoi.py                  # data/aoi.gpkg
