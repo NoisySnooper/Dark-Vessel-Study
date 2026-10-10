@@ -1,0 +1,1980 @@
+{
+ "generated_utc": "2026-10-10T01:11:17Z",
+ "script": "scripts/25_object_context.py",
+ "aoi": "south_china_sea",
+ "objects": {
+  "viirs": 191622,
+  "radar": 162386,
+  "radar_detail": 6005
+ },
+ "object_sources": {
+  "radar": "detections_regional_all.gpkg",
+  "radar_detail": "detections_baseline.gpkg",
+  "viirs": "viirs_lights_all.gpkg"
+ },
+ "groups": {
+  "('radar', 'clutter_zone')": 52820,
+  "('radar', 'fixed')": 25224,
+  "('radar', 'high')": 29228,
+  "('radar', 'medium')": 49387,
+  "('radar', 'near_fixed')": 5727,
+  "('radar_detail', 'fixed')": 349,
+  "('radar_detail', 'high')": 285,
+  "('radar_detail', 'medium')": 435,
+  "('radar_detail', 'oversized')": 36,
+  "('radar_detail', 'weak_vv_only')": 4900,
+  "('viirs', 'lit_vessel_candidate_clear')": 123756,
+  "('viirs', 'lit_vessel_candidate_under_cloud')": 40577,
+  "('viirs', 'persistent_light')": 27289
+ },
+ "object_date": "the UTC date of the observation (for VIIRS this equals the local night date used in viirs_lights)",
+ "static": {
+  "layers": {
+   "depth_m": {
+    "file": "depth_m_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "GEBCO_2026 Grid (15 arc-second global terrain model), netCDF at CEDA/BODC; https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/ice_surface_elevation/netcdf/GEBCO_2026.nc",
+    "version": "GEBCO_2026, date_created 2026-04-17, doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+    "licence": "GEBCO terms of use: 'The GEBCO Grid is placed in the public domain and may be used free of charge'; users may copy, adapt and commercially exploit it and must acknowledge the source; not for navigation",
+    "licence_url": "https://www.gebco.net/data-products/gridded-bathymetry/terms-of-use",
+    "access_date": "2026-10-08",
+    "units": "m below mean sea level (positive down)",
+    "method": "mean of GEBCO_2026 15 arc-second cells below sea level whose centres fall in the 0.01 degree cell; land = Natural Earth 10 m land or no cell below sea level",
+    "gebco_file_date_created": "2026-04-17"
+   },
+   "dist_coast_km": {
+    "file": "dist_coast_km_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "Natural Earth 10 m land polygons (coastline); https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson",
+    "version": "natural-earth-vector master, VERSION file 5.2.0-pre",
+    "licence": "Public domain",
+    "licence_url": "https://www.naturalearthdata.com/about/terms-of-use/",
+    "access_date": "2026-10-08",
+    "units": "km",
+    "method": "great-circle distance from the cell centre to the nearest vertex of the Natural Earth 10 m coastline densified to 0.002 degree (about 220 m), computed on 3-D unit vectors (no projection distortion); coast taken within the AOI bounds plus 1 degree"
+   },
+   "dist_port_km": {
+    "file": "dist_port_km_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "NGA World Port Index (Pub 150), Maritime Safety Information publications API; https://msi.nga.mil/api/publications/world-port-index?output=csv",
+    "version": "as served by the MSI API on the access date; the WPI is maintained continuously and the API output carries no edition number",
+    "licence": "msi.nga.mil Commercial Use Warning: 'NGA claims no copyright or other intellectual property right in the nautical products posted on this website for public use'; the NGA name, seal or initials may not be used to imply endorsement (10 U.S.C. 425). Legal disclaimer: provided 'as is', no warranty.",
+    "licence_url": "https://msi.nga.mil/api/pageContent/getByTitle?pageTitle=Commercial%20Use%20Warning",
+    "access_date": "2026-10-08",
+    "units": "km",
+    "method": "great-circle distance from the cell centre to the nearest major port; major = WPI harbour size L (Large) or M (Medium), or any Natural Earth 10 m port; WPI S (Small) and V (Very Small) are kept in the layer but not used for dist_port_km"
+   },
+   "ship_presence_all": {
+    "file": "ship_density_all_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only); https://datacatalog.worldbank.org/search/dataset/0037580",
+    "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+    "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+    "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+    "access_date": "2026-10-08",
+    "units": "values as published by the World Bank/IMF (the readme: 'total number of AIS positions' per 0.005 degree cell, January 2015 to February 2021), summed over the four source cells whose centres fall in the 0.01 degree cell; in five of the six layers many values cannot be counts (see the shipping warning), so read only value > 0 (presence), not the magnitude",
+    "method": "sum of the 0.005 degree source values (as published) whose centres fall in the 0.01 degree cell; land cells NaN",
+    "vessel_types": "World Bank layer 'all': all ship types combined (https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt)",
+    "read_as": "presence (value > 0) only"
+   },
+   "ship_presence_commercial": {
+    "file": "ship_density_commercial_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only); https://datacatalog.worldbank.org/search/dataset/0037580",
+    "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+    "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+    "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+    "access_date": "2026-10-08",
+    "units": "values as published by the World Bank/IMF (the readme: 'total number of AIS positions' per 0.005 degree cell, January 2015 to February 2021), summed over the four source cells whose centres fall in the 0.01 degree cell; in five of the six layers many values cannot be counts (see the shipping warning), so read only value > 0 (presence), not the magnitude",
+    "method": "sum of the 0.005 degree source values (as published) whose centres fall in the 0.01 degree cell; land cells NaN",
+    "vessel_types": "World Bank layer 'commercial': cargo, tanker, container, bulk, tug, supply, offshore, research, patrol and other working ships (https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt)",
+    "read_as": "presence (value > 0) only"
+   },
+   "ship_presence_fishing": {
+    "file": "ship_density_fishing_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only); https://datacatalog.worldbank.org/search/dataset/0037580",
+    "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+    "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+    "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+    "access_date": "2026-10-08",
+    "units": "values as published by the World Bank/IMF (the readme: 'total number of AIS positions' per 0.005 degree cell, January 2015 to February 2021), summed over the four source cells whose centres fall in the 0.01 degree cell; in five of the six layers many values cannot be counts (see the shipping warning), so read only value > 0 (presence), not the magnitude",
+    "method": "sum of the 0.005 degree source values (as published) whose centres fall in the 0.01 degree cell; land cells NaN",
+    "vessel_types": "World Bank layer 'fishing': FISHING VESSEL, TRAWLER (https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt)",
+    "read_as": "presence (value > 0) only"
+   },
+   "ship_presence_oilgas": {
+    "file": "ship_density_oilgas_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only); https://datacatalog.worldbank.org/search/dataset/0037580",
+    "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+    "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+    "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+    "access_date": "2026-10-08",
+    "units": "values as published by the World Bank/IMF (the readme: 'total number of AIS positions' per 0.005 degree cell, January 2015 to February 2021), summed over the four source cells whose centres fall in the 0.01 degree cell; in five of the six layers many values cannot be counts (see the shipping warning), so read only value > 0 (presence), not the magnitude",
+    "method": "sum of the 0.005 degree source values (as published) whose centres fall in the 0.01 degree cell; land cells NaN",
+    "vessel_types": "World Bank layer 'oilgas': PLATFORM, FLOATING STORAGE/PRODUCTION, DRILLING JACK UP, DRILLING RIG, WELL STIMULATION VESSEL (https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt)",
+    "read_as": "presence (value > 0) only"
+   },
+   "ship_presence_passenger": {
+    "file": "ship_density_passenger_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only); https://datacatalog.worldbank.org/search/dataset/0037580",
+    "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+    "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+    "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+    "access_date": "2026-10-08",
+    "units": "values as published by the World Bank/IMF (the readme: 'total number of AIS positions' per 0.005 degree cell, January 2015 to February 2021), summed over the four source cells whose centres fall in the 0.01 degree cell; in five of the six layers many values cannot be counts (see the shipping warning), so read only value > 0 (presence), not the magnitude",
+    "method": "sum of the 0.005 degree source values (as published) whose centres fall in the 0.01 degree cell; land cells NaN",
+    "vessel_types": "World Bank layer 'passenger': PASSENGER SHIP, RO-RO/PASSENGER SHIP (https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt)",
+    "read_as": "presence (value > 0) only"
+   },
+   "ship_presence_leisure": {
+    "file": "ship_density_leisure_4326.tif",
+    "present": true,
+    "shape": [
+     2698,
+     2311
+    ],
+    "source": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only); https://datacatalog.worldbank.org/search/dataset/0037580",
+    "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+    "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+    "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+    "access_date": "2026-10-08",
+    "units": "values as published by the World Bank/IMF (the readme: 'total number of AIS positions' per 0.005 degree cell, January 2015 to February 2021), summed over the four source cells whose centres fall in the 0.01 degree cell; in five of the six layers many values cannot be counts (see the shipping warning), so read only value > 0 (presence), not the magnitude",
+    "method": "sum of the 0.005 degree source values (as published) whose centres fall in the 0.01 degree cell; land cells NaN",
+    "vessel_types": "World Bank layer 'leisure': YACHT, SAILING VESSEL (https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt)",
+    "read_as": "presence (value > 0) only"
+   }
+  },
+  "presence_rule": "ship_presence_<type> is True when the World Bank/IMF Global Shipping Traffic Density layer of that vessel type holds a value above 0 in the object's 0.01 degree cell (the sum of the four 0.005 degree source cells), January 2015 to February 2021; False when it holds 0; null on land, outside the rasters or when the layer is missing. Only presence is read. Many published values cannot be counts of AIS positions (docs/ocean_context.md 3.4), so no magnitude, rank, percentile, lane or busy-water threshold is derived from them. Presence assumes that a 0 means no AIS record of that type in that period; it says that AIS traffic of that type touched the water, nothing about the object."
+ },
+ "daily": {
+  "front_thresholds": {
+   "2026-09-05": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-06": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-07": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-08": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-09": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-10": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-11": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-12": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-13": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-14": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-15": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-16": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-17": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-18": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-19": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-20": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-21": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-22": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-23": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-24": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-25": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-26": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-27": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-28": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-29": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-09-30": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   },
+   "2026-10-01": {
+    "low": 0.039276123046875,
+    "high": 0.057769775390625
+   }
+  },
+  "rtofs_hours_used": [
+   "2026-09-05T18:00:00+00:00",
+   "2026-09-06T18:00:00+00:00",
+   "2026-09-07T18:00:00+00:00",
+   "2026-09-08T18:00:00+00:00",
+   "2026-09-09T18:00:00+00:00",
+   "2026-09-10T18:00:00+00:00",
+   "2026-09-11T18:00:00+00:00",
+   "2026-09-12T18:00:00+00:00",
+   "2026-09-13T18:00:00+00:00",
+   "2026-09-14T18:00:00+00:00",
+   "2026-09-15T18:00:00+00:00",
+   "2026-09-16T18:00:00+00:00",
+   "2026-09-17T18:00:00+00:00",
+   "2026-09-18T18:00:00+00:00",
+   "2026-09-19T18:00:00+00:00",
+   "2026-09-20T11:00:00+00:00",
+   "2026-09-20T18:00:00+00:00",
+   "2026-09-20T22:00:00+00:00",
+   "2026-09-21T11:00:00+00:00",
+   "2026-09-21T18:00:00+00:00",
+   "2026-09-21T23:00:00+00:00",
+   "2026-09-22T11:00:00+00:00",
+   "2026-09-22T18:00:00+00:00",
+   "2026-09-22T22:00:00+00:00",
+   "2026-09-23T10:00:00+00:00",
+   "2026-09-23T18:00:00+00:00",
+   "2026-09-23T23:00:00+00:00",
+   "2026-09-24T11:00:00+00:00",
+   "2026-09-24T18:00:00+00:00",
+   "2026-09-25T18:00:00+00:00",
+   "2026-09-26T10:00:00+00:00",
+   "2026-09-26T18:00:00+00:00",
+   "2026-09-26T23:00:00+00:00",
+   "2026-09-27T11:00:00+00:00",
+   "2026-09-27T18:00:00+00:00",
+   "2026-09-27T22:00:00+00:00",
+   "2026-09-28T11:00:00+00:00",
+   "2026-09-28T18:00:00+00:00",
+   "2026-09-28T22:00:00+00:00",
+   "2026-09-29T11:00:00+00:00",
+   "2026-09-29T18:00:00+00:00",
+   "2026-09-29T23:00:00+00:00",
+   "2026-09-30T10:00:00+00:00",
+   "2026-09-30T18:00:00+00:00",
+   "2026-10-01T10:00:00+00:00",
+   "2026-10-01T18:00:00+00:00",
+   "2026-10-01T23:00:00+00:00"
+  ],
+  "rtofs_hours_fetched": [],
+  "wave_valid_times_used": [
+   "2026-09-05T18:00:00+00:00",
+   "2026-09-06T18:00:00+00:00",
+   "2026-09-07T18:00:00+00:00",
+   "2026-09-08T18:00:00+00:00",
+   "2026-09-09T18:00:00+00:00",
+   "2026-09-10T18:00:00+00:00",
+   "2026-09-11T18:00:00+00:00",
+   "2026-09-12T18:00:00+00:00",
+   "2026-09-13T18:00:00+00:00",
+   "2026-09-14T18:00:00+00:00",
+   "2026-09-15T18:00:00+00:00",
+   "2026-09-16T18:00:00+00:00",
+   "2026-09-17T18:00:00+00:00",
+   "2026-09-18T18:00:00+00:00",
+   "2026-09-19T18:00:00+00:00",
+   "2026-09-20T11:00:00+00:00",
+   "2026-09-20T12:00:00+00:00",
+   "2026-09-20T18:00:00+00:00",
+   "2026-09-20T22:00:00+00:00",
+   "2026-09-20T23:00:00+00:00",
+   "2026-09-21T11:00:00+00:00",
+   "2026-09-21T18:00:00+00:00",
+   "2026-09-21T23:00:00+00:00",
+   "2026-09-22T11:00:00+00:00",
+   "2026-09-22T18:00:00+00:00",
+   "2026-09-22T22:00:00+00:00",
+   "2026-09-22T23:00:00+00:00",
+   "2026-09-23T10:00:00+00:00",
+   "2026-09-23T11:00:00+00:00",
+   "2026-09-23T18:00:00+00:00",
+   "2026-09-23T23:00:00+00:00",
+   "2026-09-24T11:00:00+00:00",
+   "2026-09-24T18:00:00+00:00",
+   "2026-09-25T18:00:00+00:00",
+   "2026-09-26T10:00:00+00:00",
+   "2026-09-26T11:00:00+00:00",
+   "2026-09-26T18:00:00+00:00",
+   "2026-09-26T23:00:00+00:00",
+   "2026-09-27T11:00:00+00:00",
+   "2026-09-27T18:00:00+00:00",
+   "2026-09-27T22:00:00+00:00",
+   "2026-09-27T23:00:00+00:00",
+   "2026-09-28T11:00:00+00:00",
+   "2026-09-28T18:00:00+00:00",
+   "2026-09-28T22:00:00+00:00",
+   "2026-09-28T23:00:00+00:00",
+   "2026-09-29T11:00:00+00:00",
+   "2026-09-29T18:00:00+00:00",
+   "2026-09-29T23:00:00+00:00",
+   "2026-09-30T10:00:00+00:00",
+   "2026-09-30T18:00:00+00:00",
+   "2026-10-01T10:00:00+00:00",
+   "2026-10-01T11:00:00+00:00",
+   "2026-10-01T18:00:00+00:00",
+   "2026-10-01T23:00:00+00:00"
+  ],
+  "wave_files_fetched": [],
+  "missing": []
+ },
+ "daily_by_day": {
+  "2026-09-05": {
+   "objects": 9581,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-05T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 271677,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-06": {
+   "objects": 10812,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-06T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 302911,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-07": {
+   "objects": 10956,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-07T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 341710,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-08": {
+   "objects": 10431,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-08T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 337922,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-09": {
+   "objects": 4138,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-09T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 259249,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-10": {
+   "objects": 2641,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-10T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 161688,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-11": {
+   "objects": 1713,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-11T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 128158,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-12": {
+   "objects": 2875,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-12T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 145965,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-13": {
+   "objects": 3867,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-13T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 250888,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-14": {
+   "objects": 4366,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-14T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 308460,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-15": {
+   "objects": 6549,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-15T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 311819,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-16": {
+   "objects": 7258,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-16T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 301081,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-17": {
+   "objects": 6032,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-17T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 254019,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-18": {
+   "objects": 5139,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-18T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 225782,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-19": {
+   "objects": 7816,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-19T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 257734,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-20": {
+   "objects": 27686,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-20T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 255848,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-21": {
+   "objects": 20785,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-21T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 153070,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-22": {
+   "objects": 20034,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-22T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 143285,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-23": {
+   "objects": 17672,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-23T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 120495,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-24": {
+   "objects": 10673,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-24T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 127526,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-25": {
+   "objects": 7780,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-25T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 202649,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-26": {
+   "objects": 31382,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-26T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 290294,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-27": {
+   "objects": 27560,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-27T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 291308,
+   "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily"
+  },
+  "2026-09-28": {
+   "objects": 26678,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-28T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 224933,
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily"
+  },
+  "2026-09-29": {
+   "objects": 29859,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-29T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 313419,
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily"
+  },
+  "2026-09-30": {
+   "objects": 15635,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-09-30T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 366045,
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily"
+  },
+  "2026-10-01": {
+   "objects": 30095,
+   "sst_source": "mur",
+   "sst_valid_time": "2026-10-01T09:00:00Z",
+   "sst_dataset": "jplMURSST41",
+   "front_pixels": 228801,
+   "chl_dataset": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily"
+  }
+ },
+ "fill_rates": {
+  "cell_id": {
+   "all": {
+    "n": 360013,
+    "filled": 360013,
+    "share": 1.0
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 162386,
+    "share": 1.0
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6005,
+    "share": 1.0
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191622,
+    "share": 1.0
+   }
+  },
+  "depth_m": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "dist_coast_km": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "dist_port_km": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "ship_presence_all": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "ship_presence_commercial": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "ship_presence_fishing": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "ship_presence_oilgas": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "ship_presence_passenger": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "ship_presence_leisure": {
+   "all": {
+    "n": 360013,
+    "filled": 355621,
+    "share": 0.9878
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158559,
+    "share": 0.9764
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5945,
+    "share": 0.99
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191117,
+    "share": 0.9974
+   }
+  },
+  "sst_c": {
+   "all": {
+    "n": 360013,
+    "filled": 353598,
+    "share": 0.9822
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 157552,
+    "share": 0.9702
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5842,
+    "share": 0.9729
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 190204,
+    "share": 0.9926
+   }
+  },
+  "sst_grad": {
+   "all": {
+    "n": 360013,
+    "filled": 336705,
+    "share": 0.9353
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 142201,
+    "share": 0.8757
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5585,
+    "share": 0.9301
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 188919,
+    "share": 0.9859
+   }
+  },
+  "dist_front_km": {
+   "all": {
+    "n": 360013,
+    "filled": 360013,
+    "share": 1.0
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 162386,
+    "share": 1.0
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6005,
+    "share": 1.0
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191622,
+    "share": 1.0
+   }
+  },
+  "chl_log10": {
+   "all": {
+    "n": 360013,
+    "filled": 359829,
+    "share": 0.9995
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 162265,
+    "share": 0.9993
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6000,
+    "share": 0.9992
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191564,
+    "share": 0.9997
+   }
+  },
+  "current_speed_ms": {
+   "all": {
+    "n": 360013,
+    "filled": 351093,
+    "share": 0.9752
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 154047,
+    "share": 0.9486
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6005,
+    "share": 1.0
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191041,
+    "share": 0.997
+   }
+  },
+  "mld_m": {
+   "all": {
+    "n": 360013,
+    "filled": 351093,
+    "share": 0.9752
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 154047,
+    "share": 0.9486
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6005,
+    "share": 1.0
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191041,
+    "share": 0.997
+   }
+  },
+  "wave_hs_m": {
+   "all": {
+    "n": 360013,
+    "filled": 355432,
+    "share": 0.9873
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158121,
+    "share": 0.9737
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5863,
+    "share": 0.9764
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191448,
+    "share": 0.9991
+   }
+  },
+  "sst_time": {
+   "all": {
+    "n": 360013,
+    "filled": 360013,
+    "share": 1.0
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 162386,
+    "share": 1.0
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6005,
+    "share": 1.0
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191622,
+    "share": 1.0
+   }
+  },
+  "chl_time": {
+   "all": {
+    "n": 360013,
+    "filled": 360013,
+    "share": 1.0
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 162386,
+    "share": 1.0
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6005,
+    "share": 1.0
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191622,
+    "share": 1.0
+   }
+  },
+  "current_time": {
+   "all": {
+    "n": 360013,
+    "filled": 351093,
+    "share": 0.9752
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 154047,
+    "share": 0.9486
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 6005,
+    "share": 1.0
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191041,
+    "share": 0.997
+   }
+  },
+  "wave_time": {
+   "all": {
+    "n": 360013,
+    "filled": 355432,
+    "share": 0.9873
+   },
+   "radar": {
+    "n": 162386,
+    "filled": 158121,
+    "share": 0.9737
+   },
+   "radar_detail": {
+    "n": 6005,
+    "filled": 5863,
+    "share": 0.9764
+   },
+   "viirs": {
+    "n": 191622,
+    "filled": 191448,
+    "share": 0.9991
+   }
+  }
+ },
+ "time_matching": {
+  "sst_c, sst_grad, dist_front_km, chl_log10": "the daily layer of the object's UTC date (MUR SST valid 09:00 UTC; OISST fallback valid 12:00 UTC; chlorophyll daily composite)",
+  "current_speed_ms, mld_m": "RTOFS hourly nowcast nearest to the object's whole hour within 2 h (current_time), value of the nearest RTOFS sea cell within 10 km",
+  "wave_hs_m": "GFS-Wave analysis or short forecast nearest to the object's whole hour within 3 h (wave_time), bilinear with NaN (land) neighbours dropped"
+ },
+ "rules": {
+  "ship_presence": "ship_presence_<type> is True when the World Bank/IMF Global Shipping Traffic Density layer of that vessel type holds a value above 0 in the object's 0.01 degree cell (the sum of the four 0.005 degree source cells), January 2015 to February 2021; False when it holds 0; null on land, outside the rasters or when the layer is missing. Only presence is read. Many published values cannot be counts of AIS positions (docs/ocean_context.md 3.4), so no magnitude, rank, percentile, lane or busy-water threshold is derived from them. Presence assumes that a 0 means no AIS record of that type in that period; it says that AIS traffic of that type touched the water, nothing about the object.",
+  "within_10km_of_front": "dist_front_km <= 10",
+  "shallower_than_50m, shallower_than_200m": "depth_m < 50, depth_m < 200",
+  "within_20km_of_coast": "dist_coast_km <= 20",
+  "shares": "every share is over the rows of the class with a value; its denominator is the matching <field>_n"
+ },
+ "columns": {
+  "object_type": "radar (regional Sentinel-1C/1D objects), radar_detail (Ca Mau scene), viirs (lights at sea)",
+  "object_id": "det_id (radar) or light_id (viirs); joins data/weather_context.parquet and the GeoPackages",
+  "group": "radar: high, medium (vessel candidates), fixed, clutter_zone, near_fixed, weak_vv_only, oversized; viirs: lit_vessel_candidate_clear, lit_vessel_candidate_under_cloud, persistent_light",
+  "depth_m": "GEBCO_2026 mean depth of the 0.01 degree cell, m positive down",
+  "dist_coast_km, dist_port_km": "great-circle distance to the Natural Earth coastline and to the nearest major port",
+  "cell_id": "r<row>c<col> on the 0.25 degree model grid (darkvessel.ocean.grid.model_grid); joins the Cell record",
+  "region": "reporting box of the object (darkvessel.ocean.grid.REPORTING_BOXES), 'other' outside every box; not a boundary",
+  "ship_presence_all, _commercial, _fishing, _oilgas, _passenger, _leisure": "ship_presence_<type> is True when the World Bank/IMF Global Shipping Traffic Density layer of that vessel type holds a value above 0 in the object's 0.01 degree cell (the sum of the four 0.005 degree source cells), January 2015 to February 2021; False when it holds 0; null on land, outside the rasters or when the layer is missing. Only presence is read. Many published values cannot be counts of AIS positions (docs/ocean_context.md 3.4), so no magnitude, rank, percentile, lane or busy-water threshold is derived from them. Presence assumes that a 0 means no AIS record of that type in that period; it says that AIS traffic of that type touched the water, nothing about the object.",
+  "in_aoi_grid": "False when the object lies outside the static rasters",
+  "sst_c, sst_time, sst_source": "SST of the object's UTC date and the valid time and source (mur or oisst) of that field",
+  "sst_grad": "SST gradient magnitude, degrees C per km, same day",
+  "dist_front_km": "distance to the centre of the nearest front pixel of that day (fronts: hysteresis mask of scripts/23_daily_ocean.py)",
+  "chl_log10, chl_time, chl_dataset": "log10 chlorophyll-a (mg m-3) of the day and the ERDDAP dataset it came from",
+  "current_speed_ms, mld_m, current_time": "RTOFS depth-averaged current speed and mixed-layer thickness, valid time",
+  "wave_hs_m, wave_time": "GFS-Wave significant wave height and its valid time",
+  "length_est_m": "radar pixel-extent length (NaN for lights)"
+ },
+ "by_class": [
+  {
+   "object_type": "radar",
+   "group": "clutter_zone",
+   "n": 52820,
+   "depth_m_median": 29.5,
+   "depth_m_n": 51131,
+   "dist_coast_km_median": 28.03,
+   "dist_coast_km_n": 51131,
+   "dist_port_km_median": 112.64,
+   "dist_port_km_n": 51131,
+   "sst_c_median": 29.715,
+   "sst_c_n": 51056,
+   "sst_grad_median": 0.012,
+   "sst_grad_n": 45482,
+   "dist_front_km_median": 20.308,
+   "dist_front_km_n": 52820,
+   "chl_log10_median": -0.238,
+   "chl_log10_n": 52759,
+   "current_speed_ms_median": 0.043,
+   "current_speed_ms_n": 48834,
+   "mld_m_median": 11.069,
+   "mld_m_n": 48834,
+   "wave_hs_m_median": 0.367,
+   "wave_hs_m_n": 50885,
+   "length_est_m_median": 32.361,
+   "length_est_m_n": 52820,
+   "ship_presence_all_share": 0.5747,
+   "ship_presence_all_n": 51131,
+   "ship_presence_commercial_share": 0.569,
+   "ship_presence_commercial_n": 51131,
+   "ship_presence_fishing_share": 0.0044,
+   "ship_presence_fishing_n": 51131,
+   "ship_presence_oilgas_share": 0.009,
+   "ship_presence_oilgas_n": 51131,
+   "ship_presence_passenger_share": 0.0518,
+   "ship_presence_passenger_n": 51131,
+   "ship_presence_leisure_share": 0.0023,
+   "ship_presence_leisure_n": 51131,
+   "within_10km_of_front_share": 0.328,
+   "shallower_than_50m_share": 0.6185,
+   "shallower_than_200m_share": 0.8391,
+   "within_20km_of_coast_share": 0.4361
+  },
+  {
+   "object_type": "radar",
+   "group": "fixed",
+   "n": 25224,
+   "depth_m_median": 10.0,
+   "depth_m_n": 23734,
+   "dist_coast_km_median": 6.4,
+   "dist_coast_km_n": 23734,
+   "dist_port_km_median": 74.52,
+   "dist_port_km_n": 23734,
+   "sst_c_median": 29.475,
+   "sst_c_n": 22991,
+   "sst_grad_median": 0.017,
+   "sst_grad_n": 18016,
+   "dist_front_km_median": 11.479,
+   "dist_front_km_n": 25224,
+   "chl_log10_median": 0.541,
+   "chl_log10_n": 25172,
+   "current_speed_ms_median": 0.037,
+   "current_speed_ms_n": 22282,
+   "mld_m_median": 5.0,
+   "mld_m_n": 22282,
+   "wave_hs_m_median": 0.354,
+   "wave_hs_m_n": 23368,
+   "length_est_m_median": 89.969,
+   "length_est_m_n": 25224,
+   "ship_presence_all_share": 0.4443,
+   "ship_presence_all_n": 23734,
+   "ship_presence_commercial_share": 0.4289,
+   "ship_presence_commercial_n": 23734,
+   "ship_presence_fishing_share": 0.0089,
+   "ship_presence_fishing_n": 23734,
+   "ship_presence_oilgas_share": 0.0311,
+   "ship_presence_oilgas_n": 23734,
+   "ship_presence_passenger_share": 0.0434,
+   "ship_presence_passenger_n": 23734,
+   "ship_presence_leisure_share": 0.0043,
+   "ship_presence_leisure_n": 23734,
+   "within_10km_of_front_share": 0.4599,
+   "shallower_than_50m_share": 0.9266,
+   "shallower_than_200m_share": 0.9898,
+   "within_20km_of_coast_share": 0.7041
+  },
+  {
+   "object_type": "radar",
+   "group": "high",
+   "n": 29228,
+   "depth_m_median": 22.7,
+   "depth_m_n": 29051,
+   "dist_coast_km_median": 18.18,
+   "dist_coast_km_n": 29051,
+   "dist_port_km_median": 108.08,
+   "dist_port_km_n": 29051,
+   "sst_c_median": 29.527,
+   "sst_c_n": 28936,
+   "sst_grad_median": 0.016,
+   "sst_grad_n": 27065,
+   "dist_front_km_median": 13.051,
+   "dist_front_km_n": 29228,
+   "chl_log10_median": 0.094,
+   "chl_log10_n": 29225,
+   "current_speed_ms_median": 0.052,
+   "current_speed_ms_n": 28653,
+   "mld_m_median": 6.357,
+   "mld_m_n": 28653,
+   "wave_hs_m_median": 0.372,
+   "wave_hs_m_n": 29079,
+   "length_est_m_median": 73.156,
+   "length_est_m_n": 29228,
+   "ship_presence_all_share": 0.7198,
+   "ship_presence_all_n": 29051,
+   "ship_presence_commercial_share": 0.7115,
+   "ship_presence_commercial_n": 29051,
+   "ship_presence_fishing_share": 0.024,
+   "ship_presence_fishing_n": 29051,
+   "ship_presence_oilgas_share": 0.0237,
+   "ship_presence_oilgas_n": 29051,
+   "ship_presence_passenger_share": 0.1157,
+   "ship_presence_passenger_n": 29051,
+   "ship_presence_leisure_share": 0.0084,
+   "ship_presence_leisure_n": 29051,
+   "within_10km_of_front_share": 0.446,
+   "shallower_than_50m_share": 0.8034,
+   "shallower_than_200m_share": 0.983,
+   "within_20km_of_coast_share": 0.5294
+  },
+  {
+   "object_type": "radar",
+   "group": "medium",
+   "n": 49387,
+   "depth_m_median": 31.2,
+   "depth_m_n": 49012,
+   "dist_coast_km_median": 28.235,
+   "dist_coast_km_n": 49012,
+   "dist_port_km_median": 132.005,
+   "dist_port_km_n": 49012,
+   "sst_c_median": 29.586,
+   "sst_c_n": 48993,
+   "sst_grad_median": 0.013,
+   "sst_grad_n": 46550,
+   "dist_front_km_median": 20.577,
+   "dist_front_km_n": 49387,
+   "chl_log10_median": -0.169,
+   "chl_log10_n": 49382,
+   "current_speed_ms_median": 0.06,
+   "current_speed_ms_n": 48678,
+   "mld_m_median": 9.225,
+   "mld_m_n": 48678,
+   "wave_hs_m_median": 0.434,
+   "wave_hs_m_n": 49116,
+   "length_est_m_median": 24.142,
+   "length_est_m_n": 49387,
+   "ship_presence_all_share": 0.6775,
+   "ship_presence_all_n": 49012,
+   "ship_presence_commercial_share": 0.6712,
+   "ship_presence_commercial_n": 49012,
+   "ship_presence_fishing_share": 0.0144,
+   "ship_presence_fishing_n": 49012,
+   "ship_presence_oilgas_share": 0.018,
+   "ship_presence_oilgas_n": 49012,
+   "ship_presence_passenger_share": 0.0831,
+   "ship_presence_passenger_n": 49012,
+   "ship_presence_leisure_share": 0.0054,
+   "ship_presence_leisure_n": 49012,
+   "within_10km_of_front_share": 0.3689,
+   "shallower_than_50m_share": 0.6772,
+   "shallower_than_200m_share": 0.9136,
+   "within_20km_of_coast_share": 0.4102
+  },
+  {
+   "object_type": "radar",
+   "group": "near_fixed",
+   "n": 5727,
+   "depth_m_median": 17.2,
+   "depth_m_n": 5631,
+   "dist_coast_km_median": 19.54,
+   "dist_coast_km_n": 5631,
+   "dist_port_km_median": 96.42,
+   "dist_port_km_n": 5631,
+   "sst_c_median": 29.029,
+   "sst_c_n": 5576,
+   "sst_grad_median": 0.019,
+   "sst_grad_n": 5088,
+   "dist_front_km_median": 12.069,
+   "dist_front_km_n": 5727,
+   "chl_log10_median": 0.323,
+   "chl_log10_n": 5727,
+   "current_speed_ms_median": 0.048,
+   "current_speed_ms_n": 5600,
+   "mld_m_median": 5.0,
+   "mld_m_n": 5600,
+   "wave_hs_m_median": 0.385,
+   "wave_hs_m_n": 5673,
+   "length_est_m_median": 40.0,
+   "length_est_m_n": 5727,
+   "ship_presence_all_share": 0.6333,
+   "ship_presence_all_n": 5631,
+   "ship_presence_commercial_share": 0.6162,
+   "ship_presence_commercial_n": 5631,
+   "ship_presence_fishing_share": 0.0083,
+   "ship_presence_fishing_n": 5631,
+   "ship_presence_oilgas_share": 0.0433,
+   "ship_presence_oilgas_n": 5631,
+   "ship_presence_passenger_share": 0.0547,
+   "ship_presence_passenger_n": 5631,
+   "ship_presence_leisure_share": 0.003,
+   "ship_presence_leisure_n": 5631,
+   "within_10km_of_front_share": 0.4371,
+   "shallower_than_50m_share": 0.9748,
+   "shallower_than_200m_share": 0.9979,
+   "within_20km_of_coast_share": 0.5115
+  },
+  {
+   "object_type": "radar_detail",
+   "group": "fixed",
+   "n": 349,
+   "depth_m_median": 3.5,
+   "depth_m_n": 336,
+   "dist_coast_km_median": 2.65,
+   "dist_coast_km_n": 336,
+   "dist_port_km_median": 243.45,
+   "dist_port_km_n": 336,
+   "sst_c_median": 29.553,
+   "sst_c_n": 259,
+   "sst_grad_median": 0.014,
+   "sst_grad_n": 155,
+   "dist_front_km_median": 20.263,
+   "dist_front_km_n": 349,
+   "chl_log10_median": 0.528,
+   "chl_log10_n": 346,
+   "current_speed_ms_median": 0.024,
+   "current_speed_ms_n": 349,
+   "mld_m_median": 3.168,
+   "mld_m_n": 349,
+   "wave_hs_m_median": 0.136,
+   "wave_hs_m_n": 348,
+   "length_est_m_median": 80.243,
+   "length_est_m_n": 349,
+   "ship_presence_all_share": 0.0685,
+   "ship_presence_all_n": 336,
+   "ship_presence_commercial_share": 0.0685,
+   "ship_presence_commercial_n": 336,
+   "ship_presence_fishing_share": 0.0,
+   "ship_presence_fishing_n": 336,
+   "ship_presence_oilgas_share": 0.0,
+   "ship_presence_oilgas_n": 336,
+   "ship_presence_passenger_share": 0.0,
+   "ship_presence_passenger_n": 336,
+   "ship_presence_leisure_share": 0.0,
+   "ship_presence_leisure_n": 336,
+   "within_10km_of_front_share": 0.3381,
+   "shallower_than_50m_share": 1.0,
+   "shallower_than_200m_share": 1.0,
+   "within_20km_of_coast_share": 0.9792
+  },
+  {
+   "object_type": "radar_detail",
+   "group": "high",
+   "n": 285,
+   "depth_m_median": 8.0,
+   "depth_m_n": 279,
+   "dist_coast_km_median": 7.65,
+   "dist_coast_km_n": 279,
+   "dist_port_km_median": 246.17,
+   "dist_port_km_n": 279,
+   "sst_c_median": 29.848,
+   "sst_c_n": 265,
+   "sst_grad_median": 0.015,
+   "sst_grad_n": 235,
+   "dist_front_km_median": 10.625,
+   "dist_front_km_n": 285,
+   "chl_log10_median": 0.407,
+   "chl_log10_n": 285,
+   "current_speed_ms_median": 0.047,
+   "current_speed_ms_n": 285,
+   "mld_m_median": 2.757,
+   "mld_m_n": 285,
+   "wave_hs_m_median": 0.151,
+   "wave_hs_m_n": 279,
+   "length_est_m_median": 50.654,
+   "length_est_m_n": 285,
+   "ship_presence_all_share": 0.2509,
+   "ship_presence_all_n": 279,
+   "ship_presence_commercial_share": 0.2509,
+   "ship_presence_commercial_n": 279,
+   "ship_presence_fishing_share": 0.0,
+   "ship_presence_fishing_n": 279,
+   "ship_presence_oilgas_share": 0.0,
+   "ship_presence_oilgas_n": 279,
+   "ship_presence_passenger_share": 0.0143,
+   "ship_presence_passenger_n": 279,
+   "ship_presence_leisure_share": 0.0,
+   "ship_presence_leisure_n": 279,
+   "within_10km_of_front_share": 0.4737,
+   "shallower_than_50m_share": 1.0,
+   "shallower_than_200m_share": 1.0,
+   "within_20km_of_coast_share": 0.6272
+  },
+  {
+   "object_type": "radar_detail",
+   "group": "medium",
+   "n": 435,
+   "depth_m_median": 8.0,
+   "depth_m_n": 417,
+   "dist_coast_km_median": 6.4,
+   "dist_coast_km_n": 417,
+   "dist_port_km_median": 240.31,
+   "dist_port_km_n": 417,
+   "sst_c_median": 29.841,
+   "sst_c_n": 398,
+   "sst_grad_median": 0.019,
+   "sst_grad_n": 347,
+   "dist_front_km_median": 15.998,
+   "dist_front_km_n": 435,
+   "chl_log10_median": 0.455,
+   "chl_log10_n": 434,
+   "current_speed_ms_median": 0.047,
+   "current_speed_ms_n": 435,
+   "mld_m_median": 2.757,
+   "mld_m_n": 435,
+   "wave_hs_m_median": 0.155,
+   "wave_hs_m_n": 398,
+   "length_est_m_median": 30.0,
+   "length_est_m_n": 435,
+   "ship_presence_all_share": 0.2326,
+   "ship_presence_all_n": 417,
+   "ship_presence_commercial_share": 0.2302,
+   "ship_presence_commercial_n": 417,
+   "ship_presence_fishing_share": 0.0,
+   "ship_presence_fishing_n": 417,
+   "ship_presence_oilgas_share": 0.0,
+   "ship_presence_oilgas_n": 417,
+   "ship_presence_passenger_share": 0.0192,
+   "ship_presence_passenger_n": 417,
+   "ship_presence_leisure_share": 0.0,
+   "ship_presence_leisure_n": 417,
+   "within_10km_of_front_share": 0.3839,
+   "shallower_than_50m_share": 1.0,
+   "shallower_than_200m_share": 1.0,
+   "within_20km_of_coast_share": 0.693
+  },
+  {
+   "object_type": "radar_detail",
+   "group": "oversized",
+   "n": 36,
+   "depth_m_median": 4.6,
+   "depth_m_n": 33,
+   "dist_coast_km_median": 5.41,
+   "dist_coast_km_n": 33,
+   "dist_port_km_median": 224.34,
+   "dist_port_km_n": 33,
+   "sst_c_median": 29.545,
+   "sst_c_n": 36,
+   "sst_grad_median": 0.009,
+   "sst_grad_n": 29,
+   "dist_front_km_median": 24.294,
+   "dist_front_km_n": 36,
+   "chl_log10_median": 0.528,
+   "chl_log10_n": 36,
+   "current_speed_ms_median": 0.027,
+   "current_speed_ms_n": 36,
+   "mld_m_median": 3.084,
+   "mld_m_n": 36,
+   "wave_hs_m_median": 0.13,
+   "wave_hs_m_n": 33,
+   "length_est_m_median": 822.377,
+   "length_est_m_n": 36,
+   "ship_presence_all_share": 0.0303,
+   "ship_presence_all_n": 33,
+   "ship_presence_commercial_share": 0.0303,
+   "ship_presence_commercial_n": 33,
+   "ship_presence_fishing_share": 0.0,
+   "ship_presence_fishing_n": 33,
+   "ship_presence_oilgas_share": 0.0,
+   "ship_presence_oilgas_n": 33,
+   "ship_presence_passenger_share": 0.0303,
+   "ship_presence_passenger_n": 33,
+   "ship_presence_leisure_share": 0.0,
+   "ship_presence_leisure_n": 33,
+   "within_10km_of_front_share": 0.0556,
+   "shallower_than_50m_share": 1.0,
+   "shallower_than_200m_share": 1.0,
+   "within_20km_of_coast_share": 0.9697
+  },
+  {
+   "object_type": "radar_detail",
+   "group": "weak_vv_only",
+   "n": 4900,
+   "depth_m_median": 18.0,
+   "depth_m_n": 4880,
+   "dist_coast_km_median": 45.87,
+   "dist_coast_km_n": 4880,
+   "dist_port_km_median": 263.46,
+   "dist_port_km_n": 4880,
+   "sst_c_median": 30.107,
+   "sst_c_n": 4884,
+   "sst_grad_median": 0.024,
+   "sst_grad_n": 4819,
+   "dist_front_km_median": 4.241,
+   "dist_front_km_n": 4900,
+   "chl_log10_median": 0.013,
+   "chl_log10_n": 4899,
+   "current_speed_ms_median": 0.117,
+   "current_speed_ms_n": 4900,
+   "mld_m_median": 1.857,
+   "mld_m_n": 4900,
+   "wave_hs_m_median": 0.206,
+   "wave_hs_m_n": 4805,
+   "length_est_m_median": 20.0,
+   "length_est_m_n": 4900,
+   "ship_presence_all_share": 0.5314,
+   "ship_presence_all_n": 4880,
+   "ship_presence_commercial_share": 0.5195,
+   "ship_presence_commercial_n": 4880,
+   "ship_presence_fishing_share": 0.0,
+   "ship_presence_fishing_n": 4880,
+   "ship_presence_oilgas_share": 0.0006,
+   "ship_presence_oilgas_n": 4880,
+   "ship_presence_passenger_share": 0.051,
+   "ship_presence_passenger_n": 4880,
+   "ship_presence_leisure_share": 0.0,
+   "ship_presence_leisure_n": 4880,
+   "within_10km_of_front_share": 0.7,
+   "shallower_than_50m_share": 1.0,
+   "shallower_than_200m_share": 1.0,
+   "within_20km_of_coast_share": 0.1756
+  },
+  {
+   "object_type": "viirs",
+   "group": "lit_vessel_candidate_clear",
+   "n": 123756,
+   "depth_m_median": 59.0,
+   "depth_m_n": 123558,
+   "dist_coast_km_median": 71.52,
+   "dist_coast_km_n": 123558,
+   "dist_port_km_median": 173.59,
+   "dist_port_km_n": 123558,
+   "sst_c_median": 29.559,
+   "sst_c_n": 123212,
+   "sst_grad_median": 0.02,
+   "sst_grad_n": 122493,
+   "dist_front_km_median": 8.773,
+   "dist_front_km_n": 123756,
+   "chl_log10_median": -0.533,
+   "chl_log10_n": 123746,
+   "current_speed_ms_median": 0.063,
+   "current_speed_ms_n": 123541,
+   "mld_m_median": 14.893,
+   "mld_m_n": 123541,
+   "wave_hs_m_median": 0.557,
+   "wave_hs_m_n": 123706,
+   "length_est_m_median": null,
+   "length_est_m_n": 0,
+   "ship_presence_all_share": 0.7472,
+   "ship_presence_all_n": 123558,
+   "ship_presence_commercial_share": 0.7431,
+   "ship_presence_commercial_n": 123558,
+   "ship_presence_fishing_share": 0.0115,
+   "ship_presence_fishing_n": 123558,
+   "ship_presence_oilgas_share": 0.0129,
+   "ship_presence_oilgas_n": 123558,
+   "ship_presence_passenger_share": 0.0582,
+   "ship_presence_passenger_n": 123558,
+   "ship_presence_leisure_share": 0.0022,
+   "ship_presence_leisure_n": 123558,
+   "within_10km_of_front_share": 0.5356,
+   "shallower_than_50m_share": 0.4078,
+   "shallower_than_200m_share": 0.7084,
+   "within_20km_of_coast_share": 0.1515
+  },
+  {
+   "object_type": "viirs",
+   "group": "lit_vessel_candidate_under_cloud",
+   "n": 40577,
+   "depth_m_median": 55.5,
+   "depth_m_n": 40560,
+   "dist_coast_km_median": 67.5,
+   "dist_coast_km_n": 40560,
+   "dist_port_km_median": 209.605,
+   "dist_port_km_n": 40560,
+   "sst_c_median": 29.563,
+   "sst_c_n": 40498,
+   "sst_grad_median": 0.015,
+   "sst_grad_n": 40341,
+   "dist_front_km_median": 18.946,
+   "dist_front_km_n": 40577,
+   "chl_log10_median": -0.518,
+   "chl_log10_n": 40576,
+   "current_speed_ms_median": 0.064,
+   "current_speed_ms_n": 40557,
+   "mld_m_median": 16.077,
+   "mld_m_n": 40557,
+   "wave_hs_m_median": 0.601,
+   "wave_hs_m_n": 40575,
+   "length_est_m_median": null,
+   "length_est_m_n": 0,
+   "ship_presence_all_share": 0.6951,
+   "ship_presence_all_n": 40560,
+   "ship_presence_commercial_share": 0.6909,
+   "ship_presence_commercial_n": 40560,
+   "ship_presence_fishing_share": 0.005,
+   "ship_presence_fishing_n": 40560,
+   "ship_presence_oilgas_share": 0.0077,
+   "ship_presence_oilgas_n": 40560,
+   "ship_presence_passenger_share": 0.0427,
+   "ship_presence_passenger_n": 40560,
+   "ship_presence_leisure_share": 0.002,
+   "ship_presence_leisure_n": 40560,
+   "within_10km_of_front_share": 0.354,
+   "shallower_than_50m_share": 0.4323,
+   "shallower_than_200m_share": 0.7636,
+   "within_20km_of_coast_share": 0.1457
+  },
+  {
+   "object_type": "viirs",
+   "group": "persistent_light",
+   "n": 27289,
+   "depth_m_median": 57.0,
+   "depth_m_n": 26999,
+   "dist_coast_km_median": 85.91,
+   "dist_coast_km_n": 26999,
+   "dist_port_km_median": 125.93,
+   "dist_port_km_n": 26999,
+   "sst_c_median": 29.692,
+   "sst_c_n": 26494,
+   "sst_grad_median": 0.017,
+   "sst_grad_n": 26085,
+   "dist_front_km_median": 13.251,
+   "dist_front_km_n": 27289,
+   "chl_log10_median": -0.557,
+   "chl_log10_n": 27242,
+   "current_speed_ms_median": 0.094,
+   "current_speed_ms_n": 26943,
+   "mld_m_median": 19.452,
+   "mld_m_n": 26943,
+   "wave_hs_m_median": 0.583,
+   "wave_hs_m_n": 27167,
+   "length_est_m_median": null,
+   "length_est_m_n": 0,
+   "ship_presence_all_share": 0.8528,
+   "ship_presence_all_n": 26999,
+   "ship_presence_commercial_share": 0.8454,
+   "ship_presence_commercial_n": 26999,
+   "ship_presence_fishing_share": 0.0139,
+   "ship_presence_fishing_n": 26999,
+   "ship_presence_oilgas_share": 0.0812,
+   "ship_presence_oilgas_n": 26999,
+   "ship_presence_passenger_share": 0.0861,
+   "ship_presence_passenger_n": 26999,
+   "ship_presence_leisure_share": 0.0019,
+   "ship_presence_leisure_n": 26999,
+   "within_10km_of_front_share": 0.4289,
+   "shallower_than_50m_share": 0.4366,
+   "shallower_than_200m_share": 0.956,
+   "within_20km_of_coast_share": 0.155
+  }
+ ],
+ "sources": [
+  {
+   "key": "gebco",
+   "name": "GEBCO_2026 Grid (15 arc-second global terrain model), netCDF at CEDA/BODC",
+   "url": "https://dap.ceda.ac.uk/bodc/gebco/global/gebco_2026/ice_surface_elevation/netcdf/GEBCO_2026.nc",
+   "version": "GEBCO_2026, date_created 2026-04-17, doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+   "licence": "GEBCO terms of use: 'The GEBCO Grid is placed in the public domain and may be used free of charge'; users may copy, adapt and commercially exploit it and must acknowledge the source; not for navigation",
+   "licence_url": "https://www.gebco.net/data-products/gridded-bathymetry/terms-of-use",
+   "citation": "GEBCO Bathymetric Compilation Group 2026 (2026). The GEBCO_2026 Grid - a continuous terrain model for oceans and land at 15 arc-second intervals. doi:10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:01Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_static_summary.json"
+  },
+  {
+   "key": "ne_land",
+   "name": "Natural Earth 10 m land polygons (coastline)",
+   "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson",
+   "version": "natural-earth-vector master, VERSION file 5.2.0-pre",
+   "licence": "Public domain",
+   "licence_url": "https://www.naturalearthdata.com/about/terms-of-use/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:05Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_static_summary.json"
+  },
+  {
+   "key": "ne_ports",
+   "name": "Natural Earth 10 m ports",
+   "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_ports.geojson",
+   "version": "natural-earth-vector master, VERSION file 5.2.0-pre",
+   "licence": "Public domain",
+   "licence_url": "https://www.naturalearthdata.com/about/terms-of-use/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:08Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_static_summary.json"
+  },
+  {
+   "key": "wpi",
+   "name": "NGA World Port Index (Pub 150), Maritime Safety Information publications API",
+   "url": "https://msi.nga.mil/api/publications/world-port-index?output=csv",
+   "version": "as served by the MSI API on the access date; the WPI is maintained continuously and the API output carries no edition number",
+   "licence": "msi.nga.mil Commercial Use Warning: 'NGA claims no copyright or other intellectual property right in the nautical products posted on this website for public use'; the NGA name, seal or initials may not be used to imply endorsement (10 U.S.C. 425). Legal disclaimer: provided 'as is', no warranty.",
+   "licence_url": "https://msi.nga.mil/api/pageContent/getByTitle?pageTitle=Commercial%20Use%20Warning",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:09Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 206,
+   "from": "data/ocean_static_summary.json"
+  },
+  {
+   "key": "worldbank",
+   "name": "World Bank / IMF Global Shipping Traffic Density (AIS-derived layers Jan 2015 to Feb 2021, 0.005 degree; values not usable as counts, presence only)",
+   "url": "https://datacatalog.worldbank.org/search/dataset/0037580",
+   "version": "catalogue version 5, metadata last updated 2023-01-18; zips listed as last updated 2021-05-03 on the catalogue page, HTTP Last-Modified 2025-02-27 on the file server",
+   "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+   "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+   "citation": "World Bank Group, with IMF (Cerdeiro, Komaromi, Liu and Saeed, 2020), Global Shipping Traffic Density, https://datacatalog.worldbank.org/search/dataset/0037580",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:14Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_static_summary.json"
+  },
+  {
+   "key": "worldbank_readme",
+   "name": "World Bank shipping density readme (units)",
+   "url": "https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0084213/readme.txt",
+   "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+   "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:17Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_static_summary.json"
+  },
+  {
+   "key": "worldbank_types",
+   "name": "World Bank shipping density readme (vessel types per layer)",
+   "url": "https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045407/readme_ddh.txt",
+   "licence": "Creative Commons Attribution 4.0 (catalogue page: 'This dataset is licensed under Creative Commons Attribution 4.0')",
+   "licence_url": "https://datacatalog.worldbank.org/public-licenses?fragment=cc",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:02:18Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_static_summary.json"
+  },
+  {
+   "name": "MUR v4.1 sea surface temperature (JPL PO.DAAC MEaSUREs), analysed_sst and mask",
+   "dataset_id": "jplMURSST41",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/jplMURSST41/index.json",
+   "version": "04.1 (id MUR-JPL-L4-GLOB-v04.1)",
+   "resolution": "0.01 degree, daily 09 UTC",
+   "dataset_doi": "https://doi.org/10.5067/GHGMR-4FJ04",
+   "licence": "ERDDAP 'license' attribute: 'These data are available free of charge under the JPL PO.DAAC data policy. The data may be used and redistributed for free but is not intended for legal use, since it may contain inaccuracies ...' Acknowledgement requested: 'These data were provided by JPL under support by NASA MEaSUREs program.'",
+   "access_date": "2026-10-08",
+   "days_used": 27,
+   "checked_utc": "2026-10-09T14:04:43Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA OISST v2.1 (fallback for a missing MUR day)",
+   "dataset_id": "noaa-cdr-sea-surface-temp-optimum-interpolation-pds, data/v2.1/avhrr",
+   "url": "https://noaa-cdr-sea-surface-temp-optimum-interpolation-pds.s3.amazonaws.com/?list-type=2&prefix=data/v2.1/avhrr/202609/",
+   "version": "v02r01, preliminary files from 2026-09-23",
+   "resolution": "0.25 degree daily",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "licence_url": "https://registry.opendata.aws/noaa-cdr-oceanic/",
+   "access_date": "2026-10-08",
+   "days_used": 0,
+   "checked_utc": "2026-10-09T14:05:04Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 206,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, DINEOF gap-filled, 2 km, science quality (VIIRS S-NPP, NOAA-20, Sentinel-3A OLCI)",
+   "dataset_id": "noaacwNPPN20S3ASCIDINEOF2kmDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/noaacwNPPN20S3ASCIDINEOF2kmDaily/index.json",
+   "version": "time_coverage_end 2026-09-26 on the access date",
+   "resolution": "1/48 degree (about 2 km), daily",
+   "licence": "ERDDAP 'license' attribute: produced by NOAA, not subject to copyright in the United States, NOAA waives rights worldwide through CC0-1.0",
+   "access_date": "2026-10-08",
+   "days_used": 23,
+   "checked_utc": "2026-10-09T14:05:05Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, DINEOF gap-filled, 9 km, science quality (VIIRS S-NPP, NOAA-20, Sentinel-3A OLCI)",
+   "dataset_id": "nesdisNPPN20S3ASCIDINEOFDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisNPPN20S3ASCIDINEOFDaily/index.json",
+   "version": "time_coverage_end 2026-09-27 on the access date",
+   "resolution": "1/12 degree, daily",
+   "licence": "ERDDAP 'license' attribute: CC0-1.0 with the NOAA no-warranty text",
+   "access_date": "2026-10-08",
+   "days_used": 0,
+   "checked_utc": "2026-10-09T14:05:05Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, DINEOF gap-filled, 9 km, near-real-time (VIIRS S-NPP, NOAA-20)",
+   "dataset_id": "nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisVHNnoaaSNPPnoaa20NRTchlaGapfilledDaily/index.json",
+   "version": "time_coverage_end 2026-10-06 on the access date",
+   "resolution": "1/12 degree, daily",
+   "licence": "ERDDAP 'license' attribute: 'The data may be used and redistributed for free but is not intended for legal use ...' (NOAA no-warranty text)",
+   "access_date": "2026-10-08",
+   "days_used": 4,
+   "checked_utc": "2026-10-09T14:05:06Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, daily 4 km, science quality, VIIRS S-NPP, not gap-filled (valid-day share)",
+   "dataset_id": "nesdisVHNSQchlaDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisVHNSQchlaDaily/index.json",
+   "version": "time_coverage_end 2026-09-28 on the access date",
+   "resolution": "0.0375 degree, daily",
+   "licence": "ERDDAP 'license' attribute points to the NASA Earth science data policy (the URL it gives, science.nasa.gov/earth-science/earth-science-data/data-information-policy/, answered 404 on 2026-10-09; the NASA Earthdata page 'NASA promotes the full and open sharing of data' resolves) and asks for the acknowledgement 'These data were provided by NOAA's Center for Satellite Applications and Research (STAR) and the CoastWatch program.'",
+   "licence_url": "https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-information-guidance",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:06Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA CoastWatch chlorophyll-a, daily 4 km, near-real-time, VIIRS S-NPP, not gap-filled (valid-day share, last days)",
+   "dataset_id": "nesdisVHNchlaDaily",
+   "url": "https://coastwatch.pfeg.noaa.gov/erddap/info/nesdisVHNchlaDaily/index.json",
+   "version": "time_coverage_end 2026-10-05 on the access date",
+   "resolution": "0.0375 degree, daily",
+   "licence": "ERDDAP 'license' attribute: NASA Earth science data policy link plus the NOAA no-warranty text",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:08Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA RTOFS global nowcast, 2-D diagnostics (ssh, barotropic u and v, mixed-layer and boundary-layer thickness)",
+   "dataset_id": "noaa-nws-rtofs-pds, rtofs.YYYYMMDD/rtofs_glo_2ds_nHHH_diag.nc",
+   "url": "https://noaa-nws-rtofs-pds.s3.amazonaws.com/?list-type=2&prefix=rtofs.20260921/rtofs_glo_2ds_n",
+   "version": "files of 2026-09-06 to 2026-10-02 (valid time read from each file's Date variable)",
+   "resolution": "1/12 degree (0.08 degree) in the AOI, hourly nowcast",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "licence_url": "https://registry.opendata.aws/noaa-rtofs/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:08Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA GFS-Wave global 0.25 degree, significant height of combined wind waves and swell (HTSGW)",
+   "dataset_id": "noaa-gfs-bdp-pds, gfs.YYYYMMDD/HH/wave/gridded/gfswave.tHHz.global.0p25.fFFF.grib2 (+ .idx)",
+   "url": "https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.20260920/18/wave/gridded/gfswave.t18z.global.0p25.f000.grib2.idx",
+   "version": "operational GFS, cycles 00/06/12/18 UTC",
+   "resolution": "0.25 degree, hourly steps",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "licence_url": "https://registry.opendata.aws/noaa-gfs-bdp-pds/",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:09Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "licence_url_resolved": true,
+   "licence_url_resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "NOAA GFS 0.25 degree 10 m wind (darkvessel.weather.gfs_wind)",
+   "dataset_id": "noaa-gfs-bdp-pds, gfs.YYYYMMDD/HH/atmos/gfs.tHHz.pgrb2.0p25.fFFF",
+   "url": "https://registry.opendata.aws/noaa-gfs-bdp-pds/",
+   "version": "operational GFS",
+   "resolution": "0.25 degree",
+   "licence": "NOAA Open Data Dissemination (registry.opendata.aws text): 'NOAA data disseminated through NODD are open to the public and can be used as desired ... NOAA requests attribution for the use or dissemination of unaltered NOAA data' and no implied endorsement.",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:10Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "Natural Earth 10 m land (coast buffer) and marine polygons (AOI)",
+   "dataset_id": "ne_10m_land, ne_10m_geography_marine_polys",
+   "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/LICENSE.md",
+   "version": "master branch of nvkelso/natural-earth-vector",
+   "licence": "Public domain ('All versions of Natural Earth raster + vector map data found on this website are in the public domain', LICENSE.md; terms page https://www.naturalearthdata.com/about/terms-of-use/ says the same)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:10Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "Belkin, I. M. and O'Reilly, J. E. (2009), An algorithm for oceanic front detection in chlorophyll and SST satellite imagery, Journal of Marine Systems 78, 319-326",
+   "url": "https://doi.org/10.1016/j.jmarsys.2008.11.018",
+   "version": "bibliographic record from https://api.crossref.org/works/10.1016/j.jmarsys.2008.11.018; full text not read in this session",
+   "licence": "not applicable (reference)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:11Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "Cayula, J.-F. and Cornillon, P. (1992), Edge detection algorithm for SST images, Journal of Atmospheric and Oceanic Technology 9, 67-80",
+   "url": "https://doi.org/10.1175/1520-0426(1992)009<0067:EDAFSI>2.0.CO;2",
+   "version": "bibliographic record from Crossref (api.crossref.org/works/...); the publisher page answered 403 to this session, full text not read",
+   "licence": "not applicable (reference)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:12Z",
+   "resolved": true,
+   "resolved_status": 200,
+   "from": "data/ocean_daily_summary.json"
+  },
+  {
+   "name": "ecCodes Python bindings (GRIB2 JPEG2000 decoding of GFS-Wave), new pip dependency",
+   "url": "https://pypi.org/project/eccodes/",
+   "version": "eccodes 2.49.0 with eccodeslib 2.49.0.30",
+   "licence": "Apache License 2.0 (PyPI page)",
+   "access_date": "2026-10-08",
+   "checked_utc": "2026-10-09T14:05:14Z",
+   "resolved": true,
+   "resolved_status": 206,
+   "from": "data/ocean_daily_summary.json"
+  }
+ ],
+ "caveat": "Ocean and weather layers describe the sea, not what any vessel does. Expected activity says where lit boats or radar candidates usually are, given the sea and the weather; a cell above or below it is a lead for review, not evidence. Dark = no AIS match. Not evidence of illegal activity. The context fields describe the sea at an object's position and time, not what the object is or does; a radar candidate can be clutter and a light can be a platform.",
+ "gfw_comparison": "not run: pass --gfw auto after scripts/27_gfw_pull.py, or --gfw FILE; research only, CC BY-NC 4.0"
+}

@@ -1,0 +1,3613 @@
+{
+ "generated_utc": "2026-10-10T01:04:32Z",
+ "script": "scripts/34_expected_activity.py",
+ "aoi": "south_china_sea",
+ "model_id": "expected_activity_v1_5bae587d",
+ "threads": 2,
+ "permutation_repeats": 3,
+ "rules": {
+  "exposure_min_km2": 25.0,
+  "features": {
+   "viirs": {
+    "static": [
+     "lon",
+     "lat",
+     "region",
+     "depth_mean_m",
+     "depth_std_m",
+     "share_shallower_50m",
+     "share_shallower_200m",
+     "slope_mean_m_per_km",
+     "dist_coast_km",
+     "dist_port_km",
+     "ship_presence_share_all",
+     "ship_presence_share_fishing",
+     "ship_presence_share_oilgas",
+     "ship_presence_share_passenger"
+    ],
+    "full": [
+     "lon",
+     "lat",
+     "region",
+     "depth_mean_m",
+     "depth_std_m",
+     "share_shallower_50m",
+     "share_shallower_200m",
+     "slope_mean_m_per_km",
+     "dist_coast_km",
+     "dist_port_km",
+     "ship_presence_share_all",
+     "ship_presence_share_fishing",
+     "ship_presence_share_oilgas",
+     "ship_presence_share_passenger",
+     "sst_mean_c",
+     "sst_sd_c",
+     "sst_grad_mean",
+     "front_share",
+     "dist_front_km",
+     "chl_log10_mean",
+     "ssh_anom_m",
+     "ssh_grad",
+     "current_speed_ms",
+     "mld_m",
+     "wind_ms",
+     "wave_hs_m",
+     "moon_illum_pct"
+    ]
+   },
+   "radar": {
+    "static": [
+     "lon",
+     "lat",
+     "region",
+     "depth_mean_m",
+     "depth_std_m",
+     "share_shallower_50m",
+     "share_shallower_200m",
+     "slope_mean_m_per_km",
+     "dist_coast_km",
+     "dist_port_km",
+     "ship_presence_share_all",
+     "ship_presence_share_fishing",
+     "ship_presence_share_oilgas",
+     "ship_presence_share_passenger"
+    ],
+    "full": [
+     "lon",
+     "lat",
+     "region",
+     "depth_mean_m",
+     "depth_std_m",
+     "share_shallower_50m",
+     "share_shallower_200m",
+     "slope_mean_m_per_km",
+     "dist_coast_km",
+     "dist_port_km",
+     "ship_presence_share_all",
+     "ship_presence_share_fishing",
+     "ship_presence_share_oilgas",
+     "ship_presence_share_passenger",
+     "sst_mean_c",
+     "sst_sd_c",
+     "sst_grad_mean",
+     "front_share",
+     "dist_front_km",
+     "chl_log10_mean",
+     "ssh_anom_m",
+     "ssh_grad",
+     "current_speed_ms",
+     "mld_m",
+     "wind_ms",
+     "wave_hs_m",
+     "pass_dir",
+     "mission",
+     "inc_angle_cell_deg"
+    ]
+   }
+  },
+  "forbidden_features": "Marine Regions EEZ attributes and any World Bank/IMF shipping magnitude (model.FORBIDDEN_FEATURE_RULES); shipping enters as presence shares only (value above 0)",
+  "trees": {
+   "learning_rate": 0.05,
+   "max_iter": 300,
+   "max_leaf_nodes": 15,
+   "min_samples_leaf": 40,
+   "l2_regularization": 1.0,
+   "early_stopping": false,
+   "random_state": 0
+  },
+  "climatology": "cell rate shrunk to the region rate by exposure-weighted empirical Bayes (Marshall 1991); region rate for cells unseen in training, global rate for unseen regions (so under leave-one-region-out the climatology equals the global rate)",
+  "cv": "leave-one-week-out (blocks of 7 dates from the first) and leave-one-region-out (reporting boxes, 'other' included)",
+  "d2": "1 - Poisson deviance(model) / deviance(baseline) on the out-of-fold predictions of both, rows all models predict",
+  "gate": "anomalies only when the full model beats the climatology: pooled week-CV D2 > 0 and > 0 in more than half of the week folds",
+  "anomaly": "Poisson two-sided p (twice the smaller tail) of the observed count against the week-CV expectation; Benjamini-Hochberg FDR < 0.01 over tested rows in calm weather (wind < 12 m/s)",
+  "calm": "wind_ms < 12 (GFS 10 m wind at 18 UTC for VIIRS, at the scene hour for radar)",
+  "robust": "flag_robust: the Poisson-BH flag that is also significant (BH q < 0.01 over the same family) under a negative binomial tail with alpha = the moment estimate of the overdispersion (Cameron and Trivedi 1990)",
+  "poisson_fdr_valid": "true only when the Pearson dispersion of the counts against the expectation is at most 1.5 (a rule of thumb of this project); otherwise the Poisson BH flags do not carry a 1 % false-discovery guarantee and flag_robust is the set to review"
+ },
+ "targets": {
+  "viirs": {
+   "target": "clear-sky lit vessel candidates per 1,000 km2 of clear searched sea, per cell-night (VIIRS DNB, all passes)",
+   "table": {
+    "granules": 904,
+    "granules_without_clear_counts": 0,
+    "passes": 153,
+    "satellites": [
+     "NOAA-20",
+     "NOAA-21",
+     "S-NPP"
+    ],
+    "nights": [
+     "2026-09-05",
+     "2026-09-06",
+     "2026-09-07",
+     "2026-09-08",
+     "2026-09-09",
+     "2026-09-10",
+     "2026-09-11",
+     "2026-09-12",
+     "2026-09-13",
+     "2026-09-14",
+     "2026-09-15",
+     "2026-09-16",
+     "2026-09-17",
+     "2026-09-18",
+     "2026-09-19",
+     "2026-09-20",
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25",
+     "2026-09-26",
+     "2026-09-27",
+     "2026-09-28",
+     "2026-09-29",
+     "2026-09-30",
+     "2026-10-01"
+    ],
+    "clear_lit_candidates": 123756,
+    "clear_lit_candidates_in_table_cells": 122359,
+    "clear_lit_candidates_outside_table_cells": 1397,
+    "searched_sea_km2_aoi_cells": 3526884.9559458075
+   },
+   "rows": 128979,
+   "tested_rows": 82751,
+   "count_tested": 122273.0,
+   "exposure_tested_km2": 107799377.82003109,
+   "observed_rate_per_1000km2": 1.1342644315084298,
+   "zero_share_tested": 0.6927287887759664,
+   "features": {
+    "static": {
+     "position": [
+      "lon",
+      "lat"
+     ],
+     "region": [
+      "region"
+     ],
+     "static": [
+      "depth_mean_m",
+      "depth_std_m",
+      "share_shallower_50m",
+      "share_shallower_200m",
+      "slope_mean_m_per_km",
+      "dist_coast_km",
+      "dist_port_km",
+      "ship_presence_share_all",
+      "ship_presence_share_fishing",
+      "ship_presence_share_oilgas",
+      "ship_presence_share_passenger"
+     ]
+    },
+    "full": {
+     "position": [
+      "lon",
+      "lat"
+     ],
+     "region": [
+      "region"
+     ],
+     "static": [
+      "depth_mean_m",
+      "depth_std_m",
+      "share_shallower_50m",
+      "share_shallower_200m",
+      "slope_mean_m_per_km",
+      "dist_coast_km",
+      "dist_port_km",
+      "ship_presence_share_all",
+      "ship_presence_share_fishing",
+      "ship_presence_share_oilgas",
+      "ship_presence_share_passenger"
+     ],
+     "sst": [
+      "sst_mean_c",
+      "sst_sd_c",
+      "sst_grad_mean",
+      "front_share",
+      "dist_front_km"
+     ],
+     "chl": [
+      "chl_log10_mean"
+     ],
+     "dynamics": [
+      "ssh_anom_m",
+      "ssh_grad",
+      "current_speed_ms",
+      "mld_m"
+     ],
+     "weather": [
+      "wind_ms",
+      "wave_hs_m"
+     ],
+     "moon": [
+      "moon_illum_pct"
+     ]
+    }
+   },
+   "cv": {
+    "week": {
+     "folds": {
+      "w1": 19269,
+      "w2": 21699,
+      "w3": 19547,
+      "w4": 22236
+     },
+     "pooled": [
+      {
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.3953,
+       "rows": 82751,
+       "mean_deviance": 3.3022,
+       "mean_deviance_baseline": 2.3666,
+       "folds": 4,
+       "folds_better": 0,
+       "fold_d2_mean": -0.4587,
+       "fold_d2_sd": 0.2754,
+       "fold_d2_min": -0.7017,
+       "fold_d2_max": -0.0999
+      },
+      {
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.2833,
+       "rows": 82751,
+       "mean_deviance": 2.3666,
+       "mean_deviance_baseline": 3.3022,
+       "folds": 4,
+       "folds_better": 4,
+       "fold_d2_mean": 0.2937,
+       "fold_d2_sd": 0.1474,
+       "fold_d2_min": 0.0908,
+       "fold_d2_max": 0.4124
+      },
+      {
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.3469,
+       "rows": 82751,
+       "mean_deviance": 2.1567,
+       "mean_deviance_baseline": 3.3022,
+       "folds": 4,
+       "folds_better": 4,
+       "fold_d2_mean": 0.3505,
+       "fold_d2_sd": 0.0827,
+       "fold_d2_min": 0.2481,
+       "fold_d2_max": 0.4338
+      },
+      {
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.0887,
+       "rows": 82751,
+       "mean_deviance": 2.1567,
+       "mean_deviance_baseline": 2.3666,
+       "folds": 4,
+       "folds_better": 4,
+       "fold_d2_mean": 0.0696,
+       "fold_d2_sd": 0.0718,
+       "fold_d2_min": 0.01,
+       "fold_d2_max": 0.173
+      },
+      {
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.4385,
+       "rows": 82751,
+       "mean_deviance": 1.8543,
+       "mean_deviance_baseline": 3.3022,
+       "folds": 4,
+       "folds_better": 4,
+       "fold_d2_mean": 0.4417,
+       "fold_d2_sd": 0.045,
+       "fold_d2_min": 0.3782,
+       "fold_d2_max": 0.4842
+      },
+      {
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.2165,
+       "rows": 82751,
+       "mean_deviance": 1.8543,
+       "mean_deviance_baseline": 2.3666,
+       "folds": 4,
+       "folds_better": 4,
+       "fold_d2_mean": 0.1942,
+       "fold_d2_sd": 0.1025,
+       "fold_d2_min": 0.0978,
+       "fold_d2_max": 0.3161
+      }
+     ],
+     "per_fold": [
+      {
+       "fold": "w1",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.7017,
+       "rows": 19269,
+       "count": 28656.0,
+       "mean_deviance": 4.5912,
+       "mean_deviance_baseline": 2.698
+      },
+      {
+       "fold": "w2",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.6451,
+       "rows": 21699,
+       "count": 18851.0,
+       "mean_deviance": 3.0173,
+       "mean_deviance_baseline": 1.8341
+      },
+      {
+       "fold": "w3",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.3882,
+       "rows": 19547,
+       "count": 26037.0,
+       "mean_deviance": 2.8473,
+       "mean_deviance_baseline": 2.0511
+      },
+      {
+       "fold": "w4",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.0999,
+       "rows": 22236,
+       "count": 48729.0,
+       "mean_deviance": 3.0639,
+       "mean_deviance_baseline": 2.7857
+      },
+      {
+       "fold": "w1",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.4124,
+       "rows": 19269,
+       "count": 28656.0,
+       "mean_deviance": 2.698,
+       "mean_deviance_baseline": 4.5912
+      },
+      {
+       "fold": "w2",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.3921,
+       "rows": 21699,
+       "count": 18851.0,
+       "mean_deviance": 1.8341,
+       "mean_deviance_baseline": 3.0173
+      },
+      {
+       "fold": "w3",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.2796,
+       "rows": 19547,
+       "count": 26037.0,
+       "mean_deviance": 2.0511,
+       "mean_deviance_baseline": 2.8473
+      },
+      {
+       "fold": "w4",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0908,
+       "rows": 22236,
+       "count": 48729.0,
+       "mean_deviance": 2.7857,
+       "mean_deviance_baseline": 3.0639
+      },
+      {
+       "fold": "w1",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.4338,
+       "rows": 19269,
+       "count": 28656.0,
+       "mean_deviance": 2.5996,
+       "mean_deviance_baseline": 4.5912
+      },
+      {
+       "fold": "w2",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.3982,
+       "rows": 21699,
+       "count": 18851.0,
+       "mean_deviance": 1.8158,
+       "mean_deviance_baseline": 3.0173
+      },
+      {
+       "fold": "w3",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.322,
+       "rows": 19547,
+       "count": 26037.0,
+       "mean_deviance": 1.9304,
+       "mean_deviance_baseline": 2.8473
+      },
+      {
+       "fold": "w4",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.2481,
+       "rows": 22236,
+       "count": 48729.0,
+       "mean_deviance": 2.3038,
+       "mean_deviance_baseline": 3.0639
+      },
+      {
+       "fold": "w1",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.0365,
+       "rows": 19269,
+       "count": 28656.0,
+       "mean_deviance": 2.5996,
+       "mean_deviance_baseline": 2.698
+      },
+      {
+       "fold": "w2",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.01,
+       "rows": 21699,
+       "count": 18851.0,
+       "mean_deviance": 1.8158,
+       "mean_deviance_baseline": 1.8341
+      },
+      {
+       "fold": "w3",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.0588,
+       "rows": 19547,
+       "count": 26037.0,
+       "mean_deviance": 1.9304,
+       "mean_deviance_baseline": 2.0511
+      },
+      {
+       "fold": "w4",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.173,
+       "rows": 22236,
+       "count": 48729.0,
+       "mean_deviance": 2.3038,
+       "mean_deviance_baseline": 2.7857
+      },
+      {
+       "fold": "w1",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.4842,
+       "rows": 19269,
+       "count": 28656.0,
+       "mean_deviance": 2.3683,
+       "mean_deviance_baseline": 4.5912
+      },
+      {
+       "fold": "w2",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.4516,
+       "rows": 21699,
+       "count": 18851.0,
+       "mean_deviance": 1.6546,
+       "mean_deviance_baseline": 3.0173
+      },
+      {
+       "fold": "w3",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.453,
+       "rows": 19547,
+       "count": 26037.0,
+       "mean_deviance": 1.5574,
+       "mean_deviance_baseline": 2.8473
+      },
+      {
+       "fold": "w4",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.3782,
+       "rows": 22236,
+       "count": 48729.0,
+       "mean_deviance": 1.9051,
+       "mean_deviance_baseline": 3.0639
+      },
+      {
+       "fold": "w1",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.1222,
+       "rows": 19269,
+       "count": 28656.0,
+       "mean_deviance": 2.3683,
+       "mean_deviance_baseline": 2.698
+      },
+      {
+       "fold": "w2",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.0978,
+       "rows": 21699,
+       "count": 18851.0,
+       "mean_deviance": 1.6546,
+       "mean_deviance_baseline": 1.8341
+      },
+      {
+       "fold": "w3",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.2407,
+       "rows": 19547,
+       "count": 26037.0,
+       "mean_deviance": 1.5574,
+       "mean_deviance_baseline": 2.0511
+      },
+      {
+       "fold": "w4",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3161,
+       "rows": 22236,
+       "count": 48729.0,
+       "mean_deviance": 1.9051,
+       "mean_deviance_baseline": 2.7857
+      }
+     ]
+    },
+    "region": {
+     "folds": {
+      "Central sea": 25369,
+      "Gulf of Thailand": 3428,
+      "Gulf of Tonkin": 4995,
+      "North shelf": 13265,
+      "South Vietnam shelf": 4432,
+      "Southern sea": 12232,
+      "other": 19030
+     },
+     "pooled": [
+      {
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 82751,
+       "mean_deviance": 3.4502,
+       "mean_deviance_baseline": 3.4502,
+       "folds": 7,
+       "folds_better": 0,
+       "fold_d2_mean": 0.0,
+       "fold_d2_sd": 0.0,
+       "fold_d2_min": 0.0,
+       "fold_d2_max": 0.0
+      },
+      {
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 82751,
+       "mean_deviance": 3.4502,
+       "mean_deviance_baseline": 3.4502,
+       "folds": 7,
+       "folds_better": 0,
+       "fold_d2_mean": 0.0,
+       "fold_d2_sd": 0.0,
+       "fold_d2_min": 0.0,
+       "fold_d2_max": 0.0
+      },
+      {
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.1938,
+       "rows": 82751,
+       "mean_deviance": 2.7816,
+       "mean_deviance_baseline": 3.4502,
+       "folds": 7,
+       "folds_better": 6,
+       "fold_d2_mean": 0.1753,
+       "fold_d2_sd": 0.1657,
+       "fold_d2_min": -0.073,
+       "fold_d2_max": 0.4624
+      },
+      {
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.1938,
+       "rows": 82751,
+       "mean_deviance": 2.7816,
+       "mean_deviance_baseline": 3.4502,
+       "folds": 7,
+       "folds_better": 6,
+       "fold_d2_mean": 0.1753,
+       "fold_d2_sd": 0.1657,
+       "fold_d2_min": -0.073,
+       "fold_d2_max": 0.4624
+      },
+      {
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.3262,
+       "rows": 82751,
+       "mean_deviance": 2.3249,
+       "mean_deviance_baseline": 3.4502,
+       "folds": 7,
+       "folds_better": 7,
+       "fold_d2_mean": 0.2804,
+       "fold_d2_sd": 0.1516,
+       "fold_d2_min": 0.0906,
+       "fold_d2_max": 0.4897
+      },
+      {
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3262,
+       "rows": 82751,
+       "mean_deviance": 2.3249,
+       "mean_deviance_baseline": 3.4502,
+       "folds": 7,
+       "folds_better": 7,
+       "fold_d2_mean": 0.2804,
+       "fold_d2_sd": 0.1516,
+       "fold_d2_min": 0.0906,
+       "fold_d2_max": 0.4897
+      }
+     ],
+     "per_fold": [
+      {
+       "fold": "other",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 19030,
+       "count": 15143.0,
+       "mean_deviance": 2.3006,
+       "mean_deviance_baseline": 2.3006
+      },
+      {
+       "fold": "North shelf",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 13265,
+       "count": 34969.0,
+       "mean_deviance": 3.4275,
+       "mean_deviance_baseline": 3.4275
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 4995,
+       "count": 27305.0,
+       "mean_deviance": 12.6706,
+       "mean_deviance_baseline": 12.6706
+      },
+      {
+       "fold": "Central sea",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 25369,
+       "count": 21409.0,
+       "mean_deviance": 2.3529,
+       "mean_deviance_baseline": 2.3529
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 3428,
+       "count": 6568.0,
+       "mean_deviance": 5.7889,
+       "mean_deviance_baseline": 5.7889
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 4432,
+       "count": 10080.0,
+       "mean_deviance": 5.7801,
+       "mean_deviance_baseline": 5.7801
+      },
+      {
+       "fold": "Southern sea",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 12232,
+       "count": 6799.0,
+       "mean_deviance": 2.3612,
+       "mean_deviance_baseline": 2.3612
+      },
+      {
+       "fold": "other",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 19030,
+       "count": 15143.0,
+       "mean_deviance": 2.3006,
+       "mean_deviance_baseline": 2.3006
+      },
+      {
+       "fold": "North shelf",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 13265,
+       "count": 34969.0,
+       "mean_deviance": 3.4275,
+       "mean_deviance_baseline": 3.4275
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 4995,
+       "count": 27305.0,
+       "mean_deviance": 12.6706,
+       "mean_deviance_baseline": 12.6706
+      },
+      {
+       "fold": "Central sea",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 25369,
+       "count": 21409.0,
+       "mean_deviance": 2.3529,
+       "mean_deviance_baseline": 2.3529
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 3428,
+       "count": 6568.0,
+       "mean_deviance": 5.7889,
+       "mean_deviance_baseline": 5.7889
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 4432,
+       "count": 10080.0,
+       "mean_deviance": 5.7801,
+       "mean_deviance_baseline": 5.7801
+      },
+      {
+       "fold": "Southern sea",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 12232,
+       "count": 6799.0,
+       "mean_deviance": 2.3612,
+       "mean_deviance_baseline": 2.3612
+      },
+      {
+       "fold": "other",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.2895,
+       "rows": 19030,
+       "count": 15143.0,
+       "mean_deviance": 1.6346,
+       "mean_deviance_baseline": 2.3006
+      },
+      {
+       "fold": "North shelf",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.1525,
+       "rows": 13265,
+       "count": 34969.0,
+       "mean_deviance": 2.905,
+       "mean_deviance_baseline": 3.4275
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.4624,
+       "rows": 4995,
+       "count": 27305.0,
+       "mean_deviance": 6.8117,
+       "mean_deviance_baseline": 12.6706
+      },
+      {
+       "fold": "Central sea",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": -0.073,
+       "rows": 25369,
+       "count": 21409.0,
+       "mean_deviance": 2.5247,
+       "mean_deviance_baseline": 2.3529
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.1053,
+       "rows": 3428,
+       "count": 6568.0,
+       "mean_deviance": 5.179,
+       "mean_deviance_baseline": 5.7889
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.158,
+       "rows": 4432,
+       "count": 10080.0,
+       "mean_deviance": 4.8667,
+       "mean_deviance_baseline": 5.7801
+      },
+      {
+       "fold": "Southern sea",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.1327,
+       "rows": 12232,
+       "count": 6799.0,
+       "mean_deviance": 2.048,
+       "mean_deviance_baseline": 2.3612
+      },
+      {
+       "fold": "other",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.2895,
+       "rows": 19030,
+       "count": 15143.0,
+       "mean_deviance": 1.6346,
+       "mean_deviance_baseline": 2.3006
+      },
+      {
+       "fold": "North shelf",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.1525,
+       "rows": 13265,
+       "count": 34969.0,
+       "mean_deviance": 2.905,
+       "mean_deviance_baseline": 3.4275
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.4624,
+       "rows": 4995,
+       "count": 27305.0,
+       "mean_deviance": 6.8117,
+       "mean_deviance_baseline": 12.6706
+      },
+      {
+       "fold": "Central sea",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": -0.073,
+       "rows": 25369,
+       "count": 21409.0,
+       "mean_deviance": 2.5247,
+       "mean_deviance_baseline": 2.3529
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.1053,
+       "rows": 3428,
+       "count": 6568.0,
+       "mean_deviance": 5.179,
+       "mean_deviance_baseline": 5.7889
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.158,
+       "rows": 4432,
+       "count": 10080.0,
+       "mean_deviance": 4.8667,
+       "mean_deviance_baseline": 5.7801
+      },
+      {
+       "fold": "Southern sea",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.1327,
+       "rows": 12232,
+       "count": 6799.0,
+       "mean_deviance": 2.048,
+       "mean_deviance_baseline": 2.3612
+      },
+      {
+       "fold": "other",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.472,
+       "rows": 19030,
+       "count": 15143.0,
+       "mean_deviance": 1.2146,
+       "mean_deviance_baseline": 2.3006
+      },
+      {
+       "fold": "North shelf",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.3098,
+       "rows": 13265,
+       "count": 34969.0,
+       "mean_deviance": 2.3655,
+       "mean_deviance_baseline": 3.4275
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.4897,
+       "rows": 4995,
+       "count": 27305.0,
+       "mean_deviance": 6.4662,
+       "mean_deviance_baseline": 12.6706
+      },
+      {
+       "fold": "Central sea",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.2083,
+       "rows": 25369,
+       "count": 21409.0,
+       "mean_deviance": 1.8628,
+       "mean_deviance_baseline": 2.3529
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.1728,
+       "rows": 3428,
+       "count": 6568.0,
+       "mean_deviance": 4.7885,
+       "mean_deviance_baseline": 5.7889
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.0906,
+       "rows": 4432,
+       "count": 10080.0,
+       "mean_deviance": 5.2564,
+       "mean_deviance_baseline": 5.7801
+      },
+      {
+       "fold": "Southern sea",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.2194,
+       "rows": 12232,
+       "count": 6799.0,
+       "mean_deviance": 1.8432,
+       "mean_deviance_baseline": 2.3612
+      },
+      {
+       "fold": "other",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.472,
+       "rows": 19030,
+       "count": 15143.0,
+       "mean_deviance": 1.2146,
+       "mean_deviance_baseline": 2.3006
+      },
+      {
+       "fold": "North shelf",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3098,
+       "rows": 13265,
+       "count": 34969.0,
+       "mean_deviance": 2.3655,
+       "mean_deviance_baseline": 3.4275
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.4897,
+       "rows": 4995,
+       "count": 27305.0,
+       "mean_deviance": 6.4662,
+       "mean_deviance_baseline": 12.6706
+      },
+      {
+       "fold": "Central sea",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.2083,
+       "rows": 25369,
+       "count": 21409.0,
+       "mean_deviance": 1.8628,
+       "mean_deviance_baseline": 2.3529
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.1728,
+       "rows": 3428,
+       "count": 6568.0,
+       "mean_deviance": 4.7885,
+       "mean_deviance_baseline": 5.7889
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.0906,
+       "rows": 4432,
+       "count": 10080.0,
+       "mean_deviance": 5.2564,
+       "mean_deviance_baseline": 5.7801
+      },
+      {
+       "fold": "Southern sea",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.2194,
+       "rows": 12232,
+       "count": 6799.0,
+       "mean_deviance": 1.8432,
+       "mean_deviance_baseline": 2.3612
+      }
+     ]
+    }
+   },
+   "gate": {
+    "rule": "the full model beats the climatology out of sample: pooled leave-one-week-out D2 against the climatology above 0 and above 0 in more than half of the week folds",
+    "d2_full_vs_climatology_week": 0.2165,
+    "fold_d2": [
+     0.1222,
+     0.0978,
+     0.2407,
+     0.3161
+    ],
+    "passed": true
+   },
+   "calibration": {
+    "full_trees_week": [
+     {
+      "decile": 1,
+      "rows": 7500,
+      "exposure_km2": 10778902.671,
+      "predicted_per_1000km2": 0.0687,
+      "observed_per_1000km2": 0.0448,
+      "count": 483.0
+     },
+     {
+      "decile": 2,
+      "rows": 7832,
+      "exposure_km2": 10780157.7318,
+      "predicted_per_1000km2": 0.1261,
+      "observed_per_1000km2": 0.1087,
+      "count": 1172.0
+     },
+     {
+      "decile": 3,
+      "rows": 8584,
+      "exposure_km2": 10780000.5914,
+      "predicted_per_1000km2": 0.2261,
+      "observed_per_1000km2": 0.1865,
+      "count": 2011.0
+     },
+     {
+      "decile": 4,
+      "rows": 9038,
+      "exposure_km2": 10780002.7092,
+      "predicted_per_1000km2": 0.3311,
+      "observed_per_1000km2": 0.33,
+      "count": 3557.0
+     },
+     {
+      "decile": 5,
+      "rows": 9082,
+      "exposure_km2": 10779269.8765,
+      "predicted_per_1000km2": 0.4638,
+      "observed_per_1000km2": 0.4891,
+      "count": 5272.0
+     },
+     {
+      "decile": 6,
+      "rows": 8766,
+      "exposure_km2": 10779467.4035,
+      "predicted_per_1000km2": 0.6503,
+      "observed_per_1000km2": 0.6877,
+      "count": 7413.0
+     },
+     {
+      "decile": 7,
+      "rows": 8167,
+      "exposure_km2": 10780181.7957,
+      "predicted_per_1000km2": 0.9524,
+      "observed_per_1000km2": 1.1606,
+      "count": 12512.0
+     },
+     {
+      "decile": 8,
+      "rows": 7510,
+      "exposure_km2": 10779341.1418,
+      "predicted_per_1000km2": 1.3994,
+      "observed_per_1000km2": 1.5518,
+      "count": 16727.0
+     },
+     {
+      "decile": 9,
+      "rows": 7969,
+      "exposure_km2": 10781540.4976,
+      "predicted_per_1000km2": 2.0116,
+      "observed_per_1000km2": 2.0425,
+      "count": 22021.0
+     },
+     {
+      "decile": 10,
+      "rows": 8303,
+      "exposure_km2": 10780513.4016,
+      "predicted_per_1000km2": 4.4417,
+      "observed_per_1000km2": 4.7405,
+      "count": 51105.0
+     }
+    ],
+    "climatology_week": [
+     {
+      "decile": 1,
+      "rows": 8805,
+      "exposure_km2": 10778020.2711,
+      "predicted_per_1000km2": 0.042,
+      "observed_per_1000km2": 0.3913,
+      "count": 4217.0
+     },
+     {
+      "decile": 2,
+      "rows": 8217,
+      "exposure_km2": 10780116.8489,
+      "predicted_per_1000km2": 0.132,
+      "observed_per_1000km2": 0.4001,
+      "count": 4313.0
+     },
+     {
+      "decile": 3,
+      "rows": 8099,
+      "exposure_km2": 10781484.0308,
+      "predicted_per_1000km2": 0.2253,
+      "observed_per_1000km2": 0.4419,
+      "count": 4764.0
+     },
+     {
+      "decile": 4,
+      "rows": 8202,
+      "exposure_km2": 10779573.558,
+      "predicted_per_1000km2": 0.3243,
+      "observed_per_1000km2": 0.4239,
+      "count": 4570.0
+     },
+     {
+      "decile": 5,
+      "rows": 8087,
+      "exposure_km2": 10779046.155,
+      "predicted_per_1000km2": 0.4368,
+      "observed_per_1000km2": 0.4891,
+      "count": 5272.0
+     },
+     {
+      "decile": 6,
+      "rows": 7988,
+      "exposure_km2": 10781024.1407,
+      "predicted_per_1000km2": 0.5752,
+      "observed_per_1000km2": 0.5887,
+      "count": 6347.0
+     },
+     {
+      "decile": 7,
+      "rows": 8119,
+      "exposure_km2": 10778820.753,
+      "predicted_per_1000km2": 0.7812,
+      "observed_per_1000km2": 0.6941,
+      "count": 7482.0
+     },
+     {
+      "decile": 8,
+      "rows": 8175,
+      "exposure_km2": 10779374.7305,
+      "predicted_per_1000km2": 1.1459,
+      "observed_per_1000km2": 1.1708,
+      "count": 12620.0
+     },
+     {
+      "decile": 9,
+      "rows": 8436,
+      "exposure_km2": 10780673.3652,
+      "predicted_per_1000km2": 1.9832,
+      "observed_per_1000km2": 2.112,
+      "count": 22769.0
+     },
+     {
+      "decile": 10,
+      "rows": 8623,
+      "exposure_km2": 10781243.9667,
+      "predicted_per_1000km2": 5.5292,
+      "observed_per_1000km2": 4.6302,
+      "count": 49919.0
+     }
+    ],
+    "full_trees_region": [
+     {
+      "decile": 1,
+      "rows": 7434,
+      "exposure_km2": 10777752.5573,
+      "predicted_per_1000km2": 0.0874,
+      "observed_per_1000km2": 0.048,
+      "count": 517.0
+     },
+     {
+      "decile": 2,
+      "rows": 7997,
+      "exposure_km2": 10781781.5199,
+      "predicted_per_1000km2": 0.1624,
+      "observed_per_1000km2": 0.1306,
+      "count": 1408.0
+     },
+     {
+      "decile": 3,
+      "rows": 8857,
+      "exposure_km2": 10779834.0916,
+      "predicted_per_1000km2": 0.2842,
+      "observed_per_1000km2": 0.3386,
+      "count": 3650.0
+     },
+     {
+      "decile": 4,
+      "rows": 9364,
+      "exposure_km2": 10780337.0738,
+      "predicted_per_1000km2": 0.4235,
+      "observed_per_1000km2": 0.5594,
+      "count": 6030.0
+     },
+     {
+      "decile": 5,
+      "rows": 8580,
+      "exposure_km2": 10779723.1827,
+      "predicted_per_1000km2": 0.5955,
+      "observed_per_1000km2": 0.7358,
+      "count": 7932.0
+     },
+     {
+      "decile": 6,
+      "rows": 8192,
+      "exposure_km2": 10777965.6082,
+      "predicted_per_1000km2": 0.8034,
+      "observed_per_1000km2": 0.8195,
+      "count": 8833.0
+     },
+     {
+      "decile": 7,
+      "rows": 7898,
+      "exposure_km2": 10780429.9517,
+      "predicted_per_1000km2": 1.0566,
+      "observed_per_1000km2": 1.1809,
+      "count": 12731.0
+     },
+     {
+      "decile": 8,
+      "rows": 7662,
+      "exposure_km2": 10781562.4074,
+      "predicted_per_1000km2": 1.3796,
+      "observed_per_1000km2": 1.7292,
+      "count": 18644.0
+     },
+     {
+      "decile": 9,
+      "rows": 7788,
+      "exposure_km2": 10779748.7909,
+      "predicted_per_1000km2": 1.8352,
+      "observed_per_1000km2": 2.1666,
+      "count": 23355.0
+     },
+     {
+      "decile": 10,
+      "rows": 8979,
+      "exposure_km2": 10780242.6365,
+      "predicted_per_1000km2": 3.4068,
+      "observed_per_1000km2": 3.6338,
+      "count": 39173.0
+     }
+    ]
+   },
+   "permutation_importance": {
+    "week": [
+     {
+      "group": "static",
+      "deviance_rise": 0.8566,
+      "folds": 4,
+      "fold_min": 0.3716,
+      "fold_max": 0.5982,
+      "share_of_deviance": 0.4577
+     },
+     {
+      "group": "position",
+      "deviance_rise": 0.7457,
+      "folds": 4,
+      "fold_min": 0.3238,
+      "fold_max": 0.4625,
+      "share_of_deviance": 0.3985
+     },
+     {
+      "group": "chl",
+      "deviance_rise": 0.3749,
+      "folds": 4,
+      "fold_min": 0.0913,
+      "fold_max": 0.3274,
+      "share_of_deviance": 0.2003
+     },
+     {
+      "group": "moon",
+      "deviance_rise": 0.2832,
+      "folds": 4,
+      "fold_min": -0.0138,
+      "fold_max": 0.4624,
+      "share_of_deviance": 0.1514
+     },
+     {
+      "group": "region",
+      "deviance_rise": 0.1232,
+      "folds": 4,
+      "fold_min": 0.023,
+      "fold_max": 0.0882,
+      "share_of_deviance": 0.0658
+     },
+     {
+      "group": "weather",
+      "deviance_rise": 0.0847,
+      "folds": 4,
+      "fold_min": -0.0012,
+      "fold_max": 0.1139,
+      "share_of_deviance": 0.0453
+     },
+     {
+      "group": "dynamics",
+      "deviance_rise": 0.0461,
+      "folds": 4,
+      "fold_min": 0.0011,
+      "fold_max": 0.0391,
+      "share_of_deviance": 0.0246
+     },
+     {
+      "group": "sst",
+      "deviance_rise": 0.0075,
+      "folds": 4,
+      "fold_min": 0.0015,
+      "fold_max": 0.0076,
+      "share_of_deviance": 0.004
+     }
+    ],
+    "region": [
+     {
+      "group": "static",
+      "deviance_rise": 0.3461,
+      "folds": 7,
+      "fold_min": -0.0217,
+      "fold_max": 0.2102,
+      "share_of_deviance": 0.1018
+     },
+     {
+      "group": "moon",
+      "deviance_rise": 0.3346,
+      "folds": 7,
+      "fold_min": 0.0207,
+      "fold_max": 0.7217,
+      "share_of_deviance": 0.0984
+     },
+     {
+      "group": "chl",
+      "deviance_rise": 0.2089,
+      "folds": 7,
+      "fold_min": -0.0017,
+      "fold_max": 0.3705,
+      "share_of_deviance": 0.0614
+     },
+     {
+      "group": "position",
+      "deviance_rise": 0.1253,
+      "folds": 7,
+      "fold_min": 0.0055,
+      "fold_max": 0.2259,
+      "share_of_deviance": 0.0369
+     },
+     {
+      "group": "dynamics",
+      "deviance_rise": 0.0763,
+      "folds": 7,
+      "fold_min": -0.0059,
+      "fold_max": 0.0704,
+      "share_of_deviance": 0.0225
+     },
+     {
+      "group": "weather",
+      "deviance_rise": 0.0273,
+      "folds": 7,
+      "fold_min": -0.0094,
+      "fold_max": 0.0544,
+      "share_of_deviance": 0.008
+     },
+     {
+      "group": "sst",
+      "deviance_rise": 0.0051,
+      "folds": 7,
+      "fold_min": -0.0118,
+      "fold_max": 0.0098,
+      "share_of_deviance": 0.0015
+     },
+     {
+      "group": "region",
+      "deviance_rise": 0.0,
+      "folds": 7,
+      "fold_min": 0.0,
+      "fold_max": 0.0,
+      "share_of_deviance": 0.0
+     }
+    ]
+   },
+   "anomalies": {
+    "gate_passed": true,
+    "reason": "",
+    "p_flag": 0.01,
+    "control": "Benjamini-Hochberg FDR over the tested rows",
+    "tested": 82566,
+    "would_flag_high": 1862,
+    "would_flag_low": 254,
+    "raw_tail_high_without_control": 4209,
+    "raw_tail_low_without_control": 1515,
+    "flagged_high": 1862,
+    "flagged_low": 254,
+    "family": "tested rows (exposure >= 25 km2) with a finite expectation in calm weather (wind_ms < 12 m/s)",
+    "calm_rows": 82566,
+    "rows_not_calm": 185,
+    "overdispersion": {
+     "rows": 82751,
+     "pearson_dispersion": 3.821151426825539,
+     "nb_alpha": 1.3532521629771943
+    },
+    "nb_check": "negative binomial two-sided tail with alpha = overdispersion.nb_alpha, BH over the same family",
+    "flags_also_significant_under_nb": 22,
+    "flag_robust_high": 22,
+    "flag_robust_low": 0,
+    "poisson_fdr_valid": false,
+    "note": "Pearson dispersion of the counts against the model's expectation is 3.82 (1 for Poisson): the Poisson p-values are too small, the BH 1 % false-discovery statement does not hold for flag, and flag_robust (also significant under the negative binomial tail) is the set to review.",
+    "would_flag_under_nb_bh": 22,
+    "high_z_at_least_3": 1862
+   },
+   "partial_dependence": {
+    "wind_ms": [
+     {
+      "value": 1.1,
+      "rate_per_1000km2": 1.0646
+     },
+     {
+      "value": 2.1971,
+      "rate_per_1000km2": 1.1369
+     },
+     {
+      "value": 3.2943,
+      "rate_per_1000km2": 1.0743
+     },
+     {
+      "value": 4.3914,
+      "rate_per_1000km2": 1.1205
+     },
+     {
+      "value": 5.4886,
+      "rate_per_1000km2": 1.1028
+     },
+     {
+      "value": 6.5857,
+      "rate_per_1000km2": 1.1057
+     },
+     {
+      "value": 7.6829,
+      "rate_per_1000km2": 1.0907
+     },
+     {
+      "value": 8.78,
+      "rate_per_1000km2": 1.0703
+     }
+    ],
+    "moon_illum_pct": [
+     {
+      "value": 2.2,
+      "rate_per_1000km2": 0.9241
+     },
+     {
+      "value": 16.0,
+      "rate_per_1000km2": 1.0527
+     },
+     {
+      "value": 29.8,
+      "rate_per_1000km2": 1.0599
+     },
+     {
+      "value": 43.6,
+      "rate_per_1000km2": 1.059
+     },
+     {
+      "value": 57.4,
+      "rate_per_1000km2": 1.0514
+     },
+     {
+      "value": 71.2,
+      "rate_per_1000km2": 1.0266
+     },
+     {
+      "value": 85.0,
+      "rate_per_1000km2": 0.9055
+     },
+     {
+      "value": 98.8,
+      "rate_per_1000km2": 1.35
+     }
+    ],
+    "depth_mean_m": [
+     {
+      "value": 17.7967,
+      "rate_per_1000km2": 1.114
+     },
+     {
+      "value": 614.9253,
+      "rate_per_1000km2": 0.6593
+     },
+     {
+      "value": 1212.0538,
+      "rate_per_1000km2": 0.6842
+     },
+     {
+      "value": 1809.1824,
+      "rate_per_1000km2": 0.6842
+     },
+     {
+      "value": 2406.311,
+      "rate_per_1000km2": 0.6831
+     },
+     {
+      "value": 3003.4396,
+      "rate_per_1000km2": 0.664
+     },
+     {
+      "value": 3600.5682,
+      "rate_per_1000km2": 0.6642
+     },
+     {
+      "value": 4197.6968,
+      "rate_per_1000km2": 0.5074
+     }
+    ],
+    "dist_coast_km": [
+     {
+      "value": 10.883,
+      "rate_per_1000km2": 1.26
+     },
+     {
+      "value": 52.685,
+      "rate_per_1000km2": 1.0609
+     },
+     {
+      "value": 94.487,
+      "rate_per_1000km2": 0.9948
+     },
+     {
+      "value": 136.289,
+      "rate_per_1000km2": 0.9984
+     },
+     {
+      "value": 178.091,
+      "rate_per_1000km2": 1.0058
+     },
+     {
+      "value": 219.893,
+      "rate_per_1000km2": 0.9989
+     },
+     {
+      "value": 261.695,
+      "rate_per_1000km2": 0.8478
+     },
+     {
+      "value": 303.497,
+      "rate_per_1000km2": 0.8466
+     }
+    ],
+    "sst_grad_mean": [
+     {
+      "value": 0.0082,
+      "rate_per_1000km2": 1.1203
+     },
+     {
+      "value": 0.0127,
+      "rate_per_1000km2": 1.1162
+     },
+     {
+      "value": 0.0172,
+      "rate_per_1000km2": 1.1038
+     },
+     {
+      "value": 0.0218,
+      "rate_per_1000km2": 1.0964
+     },
+     {
+      "value": 0.0263,
+      "rate_per_1000km2": 1.0937
+     },
+     {
+      "value": 0.0308,
+      "rate_per_1000km2": 1.0943
+     },
+     {
+      "value": 0.0353,
+      "rate_per_1000km2": 1.0975
+     },
+     {
+      "value": 0.0399,
+      "rate_per_1000km2": 1.0978
+     }
+    ],
+    "chl_log10_mean": [
+     {
+      "value": -1.0199,
+      "rate_per_1000km2": 0.5865
+     },
+     {
+      "value": -0.8343,
+      "rate_per_1000km2": 0.7664
+     },
+     {
+      "value": -0.6487,
+      "rate_per_1000km2": 1.1255
+     },
+     {
+      "value": -0.4631,
+      "rate_per_1000km2": 1.1582
+     },
+     {
+      "value": -0.2775,
+      "rate_per_1000km2": 1.2563
+     },
+     {
+      "value": -0.0919,
+      "rate_per_1000km2": 1.2541
+     },
+     {
+      "value": 0.0937,
+      "rate_per_1000km2": 1.2919
+     },
+     {
+      "value": 0.2793,
+      "rate_per_1000km2": 1.2901
+     }
+    ],
+    "wind_ms_by_region": {
+     "Central sea": [
+      {
+       "value": 1.01,
+       "rate_per_1000km2": 0.5224
+      },
+      {
+       "value": 2.45,
+       "rate_per_1000km2": 0.592
+      },
+      {
+       "value": 3.89,
+       "rate_per_1000km2": 0.6772
+      },
+      {
+       "value": 5.33,
+       "rate_per_1000km2": 0.6836
+      },
+      {
+       "value": 6.77,
+       "rate_per_1000km2": 0.6862
+      },
+      {
+       "value": 8.21,
+       "rate_per_1000km2": 0.6776
+      }
+     ],
+     "Gulf of Thailand": [
+      {
+       "value": 1.51,
+       "rate_per_1000km2": 2.5911
+      },
+      {
+       "value": 2.7093,
+       "rate_per_1000km2": 2.5233
+      },
+      {
+       "value": 3.9086,
+       "rate_per_1000km2": 2.4119
+      },
+      {
+       "value": 5.1079,
+       "rate_per_1000km2": 2.4107
+      },
+      {
+       "value": 6.3072,
+       "rate_per_1000km2": 2.4503
+      },
+      {
+       "value": 7.5065,
+       "rate_per_1000km2": 2.4517
+      }
+     ],
+     "Gulf of Tonkin": [
+      {
+       "value": 1.21,
+       "rate_per_1000km2": 3.9062
+      },
+      {
+       "value": 2.856,
+       "rate_per_1000km2": 3.9652
+      },
+      {
+       "value": 4.502,
+       "rate_per_1000km2": 3.6496
+      },
+      {
+       "value": 6.148,
+       "rate_per_1000km2": 3.489
+      },
+      {
+       "value": 7.794,
+       "rate_per_1000km2": 3.39
+      },
+      {
+       "value": 9.44,
+       "rate_per_1000km2": 3.2358
+      }
+     ],
+     "North shelf": [
+      {
+       "value": 1.51,
+       "rate_per_1000km2": 1.5517
+      },
+      {
+       "value": 3.184,
+       "rate_per_1000km2": 1.4237
+      },
+      {
+       "value": 4.858,
+       "rate_per_1000km2": 1.4803
+      },
+      {
+       "value": 6.532,
+       "rate_per_1000km2": 1.4796
+      },
+      {
+       "value": 8.206,
+       "rate_per_1000km2": 1.4291
+      },
+      {
+       "value": 9.88,
+       "rate_per_1000km2": 1.432
+      }
+     ],
+     "South Vietnam shelf": [
+      {
+       "value": 1.11,
+       "rate_per_1000km2": 2.0716
+      },
+      {
+       "value": 2.6749,
+       "rate_per_1000km2": 2.1901
+      },
+      {
+       "value": 4.2398,
+       "rate_per_1000km2": 2.1789
+      },
+      {
+       "value": 5.8047,
+       "rate_per_1000km2": 2.1064
+      },
+      {
+       "value": 7.3696,
+       "rate_per_1000km2": 2.0939
+      },
+      {
+       "value": 8.9345,
+       "rate_per_1000km2": 2.0537
+      }
+     ],
+     "Southern sea": [
+      {
+       "value": 1.36,
+       "rate_per_1000km2": 0.6498
+      },
+      {
+       "value": 2.744,
+       "rate_per_1000km2": 0.5647
+      },
+      {
+       "value": 4.128,
+       "rate_per_1000km2": 0.56
+      },
+      {
+       "value": 5.512,
+       "rate_per_1000km2": 0.5531
+      },
+      {
+       "value": 6.896,
+       "rate_per_1000km2": 0.5492
+      },
+      {
+       "value": 8.28,
+       "rate_per_1000km2": 0.5501
+      }
+     ],
+     "other": [
+      {
+       "value": 1.06,
+       "rate_per_1000km2": 0.5285
+      },
+      {
+       "value": 2.684,
+       "rate_per_1000km2": 0.5756
+      },
+      {
+       "value": 4.308,
+       "rate_per_1000km2": 0.6562
+      },
+      {
+       "value": 5.932,
+       "rate_per_1000km2": 0.652
+      },
+      {
+       "value": 7.556,
+       "rate_per_1000km2": 0.6563
+      },
+      {
+       "value": 9.18,
+       "rate_per_1000km2": 0.6351
+      }
+     ]
+    }
+   }
+  },
+  "radar": {
+   "target": "radar vessel candidates (high, medium) per 1,000 km2 of imaged AOI sea, per cell-scene (Sentinel-1C/1D)",
+   "table": {
+    "scenes": 119,
+    "candidates_high_medium": 78615,
+    "candidates_in_table_cells": 74129,
+    "tested_over_footprint_aoi_sea": {
+     "median": 0.9746951777649645,
+     "min": 0.10403889823812171,
+     "max": 1.4502890059530615,
+     "scenes_scaled_below_1": 84
+    },
+    "scenes_left_out": [
+     {
+      "scene_id": "S1D_IW_GRDH_1SDV_20260928T103316_20260928T103341_004777_008F4D_782E",
+      "tested_km2": 116.7919,
+      "footprint_aoi_sea_km2": 1122.5792
+     }
+    ],
+    "inc_plane_rmse_deg_median": 0.09244234170748361,
+    "dates": [
+     "2026-09-20",
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-26",
+     "2026-09-27",
+     "2026-09-28",
+     "2026-09-29",
+     "2026-09-30",
+     "2026-10-01"
+    ]
+   },
+   "rows": 4407,
+   "tested_rows": 4149,
+   "count_tested": 73736.0,
+   "exposure_tested_km2": 2281359.3994425875,
+   "observed_rate_per_1000km2": 32.321080149851085,
+   "zero_share_tested": 0.0549530007230658,
+   "features": {
+    "static": {
+     "position": [
+      "lon",
+      "lat"
+     ],
+     "region": [
+      "region"
+     ],
+     "static": [
+      "depth_mean_m",
+      "depth_std_m",
+      "share_shallower_50m",
+      "share_shallower_200m",
+      "slope_mean_m_per_km",
+      "dist_coast_km",
+      "dist_port_km",
+      "ship_presence_share_all",
+      "ship_presence_share_fishing",
+      "ship_presence_share_oilgas",
+      "ship_presence_share_passenger"
+     ]
+    },
+    "full": {
+     "position": [
+      "lon",
+      "lat"
+     ],
+     "region": [
+      "region"
+     ],
+     "static": [
+      "depth_mean_m",
+      "depth_std_m",
+      "share_shallower_50m",
+      "share_shallower_200m",
+      "slope_mean_m_per_km",
+      "dist_coast_km",
+      "dist_port_km",
+      "ship_presence_share_all",
+      "ship_presence_share_fishing",
+      "ship_presence_share_oilgas",
+      "ship_presence_share_passenger"
+     ],
+     "sst": [
+      "sst_mean_c",
+      "sst_sd_c",
+      "sst_grad_mean",
+      "front_share",
+      "dist_front_km"
+     ],
+     "chl": [
+      "chl_log10_mean"
+     ],
+     "dynamics": [
+      "ssh_anom_m",
+      "ssh_grad",
+      "current_speed_ms",
+      "mld_m"
+     ],
+     "weather": [
+      "wind_ms",
+      "wave_hs_m"
+     ],
+     "radar_geometry": [
+      "pass_dir",
+      "mission",
+      "inc_angle_cell_deg"
+     ]
+    }
+   },
+   "cv": {
+    "week": {
+     "folds": {
+      "w1": 2430,
+      "w2": 1719
+     },
+     "pooled": [
+      {
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.27,
+       "rows": 4149,
+       "mean_deviance": 42.1406,
+       "mean_deviance_baseline": 33.1819,
+       "folds": 2,
+       "folds_better": 0,
+       "fold_d2_mean": -0.2494,
+       "fold_d2_sd": 0.1806,
+       "fold_d2_min": -0.3771,
+       "fold_d2_max": -0.1216
+      },
+      {
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.2126,
+       "rows": 4149,
+       "mean_deviance": 33.1819,
+       "mean_deviance_baseline": 42.1406,
+       "folds": 2,
+       "folds_better": 2,
+       "fold_d2_mean": 0.1911,
+       "fold_d2_sd": 0.117,
+       "fold_d2_min": 0.1084,
+       "fold_d2_max": 0.2738
+      },
+      {
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.554,
+       "rows": 4149,
+       "mean_deviance": 18.7951,
+       "mean_deviance_baseline": 42.1406,
+       "folds": 2,
+       "folds_better": 2,
+       "fold_d2_mean": 0.5318,
+       "fold_d2_sd": 0.1212,
+       "fold_d2_min": 0.4461,
+       "fold_d2_max": 0.6175
+      },
+      {
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.4336,
+       "rows": 4149,
+       "mean_deviance": 18.7951,
+       "mean_deviance_baseline": 33.1819,
+       "folds": 2,
+       "folds_better": 2,
+       "fold_d2_mean": 0.4259,
+       "fold_d2_sd": 0.0668,
+       "fold_d2_min": 0.3787,
+       "fold_d2_max": 0.4732
+      },
+      {
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.5122,
+       "rows": 4149,
+       "mean_deviance": 20.5577,
+       "mean_deviance_baseline": 42.1406,
+       "folds": 2,
+       "folds_better": 2,
+       "fold_d2_mean": 0.5018,
+       "fold_d2_sd": 0.0567,
+       "fold_d2_min": 0.4617,
+       "fold_d2_max": 0.5419
+      },
+      {
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3805,
+       "rows": 4149,
+       "mean_deviance": 20.5577,
+       "mean_deviance_baseline": 33.1819,
+       "folds": 2,
+       "folds_better": 2,
+       "fold_d2_mean": 0.3826,
+       "fold_d2_sd": 0.0192,
+       "fold_d2_min": 0.3691,
+       "fold_d2_max": 0.3962
+      }
+     ],
+     "per_fold": [
+      {
+       "fold": "w1",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.3771,
+       "rows": 2430,
+       "count": 42603.0,
+       "mean_deviance": 44.8081,
+       "mean_deviance_baseline": 32.5377
+      },
+      {
+       "fold": "w2",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": -0.1216,
+       "rows": 1719,
+       "count": 31133.0,
+       "mean_deviance": 38.2673,
+       "mean_deviance_baseline": 34.1174
+      },
+      {
+       "fold": "w1",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.2738,
+       "rows": 2430,
+       "count": 42603.0,
+       "mean_deviance": 32.5377,
+       "mean_deviance_baseline": 44.8081
+      },
+      {
+       "fold": "w2",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.1084,
+       "rows": 1719,
+       "count": 31133.0,
+       "mean_deviance": 34.1174,
+       "mean_deviance_baseline": 38.2673
+      },
+      {
+       "fold": "w1",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.6175,
+       "rows": 2430,
+       "count": 42603.0,
+       "mean_deviance": 17.1406,
+       "mean_deviance_baseline": 44.8081
+      },
+      {
+       "fold": "w2",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.4461,
+       "rows": 1719,
+       "count": 31133.0,
+       "mean_deviance": 21.1975,
+       "mean_deviance_baseline": 38.2673
+      },
+      {
+       "fold": "w1",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.4732,
+       "rows": 2430,
+       "count": 42603.0,
+       "mean_deviance": 17.1406,
+       "mean_deviance_baseline": 32.5377
+      },
+      {
+       "fold": "w2",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.3787,
+       "rows": 1719,
+       "count": 31133.0,
+       "mean_deviance": 21.1975,
+       "mean_deviance_baseline": 34.1174
+      },
+      {
+       "fold": "w1",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.5419,
+       "rows": 2430,
+       "count": 42603.0,
+       "mean_deviance": 20.5286,
+       "mean_deviance_baseline": 44.8081
+      },
+      {
+       "fold": "w2",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.4617,
+       "rows": 1719,
+       "count": 31133.0,
+       "mean_deviance": 20.6,
+       "mean_deviance_baseline": 38.2673
+      },
+      {
+       "fold": "w1",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3691,
+       "rows": 2430,
+       "count": 42603.0,
+       "mean_deviance": 20.5286,
+       "mean_deviance_baseline": 32.5377
+      },
+      {
+       "fold": "w2",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3962,
+       "rows": 1719,
+       "count": 31133.0,
+       "mean_deviance": 20.6,
+       "mean_deviance_baseline": 34.1174
+      }
+     ]
+    },
+    "region": {
+     "folds": {
+      "Central sea": 165,
+      "Gulf of Thailand": 1195,
+      "Gulf of Tonkin": 506,
+      "North shelf": 282,
+      "South Vietnam shelf": 233,
+      "Southern sea": 801,
+      "other": 967
+     },
+     "pooled": [
+      {
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 4149,
+       "mean_deviance": 46.0398,
+       "mean_deviance_baseline": 46.0398,
+       "folds": 7,
+       "folds_better": 0,
+       "fold_d2_mean": 0.0,
+       "fold_d2_sd": 0.0,
+       "fold_d2_min": 0.0,
+       "fold_d2_max": 0.0
+      },
+      {
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 4149,
+       "mean_deviance": 46.0398,
+       "mean_deviance_baseline": 46.0398,
+       "folds": 7,
+       "folds_better": 0,
+       "fold_d2_mean": 0.0,
+       "fold_d2_sd": 0.0,
+       "fold_d2_min": 0.0,
+       "fold_d2_max": 0.0
+      },
+      {
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.4537,
+       "rows": 4149,
+       "mean_deviance": 25.151,
+       "mean_deviance_baseline": 46.0398,
+       "folds": 7,
+       "folds_better": 7,
+       "fold_d2_mean": 0.4308,
+       "fold_d2_sd": 0.1719,
+       "fold_d2_min": 0.1544,
+       "fold_d2_max": 0.6566
+      },
+      {
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.4537,
+       "rows": 4149,
+       "mean_deviance": 25.151,
+       "mean_deviance_baseline": 46.0398,
+       "folds": 7,
+       "folds_better": 7,
+       "fold_d2_mean": 0.4308,
+       "fold_d2_sd": 0.1719,
+       "fold_d2_min": 0.1544,
+       "fold_d2_max": 0.6566
+      },
+      {
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.5319,
+       "rows": 4149,
+       "mean_deviance": 21.5501,
+       "mean_deviance_baseline": 46.0398,
+       "folds": 7,
+       "folds_better": 7,
+       "fold_d2_mean": 0.5143,
+       "fold_d2_sd": 0.1267,
+       "fold_d2_min": 0.3393,
+       "fold_d2_max": 0.693
+      },
+      {
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.5319,
+       "rows": 4149,
+       "mean_deviance": 21.5501,
+       "mean_deviance_baseline": 46.0398,
+       "folds": 7,
+       "folds_better": 7,
+       "fold_d2_mean": 0.5143,
+       "fold_d2_sd": 0.1267,
+       "fold_d2_min": 0.3393,
+       "fold_d2_max": 0.693
+      }
+     ],
+     "per_fold": [
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 506,
+       "count": 17075.0,
+       "mean_deviance": 95.9389,
+       "mean_deviance_baseline": 95.9389
+      },
+      {
+       "fold": "North shelf",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 282,
+       "count": 12576.0,
+       "mean_deviance": 130.576,
+       "mean_deviance_baseline": 130.576
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 1195,
+       "count": 17665.0,
+       "mean_deviance": 26.0718,
+       "mean_deviance_baseline": 26.0718
+      },
+      {
+       "fold": "other",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 967,
+       "count": 9811.0,
+       "mean_deviance": 32.6216,
+       "mean_deviance_baseline": 32.6216
+      },
+      {
+       "fold": "Southern sea",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 801,
+       "count": 8007.0,
+       "mean_deviance": 27.1209,
+       "mean_deviance_baseline": 27.1209
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 233,
+       "count": 7361.0,
+       "mean_deviance": 76.7702,
+       "mean_deviance_baseline": 76.7702
+      },
+      {
+       "fold": "Central sea",
+       "model": "global_rate",
+       "baseline": "climatology",
+       "d2": 0.0,
+       "rows": 165,
+       "count": 1241.0,
+       "mean_deviance": 36.0713,
+       "mean_deviance_baseline": 36.0713
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 506,
+       "count": 17075.0,
+       "mean_deviance": 95.9389,
+       "mean_deviance_baseline": 95.9389
+      },
+      {
+       "fold": "North shelf",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 282,
+       "count": 12576.0,
+       "mean_deviance": 130.576,
+       "mean_deviance_baseline": 130.576
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 1195,
+       "count": 17665.0,
+       "mean_deviance": 26.0718,
+       "mean_deviance_baseline": 26.0718
+      },
+      {
+       "fold": "other",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 967,
+       "count": 9811.0,
+       "mean_deviance": 32.6216,
+       "mean_deviance_baseline": 32.6216
+      },
+      {
+       "fold": "Southern sea",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 801,
+       "count": 8007.0,
+       "mean_deviance": 27.1209,
+       "mean_deviance_baseline": 27.1209
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 233,
+       "count": 7361.0,
+       "mean_deviance": 76.7702,
+       "mean_deviance_baseline": 76.7702
+      },
+      {
+       "fold": "Central sea",
+       "model": "climatology",
+       "baseline": "global_rate",
+       "d2": 0.0,
+       "rows": 165,
+       "count": 1241.0,
+       "mean_deviance": 36.0713,
+       "mean_deviance_baseline": 36.0713
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.5271,
+       "rows": 506,
+       "count": 17075.0,
+       "mean_deviance": 45.3724,
+       "mean_deviance_baseline": 95.9389
+      },
+      {
+       "fold": "North shelf",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.6566,
+       "rows": 282,
+       "count": 12576.0,
+       "mean_deviance": 44.8375,
+       "mean_deviance_baseline": 130.576
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.2555,
+       "rows": 1195,
+       "count": 17665.0,
+       "mean_deviance": 19.4094,
+       "mean_deviance_baseline": 26.0718
+      },
+      {
+       "fold": "other",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.4322,
+       "rows": 967,
+       "count": 9811.0,
+       "mean_deviance": 18.5234,
+       "mean_deviance_baseline": 32.6216
+      },
+      {
+       "fold": "Southern sea",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.5235,
+       "rows": 801,
+       "count": 8007.0,
+       "mean_deviance": 12.9222,
+       "mean_deviance_baseline": 27.1209
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.1544,
+       "rows": 233,
+       "count": 7361.0,
+       "mean_deviance": 64.9206,
+       "mean_deviance_baseline": 76.7702
+      },
+      {
+       "fold": "Central sea",
+       "model": "static_trees",
+       "baseline": "global_rate",
+       "d2": 0.4662,
+       "rows": 165,
+       "count": 1241.0,
+       "mean_deviance": 19.2549,
+       "mean_deviance_baseline": 36.0713
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.5271,
+       "rows": 506,
+       "count": 17075.0,
+       "mean_deviance": 45.3724,
+       "mean_deviance_baseline": 95.9389
+      },
+      {
+       "fold": "North shelf",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.6566,
+       "rows": 282,
+       "count": 12576.0,
+       "mean_deviance": 44.8375,
+       "mean_deviance_baseline": 130.576
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.2555,
+       "rows": 1195,
+       "count": 17665.0,
+       "mean_deviance": 19.4094,
+       "mean_deviance_baseline": 26.0718
+      },
+      {
+       "fold": "other",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.4322,
+       "rows": 967,
+       "count": 9811.0,
+       "mean_deviance": 18.5234,
+       "mean_deviance_baseline": 32.6216
+      },
+      {
+       "fold": "Southern sea",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.5235,
+       "rows": 801,
+       "count": 8007.0,
+       "mean_deviance": 12.9222,
+       "mean_deviance_baseline": 27.1209
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.1544,
+       "rows": 233,
+       "count": 7361.0,
+       "mean_deviance": 64.9206,
+       "mean_deviance_baseline": 76.7702
+      },
+      {
+       "fold": "Central sea",
+       "model": "static_trees",
+       "baseline": "climatology",
+       "d2": 0.4662,
+       "rows": 165,
+       "count": 1241.0,
+       "mean_deviance": 19.2549,
+       "mean_deviance_baseline": 36.0713
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.6069,
+       "rows": 506,
+       "count": 17075.0,
+       "mean_deviance": 37.7094,
+       "mean_deviance_baseline": 95.9389
+      },
+      {
+       "fold": "North shelf",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.693,
+       "rows": 282,
+       "count": 12576.0,
+       "mean_deviance": 40.0877,
+       "mean_deviance_baseline": 130.576
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.3634,
+       "rows": 1195,
+       "count": 17665.0,
+       "mean_deviance": 16.5975,
+       "mean_deviance_baseline": 26.0718
+      },
+      {
+       "fold": "other",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.5023,
+       "rows": 967,
+       "count": 9811.0,
+       "mean_deviance": 16.2347,
+       "mean_deviance_baseline": 32.6216
+      },
+      {
+       "fold": "Southern sea",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.5488,
+       "rows": 801,
+       "count": 8007.0,
+       "mean_deviance": 12.2364,
+       "mean_deviance_baseline": 27.1209
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.3393,
+       "rows": 233,
+       "count": 7361.0,
+       "mean_deviance": 50.7218,
+       "mean_deviance_baseline": 76.7702
+      },
+      {
+       "fold": "Central sea",
+       "model": "full_trees",
+       "baseline": "global_rate",
+       "d2": 0.5465,
+       "rows": 165,
+       "count": 1241.0,
+       "mean_deviance": 16.3577,
+       "mean_deviance_baseline": 36.0713
+      },
+      {
+       "fold": "Gulf of Tonkin",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.6069,
+       "rows": 506,
+       "count": 17075.0,
+       "mean_deviance": 37.7094,
+       "mean_deviance_baseline": 95.9389
+      },
+      {
+       "fold": "North shelf",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.693,
+       "rows": 282,
+       "count": 12576.0,
+       "mean_deviance": 40.0877,
+       "mean_deviance_baseline": 130.576
+      },
+      {
+       "fold": "Gulf of Thailand",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3634,
+       "rows": 1195,
+       "count": 17665.0,
+       "mean_deviance": 16.5975,
+       "mean_deviance_baseline": 26.0718
+      },
+      {
+       "fold": "other",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.5023,
+       "rows": 967,
+       "count": 9811.0,
+       "mean_deviance": 16.2347,
+       "mean_deviance_baseline": 32.6216
+      },
+      {
+       "fold": "Southern sea",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.5488,
+       "rows": 801,
+       "count": 8007.0,
+       "mean_deviance": 12.2364,
+       "mean_deviance_baseline": 27.1209
+      },
+      {
+       "fold": "South Vietnam shelf",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.3393,
+       "rows": 233,
+       "count": 7361.0,
+       "mean_deviance": 50.7218,
+       "mean_deviance_baseline": 76.7702
+      },
+      {
+       "fold": "Central sea",
+       "model": "full_trees",
+       "baseline": "climatology",
+       "d2": 0.5465,
+       "rows": 165,
+       "count": 1241.0,
+       "mean_deviance": 16.3577,
+       "mean_deviance_baseline": 36.0713
+      }
+     ]
+    }
+   },
+   "gate": {
+    "rule": "the full model beats the climatology out of sample: pooled leave-one-week-out D2 against the climatology above 0 and above 0 in more than half of the week folds",
+    "d2_full_vs_climatology_week": 0.3805,
+    "fold_d2": [
+     0.3691,
+     0.3962
+    ],
+    "passed": true
+   },
+   "calibration": {
+    "full_trees_week": [
+     {
+      "decile": 1,
+      "rows": 450,
+      "exposure_km2": 227676.224,
+      "predicted_per_1000km2": 8.0247,
+      "observed_per_1000km2": 9.4345,
+      "count": 2148.0
+     },
+     {
+      "decile": 2,
+      "rows": 399,
+      "exposure_km2": 228367.967,
+      "predicted_per_1000km2": 11.0014,
+      "observed_per_1000km2": 10.9254,
+      "count": 2495.0
+     },
+     {
+      "decile": 3,
+      "rows": 403,
+      "exposure_km2": 228302.1833,
+      "predicted_per_1000km2": 13.1783,
+      "observed_per_1000km2": 14.8575,
+      "count": 3392.0
+     },
+     {
+      "decile": 4,
+      "rows": 397,
+      "exposure_km2": 227756.5724,
+      "predicted_per_1000km2": 15.3433,
+      "observed_per_1000km2": 16.1664,
+      "count": 3682.0
+     },
+     {
+      "decile": 5,
+      "rows": 395,
+      "exposure_km2": 228199.759,
+      "predicted_per_1000km2": 17.8845,
+      "observed_per_1000km2": 19.426,
+      "count": 4433.0
+     },
+     {
+      "decile": 6,
+      "rows": 391,
+      "exposure_km2": 228137.8987,
+      "predicted_per_1000km2": 21.0652,
+      "observed_per_1000km2": 21.601,
+      "count": 4928.0
+     },
+     {
+      "decile": 7,
+      "rows": 409,
+      "exposure_km2": 228209.5588,
+      "predicted_per_1000km2": 25.2435,
+      "observed_per_1000km2": 29.2538,
+      "count": 6676.0
+     },
+     {
+      "decile": 8,
+      "rows": 416,
+      "exposure_km2": 227835.5072,
+      "predicted_per_1000km2": 31.1666,
+      "observed_per_1000km2": 40.5029,
+      "count": 9228.0
+     },
+     {
+      "decile": 9,
+      "rows": 424,
+      "exposure_km2": 228724.5422,
+      "predicted_per_1000km2": 42.2132,
+      "observed_per_1000km2": 52.1501,
+      "count": 11928.0
+     },
+     {
+      "decile": 10,
+      "rows": 465,
+      "exposure_km2": 228149.1868,
+      "predicted_per_1000km2": 93.803,
+      "observed_per_1000km2": 108.8148,
+      "count": 24826.0
+     }
+    ],
+    "climatology_week": [
+     {
+      "decile": 1,
+      "rows": 415,
+      "exposure_km2": 228087.3396,
+      "predicted_per_1000km2": 5.543,
+      "observed_per_1000km2": 13.6088,
+      "count": 3104.0
+     },
+     {
+      "decile": 2,
+      "rows": 397,
+      "exposure_km2": 228089.8697,
+      "predicted_per_1000km2": 10.1394,
+      "observed_per_1000km2": 13.5298,
+      "count": 3086.0
+     },
+     {
+      "decile": 3,
+      "rows": 418,
+      "exposure_km2": 228034.5714,
+      "predicted_per_1000km2": 14.4653,
+      "observed_per_1000km2": 22.8606,
+      "count": 5213.0
+     },
+     {
+      "decile": 4,
+      "rows": 414,
+      "exposure_km2": 228322.1842,
+      "predicted_per_1000km2": 19.9781,
+      "observed_per_1000km2": 21.4171,
+      "count": 4890.0
+     },
+     {
+      "decile": 5,
+      "rows": 393,
+      "exposure_km2": 227690.6209,
+      "predicted_per_1000km2": 25.2901,
+      "observed_per_1000km2": 30.2955,
+      "count": 6898.0
+     },
+     {
+      "decile": 6,
+      "rows": 420,
+      "exposure_km2": 228310.4612,
+      "predicted_per_1000km2": 29.553,
+      "observed_per_1000km2": 18.6676,
+      "count": 4262.0
+     },
+     {
+      "decile": 7,
+      "rows": 382,
+      "exposure_km2": 228268.3375,
+      "predicted_per_1000km2": 31.2255,
+      "observed_per_1000km2": 13.2476,
+      "count": 3024.0
+     },
+     {
+      "decile": 8,
+      "rows": 430,
+      "exposure_km2": 228264.0294,
+      "predicted_per_1000km2": 38.5919,
+      "observed_per_1000km2": 60.1015,
+      "count": 13719.0
+     },
+     {
+      "decile": 9,
+      "rows": 419,
+      "exposure_km2": 227722.3603,
+      "predicted_per_1000km2": 65.3613,
+      "observed_per_1000km2": 55.1988,
+      "count": 12570.0
+     },
+     {
+      "decile": 10,
+      "rows": 461,
+      "exposure_km2": 228569.6253,
+      "predicted_per_1000km2": 111.5739,
+      "observed_per_1000km2": 74.2443,
+      "count": 16970.0
+     }
+    ],
+    "full_trees_region": [
+     {
+      "decile": 1,
+      "rows": 430,
+      "exposure_km2": 227778.3901,
+      "predicted_per_1000km2": 8.3541,
+      "observed_per_1000km2": 9.5707,
+      "count": 2180.0
+     },
+     {
+      "decile": 2,
+      "rows": 412,
+      "exposure_km2": 228432.0709,
+      "predicted_per_1000km2": 11.5718,
+      "observed_per_1000km2": 12.9141,
+      "count": 2950.0
+     },
+     {
+      "decile": 3,
+      "rows": 404,
+      "exposure_km2": 227791.3012,
+      "predicted_per_1000km2": 14.4064,
+      "observed_per_1000km2": 17.8716,
+      "count": 4071.0
+     },
+     {
+      "decile": 4,
+      "rows": 412,
+      "exposure_km2": 228254.3748,
+      "predicted_per_1000km2": 16.9397,
+      "observed_per_1000km2": 18.9701,
+      "count": 4330.0
+     },
+     {
+      "decile": 5,
+      "rows": 411,
+      "exposure_km2": 228109.4268,
+      "predicted_per_1000km2": 19.3249,
+      "observed_per_1000km2": 20.3148,
+      "count": 4634.0
+     },
+     {
+      "decile": 6,
+      "rows": 382,
+      "exposure_km2": 228421.7688,
+      "predicted_per_1000km2": 21.905,
+      "observed_per_1000km2": 23.6886,
+      "count": 5411.0
+     },
+     {
+      "decile": 7,
+      "rows": 384,
+      "exposure_km2": 227546.5437,
+      "predicted_per_1000km2": 24.988,
+      "observed_per_1000km2": 26.1485,
+      "count": 5950.0
+     },
+     {
+      "decile": 8,
+      "rows": 403,
+      "exposure_km2": 228322.7319,
+      "predicted_per_1000km2": 29.8775,
+      "observed_per_1000km2": 33.0585,
+      "count": 7548.0
+     },
+     {
+      "decile": 9,
+      "rows": 442,
+      "exposure_km2": 228564.6633,
+      "predicted_per_1000km2": 40.8188,
+      "observed_per_1000km2": 48.7521,
+      "count": 11143.0
+     },
+     {
+      "decile": 10,
+      "rows": 469,
+      "exposure_km2": 228138.1279,
+      "predicted_per_1000km2": 99.8296,
+      "observed_per_1000km2": 111.8577,
+      "count": 25519.0
+     }
+    ]
+   },
+   "permutation_importance": {
+    "week": [
+     {
+      "group": "chl",
+      "deviance_rise": 9.2045,
+      "folds": 2,
+      "fold_min": 0.2039,
+      "fold_max": 0.6921,
+      "share_of_deviance": 0.4476
+     },
+     {
+      "group": "static",
+      "deviance_rise": 8.5269,
+      "folds": 2,
+      "fold_min": 0.4105,
+      "fold_max": 0.4188,
+      "share_of_deviance": 0.4146
+     },
+     {
+      "group": "position",
+      "deviance_rise": 5.0946,
+      "folds": 2,
+      "fold_min": 0.0781,
+      "fold_max": 0.418,
+      "share_of_deviance": 0.2477
+     },
+     {
+      "group": "region",
+      "deviance_rise": 2.306,
+      "folds": 2,
+      "fold_min": 0.0397,
+      "fold_max": 0.1843,
+      "share_of_deviance": 0.1121
+     },
+     {
+      "group": "dynamics",
+      "deviance_rise": 1.0303,
+      "folds": 2,
+      "fold_min": 0.0239,
+      "fold_max": 0.0764,
+      "share_of_deviance": 0.0501
+     },
+     {
+      "group": "radar_geometry",
+      "deviance_rise": 0.9384,
+      "folds": 2,
+      "fold_min": 0.037,
+      "fold_max": 0.0542,
+      "share_of_deviance": 0.0456
+     },
+     {
+      "group": "weather",
+      "deviance_rise": 0.3747,
+      "folds": 2,
+      "fold_min": 0.0153,
+      "fold_max": 0.0211,
+      "share_of_deviance": 0.0182
+     },
+     {
+      "group": "sst",
+      "deviance_rise": 0.1277,
+      "folds": 2,
+      "fold_min": -0.0123,
+      "fold_max": 0.0247,
+      "share_of_deviance": 0.0062
+     }
+    ],
+    "region": [
+     {
+      "group": "chl",
+      "deviance_rise": 14.8228,
+      "folds": 7,
+      "fold_min": 0.083,
+      "fold_max": 1.359,
+      "share_of_deviance": 0.5463
+     },
+     {
+      "group": "static",
+      "deviance_rise": 5.9669,
+      "folds": 7,
+      "fold_min": 0.1096,
+      "fold_max": 0.367,
+      "share_of_deviance": 0.2199
+     },
+     {
+      "group": "position",
+      "deviance_rise": 2.4166,
+      "folds": 7,
+      "fold_min": -0.0044,
+      "fold_max": 0.2729,
+      "share_of_deviance": 0.0891
+     },
+     {
+      "group": "radar_geometry",
+      "deviance_rise": 1.614,
+      "folds": 7,
+      "fold_min": -0.0064,
+      "fold_max": 0.1078,
+      "share_of_deviance": 0.0595
+     },
+     {
+      "group": "weather",
+      "deviance_rise": 0.8069,
+      "folds": 7,
+      "fold_min": -0.0385,
+      "fold_max": 0.1932,
+      "share_of_deviance": 0.0297
+     },
+     {
+      "group": "sst",
+      "deviance_rise": 0.5188,
+      "folds": 7,
+      "fold_min": -0.0776,
+      "fold_max": 0.0706,
+      "share_of_deviance": 0.0191
+     },
+     {
+      "group": "dynamics",
+      "deviance_rise": 0.4715,
+      "folds": 7,
+      "fold_min": -0.0121,
+      "fold_max": 0.0528,
+      "share_of_deviance": 0.0174
+     },
+     {
+      "group": "region",
+      "deviance_rise": 0.0,
+      "folds": 7,
+      "fold_min": 0.0,
+      "fold_max": 0.0,
+      "share_of_deviance": 0.0
+     }
+    ]
+   },
+   "anomalies": {
+    "gate_passed": true,
+    "reason": "",
+    "p_flag": 0.01,
+    "control": "Benjamini-Hochberg FDR over the tested rows",
+    "tested": 4147,
+    "would_flag_high": 513,
+    "would_flag_low": 270,
+    "raw_tail_high_without_control": 656,
+    "raw_tail_low_without_control": 551,
+    "flagged_high": 513,
+    "flagged_low": 270,
+    "family": "tested rows (exposure >= 25 km2) with a finite expectation in calm weather (wind_ms < 12 m/s)",
+    "calm_rows": 4147,
+    "rows_not_calm": 2,
+    "overdispersion": {
+     "rows": 4149,
+     "pearson_dispersion": 19.235507870952496,
+     "nb_alpha": 0.8092391377765309
+    },
+    "nb_check": "negative binomial two-sided tail with alpha = overdispersion.nb_alpha, BH over the same family",
+    "flags_also_significant_under_nb": 13,
+    "flag_robust_high": 13,
+    "flag_robust_low": 0,
+    "poisson_fdr_valid": false,
+    "note": "Pearson dispersion of the counts against the model's expectation is 19.24 (1 for Poisson): the Poisson p-values are too small, the BH 1 % false-discovery statement does not hold for flag, and flag_robust (also significant under the negative binomial tail) is the set to review.",
+    "would_flag_under_nb_bh": 13,
+    "high_z_at_least_3": 513
+   },
+   "partial_dependence": {
+    "wind_ms": [
+     {
+      "value": 1.2295,
+      "rate_per_1000km2": 34.7965
+     },
+     {
+      "value": 2.1496,
+      "rate_per_1000km2": 34.3942
+     },
+     {
+      "value": 3.0696,
+      "rate_per_1000km2": 34.4452
+     },
+     {
+      "value": 3.9897,
+      "rate_per_1000km2": 35.1515
+     },
+     {
+      "value": 4.9098,
+      "rate_per_1000km2": 34.5063
+     },
+     {
+      "value": 5.8299,
+      "rate_per_1000km2": 34.6739
+     },
+     {
+      "value": 6.7499,
+      "rate_per_1000km2": 34.7665
+     },
+     {
+      "value": 7.67,
+      "rate_per_1000km2": 35.0289
+     }
+    ],
+    "depth_mean_m": [
+     {
+      "value": 9.463,
+      "rate_per_1000km2": 37.7336
+     },
+     {
+      "value": 433.9479,
+      "rate_per_1000km2": 28.8958
+     },
+     {
+      "value": 858.4329,
+      "rate_per_1000km2": 28.8958
+     },
+     {
+      "value": 1282.9178,
+      "rate_per_1000km2": 28.8958
+     },
+     {
+      "value": 1707.4028,
+      "rate_per_1000km2": 28.9794
+     },
+     {
+      "value": 2131.8877,
+      "rate_per_1000km2": 28.9723
+     },
+     {
+      "value": 2556.3727,
+      "rate_per_1000km2": 29.0975
+     },
+     {
+      "value": 2980.8576,
+      "rate_per_1000km2": 29.6486
+     }
+    ],
+    "dist_coast_km": [
+     {
+      "value": 6.9168,
+      "rate_per_1000km2": 36.0168
+     },
+     {
+      "value": 28.503,
+      "rate_per_1000km2": 32.1811
+     },
+     {
+      "value": 50.0893,
+      "rate_per_1000km2": 31.7441
+     },
+     {
+      "value": 71.6756,
+      "rate_per_1000km2": 32.2456
+     },
+     {
+      "value": 93.2619,
+      "rate_per_1000km2": 31.9544
+     },
+     {
+      "value": 114.8482,
+      "rate_per_1000km2": 31.4645
+     },
+     {
+      "value": 136.4344,
+      "rate_per_1000km2": 35.3416
+     },
+     {
+      "value": 158.0207,
+      "rate_per_1000km2": 28.3437
+     }
+    ],
+    "sst_grad_mean": [
+     {
+      "value": 0.0028,
+      "rate_per_1000km2": 34.7003
+     },
+     {
+      "value": 0.008,
+      "rate_per_1000km2": 34.4938
+     },
+     {
+      "value": 0.0132,
+      "rate_per_1000km2": 33.8752
+     },
+     {
+      "value": 0.0184,
+      "rate_per_1000km2": 35.3477
+     },
+     {
+      "value": 0.0236,
+      "rate_per_1000km2": 33.6704
+     },
+     {
+      "value": 0.0288,
+      "rate_per_1000km2": 33.9857
+     },
+     {
+      "value": 0.034,
+      "rate_per_1000km2": 34.2104
+     },
+     {
+      "value": 0.0392,
+      "rate_per_1000km2": 34.0637
+     }
+    ],
+    "chl_log10_mean": [
+     {
+      "value": -0.9814,
+      "rate_per_1000km2": 22.364
+     },
+     {
+      "value": -0.7561,
+      "rate_per_1000km2": 22.2757
+     },
+     {
+      "value": -0.5307,
+      "rate_per_1000km2": 25.0345
+     },
+     {
+      "value": -0.3054,
+      "rate_per_1000km2": 25.4154
+     },
+     {
+      "value": -0.08,
+      "rate_per_1000km2": 33.764
+     },
+     {
+      "value": 0.1453,
+      "rate_per_1000km2": 40.9514
+     },
+     {
+      "value": 0.3707,
+      "rate_per_1000km2": 44.6558
+     },
+     {
+      "value": 0.596,
+      "rate_per_1000km2": 49.6552
+     }
+    ],
+    "inc_angle_cell_deg": [
+     {
+      "value": 31.2672,
+      "rate_per_1000km2": 30.3043
+     },
+     {
+      "value": 33.4084,
+      "rate_per_1000km2": 30.6271
+     },
+     {
+      "value": 35.5495,
+      "rate_per_1000km2": 30.7379
+     },
+     {
+      "value": 37.6907,
+      "rate_per_1000km2": 34.7039
+     },
+     {
+      "value": 39.8319,
+      "rate_per_1000km2": 36.4916
+     },
+     {
+      "value": 41.973,
+      "rate_per_1000km2": 37.1243
+     },
+     {
+      "value": 44.1142,
+      "rate_per_1000km2": 43.2238
+     },
+     {
+      "value": 46.2554,
+      "rate_per_1000km2": 25.8234
+     }
+    ],
+    "wind_ms_by_region": {
+     "Gulf of Thailand": [
+      {
+       "value": 1.8,
+       "rate_per_1000km2": 27.6927
+      },
+      {
+       "value": 3.44,
+       "rate_per_1000km2": 29.1244
+      },
+      {
+       "value": 5.08,
+       "rate_per_1000km2": 28.4715
+      },
+      {
+       "value": 6.72,
+       "rate_per_1000km2": 28.4492
+      },
+      {
+       "value": 8.36,
+       "rate_per_1000km2": 28.4297
+      },
+      {
+       "value": 10.0,
+       "rate_per_1000km2": 25.7929
+      }
+     ],
+     "Gulf of Tonkin": [
+      {
+       "value": 1.5975,
+       "rate_per_1000km2": 71.0232
+      },
+      {
+       "value": 2.577,
+       "rate_per_1000km2": 68.3589
+      },
+      {
+       "value": 3.5565,
+       "rate_per_1000km2": 71.0019
+      },
+      {
+       "value": 4.536,
+       "rate_per_1000km2": 69.4892
+      },
+      {
+       "value": 5.5155,
+       "rate_per_1000km2": 69.1055
+      },
+      {
+       "value": 6.495,
+       "rate_per_1000km2": 69.766
+      }
+     ],
+     "North shelf": [
+      {
+       "value": 3.052,
+       "rate_per_1000km2": 85.7537
+      },
+      {
+       "value": 3.7414,
+       "rate_per_1000km2": 86.7869
+      },
+      {
+       "value": 4.4308,
+       "rate_per_1000km2": 84.4009
+      },
+      {
+       "value": 5.1202,
+       "rate_per_1000km2": 83.2752
+      },
+      {
+       "value": 5.8096,
+       "rate_per_1000km2": 83.0318
+      },
+      {
+       "value": 6.499,
+       "rate_per_1000km2": 83.6475
+      }
+     ],
+     "South Vietnam shelf": [
+      {
+       "value": 1.096,
+       "rate_per_1000km2": 60.0176
+      },
+      {
+       "value": 2.2696,
+       "rate_per_1000km2": 60.6366
+      },
+      {
+       "value": 3.4432,
+       "rate_per_1000km2": 62.6546
+      },
+      {
+       "value": 4.6168,
+       "rate_per_1000km2": 60.8268
+      },
+      {
+       "value": 5.7904,
+       "rate_per_1000km2": 60.0295
+      },
+      {
+       "value": 6.964,
+       "rate_per_1000km2": 60.9394
+      }
+     ],
+     "Southern sea": [
+      {
+       "value": 2.16,
+       "rate_per_1000km2": 19.0341
+      },
+      {
+       "value": 2.926,
+       "rate_per_1000km2": 19.7857
+      },
+      {
+       "value": 3.692,
+       "rate_per_1000km2": 20.8725
+      },
+      {
+       "value": 4.458,
+       "rate_per_1000km2": 20.7711
+      },
+      {
+       "value": 5.224,
+       "rate_per_1000km2": 20.6224
+      },
+      {
+       "value": 5.99,
+       "rate_per_1000km2": 20.4866
+      }
+     ],
+     "other": [
+      {
+       "value": 0.89,
+       "rate_per_1000km2": 17.321
+      },
+      {
+       "value": 1.8982,
+       "rate_per_1000km2": 18.6861
+      },
+      {
+       "value": 2.9064,
+       "rate_per_1000km2": 18.8196
+      },
+      {
+       "value": 3.9146,
+       "rate_per_1000km2": 19.4186
+      },
+      {
+       "value": 4.9228,
+       "rate_per_1000km2": 18.9443
+      },
+      {
+       "value": 5.931,
+       "rate_per_1000km2": 19.2845
+      }
+     ]
+    }
+   }
+  }
+ },
+ "outputs": {
+  "parquet": "expected_activity.parquet: 133,386 rows",
+  "geopackage": "35 events (robust), layers ['expected_activity_anomalies_4326', 'expected_activity_anomalies_utm49n'] and about",
+  "figure": "docs/figures/expected_activity.png"
+ },
+ "columns": {
+  "target": "viirs or radar",
+  "unit_id": "night (viirs) or scene_id (radar)",
+  "night": "local evening date (viirs) or UTC date (radar)",
+  "exposure_km2": "clear searched sea (viirs) or imaged AOI sea (radar) of the cell",
+  "tested": "exposure >= 25 km2",
+  "observed": "count in the cell (NaN when not tested)",
+  "expected": "leave-one-week-out expected count of the full trees",
+  "expected_rate_per_1000km2": "the same as a rate",
+  "expected_climatology": "leave-one-week-out climatology count",
+  "expected_rate_all_per_1000km2": "rate of the full trees fitted on all tested rows, for every row",
+  "z": "(observed - expected) / sqrt(expected)",
+  "p_high, p_low": "Poisson upper and lower tails",
+  "p_two_sided, q_bh": "two-sided p and its BH q over the family (NaN outside it)",
+  "p_two_sided_nb, q_bh_nb": "the negative binomial sensitivity check",
+  "calm": "wind_ms < 12",
+  "flag": "high, low or none (none for every row when the gate did not pass)",
+  "flag_robust": "flag where the negative binomial check (q_bh_nb < 0.01) also holds, else none"
+ },
+ "sources": [
+  {
+   "name": "scikit-learn Poisson regression example (frequency with exposure as sample weight)",
+   "url": "https://scikit-learn.org/stable/auto_examples/linear_model/plot_poisson_regression_non_normal_loss.html"
+  },
+  {
+   "name": "Marshall, R. J. (1991). Mapping disease and mortality rates using empirical Bayes estimators. Applied Statistics 40, 283-294",
+   "url": "https://doi.org/10.2307/2347593"
+  },
+  {
+   "name": "Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. Annals of Statistics 29, 1189-1232",
+   "url": "https://doi.org/10.1214/aos/1013203451"
+  },
+  {
+   "name": "Breiman, L. (2001). Random forests. Machine Learning 45, 5-32 (permutation importance)",
+   "url": "https://doi.org/10.1023/A:1010933404324"
+  },
+  {
+   "name": "Benjamini, Y. and Hochberg, Y. (1995). Controlling the false discovery rate. JRSS B 57, 289-300",
+   "url": "https://doi.org/10.1111/j.2517-6161.1995.tb02031.x"
+  },
+  {
+   "name": "Cameron, A. C. and Trivedi, P. K. (1990). Regression-based tests for overdispersion in the Poisson model. Journal of Econometrics 46, 347-364",
+   "url": "https://doi.org/10.1016/0304-4076(90)90014-K"
+  },
+  {
+   "name": "Inputs: ocean layers and their sources",
+   "url": "data/ocean_static_summary.json, data/ocean_daily_summary.json (sources lists)"
+  },
+  {
+   "name": "Inputs: VIIRS lights and clear-sky counts",
+   "url": "scripts/15_viirs_lights.py, docs/viirs_lights.md"
+  },
+  {
+   "name": "Inputs: regional radar detections",
+   "url": "scripts/09_run_regional.py, data/detections_regional_all.gpkg about table"
+  }
+ ],
+ "caveat": "Ocean and weather layers describe the sea, not what any vessel does. Expected activity says where lit boats or radar candidates usually are, given the sea and the weather; a cell above or below it is a lead for review, not evidence. Dark = no AIS match. Not evidence of illegal activity. An activity anomaly is a difference between a count of detections in a cell and a model's expectation for that cell, night or pass. It is not a count of vessels and not evidence of wrongdoing: model error, weather, cloud, moonlight, fleet movements and the sensors' limits (unlit boats for VIIRS, small boats for radar) all produce it. A lead for review only."
+}
