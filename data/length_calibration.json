@@ -1,27 +1,27 @@
 {
  "schema": "darkvessel.length_calibration/1",
  "build": "open",
- "calibration_id": "length_cal_open_c2f3a994",
+ "calibration_id": "length_cal_open_6ef2ab79",
  "min_claim_m": 25.0,
  "level": 0.8,
  "model": {
   "kind": "ratio",
-  "intercept": -0.5657823028510869,
+  "intercept": -0.5763893831053526,
   "slope": 1.0,
   "covariates": [],
   "interval": {
    "level": 0.8,
-   "q_lo": -0.9493517123158908,
-   "q_hi": 0.34000060504112195,
-   "factor_lo": 0.38699182418367467,
-   "factor_hi": 1.4049484406149175,
+   "q_lo": -0.9380101530484906,
+   "q_hi": 0.27767521580435606,
+   "factor_lo": 0.3914058988227623,
+   "factor_hi": 1.3200573937997304,
    "source": "leave-one-pair-out log residuals (all pairs from one scene: not a grouped validation)"
   },
   "valid_length_est_m": [
    38.3,
    440.1
   ],
-  "n_pairs": 27
+  "n_pairs": 26
  },
  "fallback": null,
  "reasons": {
@@ -34,7 +34,7 @@
   "no_calibration": "no calibration loaded"
  },
  "covariate_definitions": {},
- "created_utc": "2026-10-10T15:36:10+00:00",
+ "created_utc": "2026-10-10T22:55:12+00:00",
  "target": "AIS self-reported hull length (static message 5 or 24, dimension A + B), live AIS relayed by aisstream.io; terms UNVERIFIED",
  "contains_gfw_data": false,
  "ais_source_label": "live AIS relayed by aisstream.io; terms UNVERIFIED",
@@ -50,19 +50,21 @@
   "matched_with_ais_length": 31,
   "stored_quality_reproduced": 1.0,
   "pairs_with_length": 31,
-  "used": 27,
+  "used": 26,
   "scenes": 1,
   "passes": [
    "live_S1D_20261010T1032"
   ],
   "excluded": {
-   "quality_position_not_high_or_medium": 4
+   "quality_position_not_high_or_medium": 4,
+   "review_doubtful": 1
   },
   "selection": "matched pairs with a hull length; quality_position high or medium (position quality: the match quality rule without its radar/AIS length terms); review_note not 'doubtful'; radar/hull ratio at least 0.25 (live matcher feasibility rule)"
  },
  "structure": {
   "form": "ratio",
-  "chosen_by": "grouped CV on the AI2 Sentinel-1A pairs (open data): grouped CV, mean absolute log error: loglinear over ratio and each covariate only for a gain of at least 5%, at most 2 covariates (available on every pair); isotonic only for a gain of at least 10% with MAE not higher",
+  "chosen_by": "grouped CV on the AI2 Sentinel-1A pairs (open data): grouped CV, mean absolute log error: loglinear over ratio only for a gain of at least 5%; best covariate subset of each size up to 2 (covariates available on every pair), each covariate earning a gain of at least 5%; isotonic only for a gain of at least 10% with MAE not higher",
+  "ai2_selection": "loglinear+fill_width_m",
   "ai2_selection_table": [
    {
     "kind": "ratio",
@@ -101,18 +103,28 @@
     "covariates": [
      "dual_pol"
     ],
-    "male": 0.287,
+    "male": 0.2869,
     "mae_m": 37.1,
     "n_folds": 10
    },
    {
     "kind": "loglinear",
     "covariates": [
-     "fill_width_m",
-     "scr_max_db"
+     "scr_max_db",
+     "fill_width_m"
     ],
     "male": 0.2647,
     "mae_m": 33.6,
+    "n_folds": 10
+   },
+   {
+    "kind": "loglinear",
+    "covariates": [
+     "scr_max_db",
+     "dual_pol"
+    ],
+    "male": 0.2844,
+    "mae_m": 37.1,
     "n_folds": 10
    },
    {
@@ -133,29 +145,53 @@
     "n_folds": 10
    }
   ],
+  "ai2_reselection_stability": {
+   "runs": 10,
+   "unit_left_out": "fold of groups (10 folds)",
+   "shares": {
+    "loglinear+fill_width_m": 0.7,
+    "ratio": 0.3
+   },
+   "length_only_shares": {
+    "ratio": 1.0
+   },
+   "picks": [
+    "loglinear+fill_width_m",
+    "loglinear+fill_width_m",
+    "loglinear+fill_width_m",
+    "loglinear+fill_width_m",
+    "loglinear+fill_width_m",
+    "loglinear+fill_width_m",
+    "ratio",
+    "loglinear+fill_width_m",
+    "ratio",
+    "ratio"
+   ]
+  },
+  "stability_rule": "the selected structure is applied only when it is the ratio form or at least 75% of the leave-one-out re-selections pick it; otherwise the ratio form; the length-only form likewise",
   "covariates": "none (too few pairs to select any)"
  },
  "in_sample": {
   "before": {
-   "n": 27,
-   "mae_m": 122.4,
-   "median_ae_m": 96.6,
-   "median_ratio": 1.761,
-   "within_1_5": 0.333,
-   "within_2": 0.704,
-   "mean_abs_log_err": 0.6886
+   "n": 26,
+   "mae_m": 125.7,
+   "median_ae_m": 97.4,
+   "median_ratio": 1.78,
+   "within_1_5": 0.346,
+   "within_2": 0.692,
+   "mean_abs_log_err": 0.6976
   },
   "after_in_sample": {
-   "n": 26,
-   "mae_m": 39.4,
-   "median_ae_m": 17.9,
+   "n": 25,
+   "mae_m": 38.1,
+   "median_ae_m": 15.3,
    "median_ratio": 1.011,
-   "within_1_5": 0.731,
-   "within_2": 0.769,
-   "mean_abs_log_err": 0.3312,
-   "coverage": 0.923,
-   "n_with_interval": 26,
-   "median_interval_factor": 3.63
+   "within_1_5": 0.76,
+   "within_2": 0.8,
+   "mean_abs_log_err": 0.3033,
+   "coverage": 0.92,
+   "n_with_interval": 25,
+   "median_interval_factor": 3.37
   },
   "null_reasons": {
    "below_min_claim": 1
@@ -193,52 +229,52 @@
    },
    "after": {
     "n": 1376,
-    "mae_m": 39.4,
-    "median_ae_m": 32.0,
-    "median_ratio": 0.899,
-    "within_1_5": 0.746,
-    "within_2": 0.931,
-    "mean_abs_log_err": 0.3077,
-    "coverage": 0.778,
+    "mae_m": 39.6,
+    "median_ae_m": 33.0,
+    "median_ratio": 0.889,
+    "within_1_5": 0.738,
+    "within_2": 0.932,
+    "mean_abs_log_err": 0.3101,
+    "coverage": 0.683,
     "n_with_interval": 1376,
-    "median_interval_factor": 3.63
+    "median_interval_factor": 3.37
    },
    "after_by_radar_length_m": {
     "50-100": {
      "n": 77,
-     "mae_m": 19.2,
-     "median_ae_m": 11.6,
-     "median_ratio": 0.863,
+     "mae_m": 19.4,
+     "median_ae_m": 12.0,
+     "median_ratio": 0.854,
      "within_1_5": 0.753,
-     "within_2": 0.896,
-     "mean_abs_log_err": 0.3363,
-     "coverage": 0.779,
+     "within_2": 0.883,
+     "mean_abs_log_err": 0.3396,
+     "coverage": 0.701,
      "n_with_interval": 77,
-     "median_interval_factor": 3.63
+     "median_interval_factor": 3.37
     },
     "100-200": {
      "n": 464,
-     "mae_m": 27.0,
-     "median_ae_m": 24.0,
-     "median_ratio": 0.828,
-     "within_1_5": 0.78,
-     "within_2": 0.933,
-     "mean_abs_log_err": 0.3075,
-     "coverage": 0.728,
+     "mae_m": 27.4,
+     "median_ae_m": 24.4,
+     "median_ratio": 0.819,
+     "within_1_5": 0.763,
+     "within_2": 0.931,
+     "mean_abs_log_err": 0.3117,
+     "coverage": 0.599,
      "n_with_interval": 464,
-     "median_interval_factor": 3.63
+     "median_interval_factor": 3.37
     },
     "200-451": {
      "n": 834,
-     "mae_m": 48.1,
-     "median_ae_m": 43.0,
-     "median_ratio": 0.939,
-     "within_1_5": 0.727,
-     "within_2": 0.934,
-     "mean_abs_log_err": 0.3041,
-     "coverage": 0.807,
+     "mae_m": 48.3,
+     "median_ae_m": 43.8,
+     "median_ratio": 0.929,
+     "within_1_5": 0.723,
+     "within_2": 0.938,
+     "mean_abs_log_err": 0.3054,
+     "coverage": 0.729,
      "n_with_interval": 834,
-     "median_interval_factor": 3.63
+     "median_interval_factor": 3.37
     }
    }
   },
@@ -246,73 +282,136 @@
    "ratio": {
     "ai2_external": {
      "n": 1376,
-     "mae_m": 39.4,
-     "median_ae_m": 32.0,
-     "median_ratio": 0.899,
-     "within_1_5": 0.746,
-     "within_2": 0.931,
-     "mean_abs_log_err": 0.3077,
-     "coverage": 0.778,
+     "mae_m": 39.6,
+     "median_ae_m": 33.0,
+     "median_ratio": 0.889,
+     "within_1_5": 0.738,
+     "within_2": 0.932,
+     "mean_abs_log_err": 0.3101,
+     "coverage": 0.683,
      "n_with_interval": 1376,
-     "median_interval_factor": 3.63
+     "median_interval_factor": 3.37
     }
    },
    "loglinear": {
     "ai2_external": {
      "n": 1381,
      "mae_m": 39.2,
-     "median_ae_m": 31.7,
-     "median_ratio": 0.892,
-     "within_1_5": 0.75,
-     "within_2": 0.936,
-     "mean_abs_log_err": 0.3029,
-     "coverage": 0.791,
+     "median_ae_m": 31.8,
+     "median_ratio": 0.888,
+     "within_1_5": 0.749,
+     "within_2": 0.937,
+     "mean_abs_log_err": 0.3036,
+     "coverage": 0.699,
      "n_with_interval": 1381,
-     "median_interval_factor": 3.63
+     "median_interval_factor": 3.37
     }
    },
    "isotonic": {
     "ai2_external": {
-     "n": 1362,
-     "mae_m": 45.8,
-     "median_ae_m": 37.5,
+     "n": 1381,
+     "mae_m": 45.4,
+     "median_ae_m": 36.6,
      "median_ratio": 0.823,
-     "within_1_5": 0.631,
-     "within_2": 0.931,
-     "mean_abs_log_err": 0.3476,
-     "coverage": 0.616,
-     "n_with_interval": 1362,
-     "median_interval_factor": 3.63
+     "within_1_5": 0.634,
+     "within_2": 0.93,
+     "mean_abs_log_err": 0.3469,
+     "coverage": 0.552,
+     "n_with_interval": 1381,
+     "median_interval_factor": 3.37
     }
    }
+  },
+  "leave_one_live_pair_out": {
+   "runs": 26,
+   "min_median_max": {
+    "factor": [
+     1.761,
+     1.78,
+     1.799
+    ],
+    "factor_lo": [
+     0.387,
+     0.395,
+     0.396
+    ],
+    "factor_hi": [
+     1.284,
+     1.306,
+     1.322
+    ],
+    "ai2_coverage": [
+     0.632,
+     0.669,
+     0.685
+    ],
+    "ai2_mae_m": [
+     37.7,
+     39.6,
+     40.0
+    ],
+    "ai2_median_ratio": [
+     0.879,
+     0.88,
+     0.899
+    ]
+   },
+   "largest_coverage_moves": [
+    {
+     "det_id": "S1D_20261010T103247_10888",
+     "ratio": 1.363,
+     "factor": 1.799,
+     "factor_lo": 0.396,
+     "factor_hi": 1.284,
+     "ai2_coverage": 0.632,
+     "ai2_mae_m": 39.8,
+     "ai2_median_ratio": 0.879
+    },
+    {
+     "det_id": "S1D_20261010T103247_10369",
+     "ratio": 1.267,
+     "factor": 1.799,
+     "factor_lo": 0.396,
+     "factor_hi": 1.284,
+     "ai2_coverage": 0.632,
+     "ai2_mae_m": 39.8,
+     "ai2_median_ratio": 0.879
+    },
+    {
+     "det_id": "S1D_20261010T103247_10880",
+     "ratio": 1.799,
+     "factor": 1.761,
+     "factor_lo": 0.387,
+     "factor_hi": 1.308,
+     "ai2_coverage": 0.685,
+     "ai2_mae_m": 39.4,
+     "ai2_median_ratio": 0.899
+    }
+   ]
   }
  },
  "alternative_ai2": {
   "note": "open model fitted on the AI2 pairs; reported, not applied (the open calibration uses live pairs only)",
-  "selection": [
-   "fill_width_m"
-  ],
+  "selection": "loglinear+fill_width_m",
+  "applied_structure": {
+   "kind": "ratio",
+   "covariates": [],
+   "key": "ratio",
+   "selected_key": "loglinear+fill_width_m",
+   "share_of_reselections": 0.7,
+   "rule": "the selected structure is applied only when it is the ratio form or at least 75% of the leave-one-out re-selections pick it; otherwise the ratio form"
+  },
   "model": {
-   "kind": "loglinear",
-   "intercept": 1.6143835277792147,
-   "slope": 0.5989979524228587,
-   "covariates": [
-    {
-     "name": "fill_width_m",
-     "centre": 48.91612555642446,
-     "range": [
-      2.1101225934023518,
-      122.61213472527331
-     ],
-     "coef": 0.00876913829772412
-    }
-   ],
+   "kind": "ratio",
+   "intercept": -0.4619132489965665,
+   "slope": 1.0,
+   "covariates": [],
    "interval": {
     "level": 0.8,
-    "q_lo": -0.49422313390973294,
-    "q_hi": 0.39069214124990825,
-    "factor_lo": 0.6100446462558419,
-    "factor_hi": 1.4780034270778948,
+    "q_lo": -0.6446043345359733,
+    "q_hi": 0.3214321971684422,
+    "factor_lo": 0.5248701740284545,
+    "factor_hi": 1.3791014958696044,
     "source": "held-out log residuals of grouped cross-validation (10 folds)"
    },
    "valid_length_est_m": [
@@ -322,6 +421,31 @@
    "n_pairs": 1399
   },
   "grouped_cv_by_scene": {
+   "before": {
+    "n": 1399,
+    "mae_m": 96.5,
+    "median_ae_m": 79.5,
+    "median_ratio": 1.587,
+    "within_1_5": 0.43,
+    "within_2": 0.708,
+    "mean_abs_log_err": 0.554
+   },
+   "after": {
+    "n": 1399,
+    "mae_m": 39.4,
+    "median_ae_m": 30.0,
+    "median_ratio": 1.0,
+    "within_1_5": 0.793,
+    "within_2": 0.901,
+    "mean_abs_log_err": 0.2997,
+    "coverage": 0.798,
+    "n_with_interval": 1399,
+    "median_interval_factor": 2.62,
+    "n_folds": 10
+   }
+  },
+  "selected_structure_cv_not_applied": {
+   "structure": "loglinear+fill_width_m",
    "before": {
     "n": 1399,
     "mae_m": 96.5,
@@ -345,72 +469,82 @@
     "n_folds": 10
    }
   },
+  "selection_procedure_cv": {
+   "note": "each left-out fold of scenes predicted by the structure re-selected without it: the selection itself scored out of sample",
+   "n": 1399,
+   "mae_m": 37.0,
+   "median_ae_m": 28.9,
+   "median_ratio": 0.995,
+   "within_1_5": 0.758,
+   "within_2": 0.931,
+   "mean_abs_log_err": 0.2893
+  },
   "on_live_pairs": {
-   "n": 27,
-   "n_scored": 27,
+   "n": 26,
+   "n_scored": 25,
    "before": {
-    "n": 27,
-    "mae_m": 122.4,
-    "median_ae_m": 96.6,
-    "median_ratio": 1.761,
-    "within_1_5": 0.333,
-    "within_2": 0.704,
-    "mean_abs_log_err": 0.6886
+    "n": 25,
+    "mae_m": 130.3,
+    "median_ae_m": 98.2,
+    "median_ratio": 1.799,
+    "within_1_5": 0.32,
+    "within_2": 0.68,
+    "mean_abs_log_err": 0.7116
    },
    "after": {
-    "n": 27,
-    "mae_m": 27.8,
-    "median_ae_m": 21.6,
-    "median_ratio": 1.037,
-    "within_1_5": 0.778,
-    "within_2": 0.963,
-    "mean_abs_log_err": 0.246,
-    "coverage": 0.815,
-    "n_with_interval": 27,
-    "median_interval_factor": 2.42
+    "n": 25,
+    "mae_m": 46.1,
+    "median_ae_m": 20.1,
+    "median_ratio": 1.133,
+    "within_1_5": 0.76,
+    "within_2": 0.8,
+    "mean_abs_log_err": 0.3289,
+    "coverage": 0.8,
+    "n_with_interval": 25,
+    "median_interval_factor": 2.63
    }
   }
  },
  "sensitivity_stored_quality": {
   "fit_set": "stored match_quality high or medium",
-  "n": 24,
-  "median_ratio_before": 1.718,
+  "n": 23,
+  "median_ratio_before": 1.721,
   "model": {
    "kind": "ratio",
-   "intercept": -0.5414180757883487,
+   "intercept": -0.5430991843162865,
    "slope": 1.0,
    "covariates": [],
    "interval": {
     "level": 0.8,
-    "q_lo": -0.8055493701321028,
-    "q_hi": 0.3067104062520558,
-    "factor_lo": 0.4468423772609819,
-    "factor_hi": 1.3589473684210525,
+    "q_lo": -0.8038682616041655,
+    "q_hi": 0.24511949602842442,
+    "factor_lo": 0.44759419956241836,
+    "factor_hi": 1.2777739929997778,
     "source": "leave-one-pair-out log residuals (all pairs from one scene: not a grouped validation)"
    },
    "valid_length_est_m": [
     38.3,
     440.1
    ],
-   "n_pairs": 24
+   "n_pairs": 23
   },
   "ai2_external": {
    "n": 1376,
    "mae_m": 39.0,
-   "median_ae_m": 31.3,
-   "median_ratio": 0.921,
+   "median_ae_m": 31.6,
+   "median_ratio": 0.919,
    "within_1_5": 0.773,
-   "within_2": 0.926,
-   "mean_abs_log_err": 0.3028,
-   "coverage": 0.739,
+   "within_2": 0.927,
+   "mean_abs_log_err": 0.3031,
+   "coverage": 0.661,
    "n_with_interval": 1376,
-   "median_interval_factor": 3.04
+   "median_interval_factor": 2.85
   }
  },
  "diagnosis": {
   "live_aisstream": {
-   "n": 27,
-   "median_ratio": 1.761,
+   "n": 26,
+   "median_ratio": 1.78,
    "pixel_floor": {
     "pairs_at_floor": 0,
     "pairs_hull_under_25m": 0,
@@ -418,12 +552,12 @@
     "min_radar_length_m": 38.3
    },
    "linear_fit_radar_on_hull": {
-    "intercept_m": 6.7,
-    "slope": 1.691
+    "intercept_m": 13.5,
+    "slope": 1.661
    },
    "loglog_fit_radar_on_hull": {
-    "intercept": 0.031,
-    "slope": 1.104
+    "intercept": -0.099,
+    "slope": 1.136
    },
    "ratio_by_hull_length": {
     "<25": {
@@ -435,8 +569,8 @@
      "median_ratio": 1.42
     },
     "50-100": {
-     "n": 13,
-     "median_ratio": 1.84
+     "n": 12,
+     "median_ratio": 1.96
     },
     "100-200": {
      "n": 7,
@@ -449,39 +583,39 @@
    },
    "spearman_size_adjusted_log_ratio": {
     "scr_max_db": {
-     "n": 27,
-     "rho": 0.246,
-     "p": 0.215
+     "n": 26,
+     "rho": 0.098,
+     "p": 0.633
     },
     "fill_width_m": {
-     "n": 27,
-     "rho": -0.075,
-     "p": 0.71
+     "n": 26,
+     "rho": -0.258,
+     "p": 0.203
     },
     "speed_kn": {
-     "n": 27,
-     "rho": -0.056,
-     "p": 0.782
+     "n": 26,
+     "rho": -0.01,
+     "p": 0.961
     },
     "diagonality": {
-     "n": 23,
-     "rho": -0.154,
-     "p": 0.483
+     "n": 22,
+     "rho": -0.018,
+     "p": 0.938
     },
     "azimuth_alignment": {
-     "n": 23,
-     "rho": 0.485,
-     "p": 0.0189
+     "n": 22,
+     "rho": 0.42,
+     "p": 0.0519
     },
     "inc_angle_deg": {
-     "n": 27,
-     "rho": -0.438,
-     "p": 0.0222
+     "n": 26,
+     "rho": -0.366,
+     "p": 0.0657
     },
     "dual_pol": {
-     "n": 27,
-     "rho": 0.4,
-     "p": 0.0385
+     "n": 26,
+     "rho": 0.371,
+     "p": 0.0622
     }
    },
    "by_speed": {
@@ -491,22 +625,22 @@
      "share_ratio_gt_3": 0.0
     },
     "moving_ge_5kn": {
-     "n": 16,
-     "median_ratio": 1.76,
-     "share_ratio_gt_3": 0.312
+     "n": 15,
+     "median_ratio": 1.8,
+     "share_ratio_gt_3": 0.333
     }
    },
    "by_fill_width": {
     "thin_lt_15m": {
-     "n": 5,
-     "median_ratio": 1.42
+     "n": 4,
+     "median_ratio": 1.63
     },
     "wide_ge_15m": {
      "n": 22,
      "median_ratio": 1.78
     },
     "share_thin_among_ratio_gt_3": 0.2,
-    "share_thin_among_ratio_le_3": 0.182
+    "share_thin_among_ratio_le_3": 0.143
    },
    "by_orientation": {
     "along_azimuth_0_30": {
@@ -514,8 +648,8 @@
      "median_ratio": 1.84
     },
     "diagonal_30_60": {
-     "n": 9,
-     "median_ratio": 1.42
+     "n": 8,
+     "median_ratio": 1.63
     },
     "along_range_60_90": {
      "n": 4,
@@ -552,8 +686,8 @@
      "median_ratio": 3.31
     },
     "moving_ge_5kn|diagonal_30_60": {
-     "n": 6,
-     "median_ratio": 1.41
+     "n": 5,
+     "median_ratio": 1.42
     },
     "moving_ge_5kn|along_range_60_90": {
      "n": 4,
@@ -567,14 +701,24 @@
      "p": 0.22
     }
    },
+   "confidence_class": {
+    "n_high_or_medium": 22,
+    "counts": {
+     "high": 18,
+     "medium": 4,
+     "fixed": 4
+    },
+    "share_high_equals_dual_pol": 1.0,
+    "note": "detect.postprocess.assign_confidence sets high for detection in both VV and VH and medium for VH only or strong VV only, low for oversized (over 450 m) or weak returns, and 'fixed' for returns on every earlier date: within high and medium the class is the dual_pol indicator"
+   },
    "by_polarisation": {
     "dual": {
      "n": 21,
      "median_ratio": 1.8
     },
     "single": {
-     "n": 6,
-     "median_ratio": 1.52
+     "n": 5,
+     "median_ratio": 1.58
     }
    }
   },
@@ -742,6 +886,15 @@
      "p": 2.78e-14
     }
    },
+   "confidence_class": {
+    "n_high_or_medium": 1399,
+    "counts": {
+     "high": 1024,
+     "medium": 375
+    },
+    "share_high_equals_dual_pol": 1.0,
+    "note": "detect.postprocess.assign_confidence sets high for detection in both VV and VH and medium for VH only or strong VV only, low for oversized (over 450 m) or weak returns, and 'fixed' for returns on every earlier date: within high and medium the class is the dual_pol indicator"
+   },
    "by_polarisation": {
     "dual": {
      "n": 1024,
@@ -759,36 +912,35 @@
    "floor_m": 24.1
   }
  },
- "reliability": "The open calibration rests on 27 pairs from 1 scene(s) of one live pass. No grouped cross-validation is possible with one scene, so its in-sample numbers are optimistic and its interval comes from leave-one-pair-out residuals within that scene. The AI2 Sentinel-1A pairs (other scenes, Sentinel-1A in 2022, same detector) are the open out-of-sample check. Treat the open calibration as provisional until pairs from at least three more scenes land; rerun this script after each live pass.",
+ "reliability": "The open calibration rests on 26 pairs from 1 scene(s) of one live pass. No grouped cross-validation is possible with one scene, so its in-sample numbers are optimistic and its interval comes from leave-one-pair-out residuals within that scene. The AI2 Sentinel-1A pairs (other scenes, Sentinel-1A in 2022, same detector) are the open out-of-sample check, and that check moves with single live pairs (external_validation_ai2 leave_one_live_pair_out). Treat the open calibration as provisional until pairs from at least three more scenes land; rerun this script after each live pass.",
  "on_project_contacts": {
   "live_contacts": {
    "n": 8573,
    "share_by_reason": {
-    "calibrated": 0.5558,
+    "calibrated": 0.55,
     "pixel_floor": 0.2833,
     "below_range": 0.0862,
-    "below_min_claim": 0.0736,
+    "below_min_claim": 0.0794,
     "above_range": 0.001
    },
-   "median_length_cal_m": 57.1
+   "median_length_cal_m": 56.6
   },
   "regional_contacts": {
    "n": 78615,
    "share_by_reason": {
-    "calibrated": 0.4429,
+    "calibrated": 0.4381,
     "pixel_floor": 0.373,
     "below_range": 0.1075,
-    "below_min_claim": 0.0756,
+    "below_min_claim": 0.0804,
     "above_range": 0.001
    },
-   "median_length_cal_m": 49.9
-  },
-  "note": "regional contacts carry no n_pixels in data/detections_regional.gpkg, so a model with fill_width_m uses its fallback"
+   "median_length_cal_m": 50.5
+  }
  },
  "use": "Producers add length_cal_m, length_cal_lo_m, length_cal_hi_m, length_cal_reason and length_cal_id next to the raw length_est_m with darkvessel.detect.length_cal.apply_frame(df, load_calibration(path)); length_est_m stays raw.",
  "caveat": "A calibrated radar length is a statistical estimate from the extent of the radar return, not a measurement of the hull. It describes typical pairs of steel ships of 25 m and longer that carry AIS; it makes no claim below 25 m, and a return that holds two hulls side by side or a hull and its wake reads long whatever the calibration. 'Dark' means only that no AIS position was matched to this radar contact. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and both satellite and terrestrial AIS have blind spots: satellite AIS misses messages in busy coastal waters, and shore receivers cover only the waters within their radio range. Treat every unmatched contact as a lead for review, not as evidence of wrongdoing. An AIS gap is not proof of intent.",
  "sources": {
-  "s1_grd_spec": "https://sentiwiki.copernicus.eu/web/s1-products (IW GRDH: resolution 20 x 22 m, pixel spacing 10 x 10 m, 5 x 1 looks, ENL 4.4; Hamming weighting 0.70 to 0.75; resolved 2026-10-10)",
+  "s1_grd_spec": "https://sentiwiki.copernicus.eu/web/s1-products (IW GRDH: resolution 20 x 22 m, pixel spacing 10 x 10 m, 5 x 1 looks, ENL 4.4, 4.3 and 4.3 for IW1 to IW3; Hamming weighting 0.70 to 0.75; resolved 2026-10-10)",
   "ai2_labels": "https://github.com/allenai/vessel-detection-sentinels (README: point labels with properties Length, Width, Heading, ShipAndCargoType, Speed; LICENSE Apache-2.0; resolved 2026-10-10)",
   "stasolla_greidanus_2016": "doi:10.1080/2150704X.2016.1226522 (Remote Sensing Letters 7(12):1219-1228; abstract read via https://api.openalex.org/works/doi:10.1080/2150704X.2016.1226522, resolved 2026-10-10)",
   "conformal_jackknife": "doi:10.1214/20-AOS1965 (Barber, Candes, Ramdas, Tibshirani 2021, Annals of Statistics 49(1); resolved 2026-10-10)"

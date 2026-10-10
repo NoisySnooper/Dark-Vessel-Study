@@ -13,6 +13,9 @@ Models (all in log space, x = length_est_m, y = hull length):
   isotonic   log y = f(log x), f non-decreasing (pool adjacent violators), linear between knots
 Interval: [m exp(q_lo), m exp(q_hi)] around the median prediction m, q_lo and q_hi the finite-sample (split conformal)
 quantiles of held-out log residuals at level LEVEL (80 %).
+Structure: select_model (grouped CV, best covariate subset), checked by selection_stability (re-selection with one group
+left out at a time); stable_structure applies a structure richer than the ratio form only when at least STABLE_SHARE of
+the re-selections pick it.
 
 Calibration json (SCHEMA): build, calibration_id, target, model, fallback (length only; used when a covariate of the
 model is missing or outside its fitted range), min_claim_m, reasons, provenance and caveat fields. Apply with
@@ -60,7 +63,9 @@ REASONS = {
 COVARIATES = {
     "scr_max_db": "peak-to-background ratio of the brighter channel (dB): max(scr_vv_db, scr_vh_db)",
     "fill_width_m": "detected area over radar length (m): n_pixels x 100 / length_est_m, the blob's mean width; low for "
-                    "thin streaks (wakes, smeared or fragmented returns)",
+                    "thin streaks (wakes, smeared or fragmented returns). For a contact detected in both channels it mixes "
+                    "them: n_pixels is the VV object's, length_est_m the longer of the VV and VH extents "
+                    "(pipeline.fuse_polarisations); the same in every producer and pair set",
     "inc_angle_deg": "incidence angle at the contact (degrees)",
     "cnn_score": "CNN verifier score (verifier_v0)",
     "dual_pol": "1 when detected in both VV and VH, else 0",
@@ -94,7 +99,21 @@ def derive_covariates(df: pd.DataFrame) -> pd.DataFrame:
 
 # ----------------------------------------------------------------------------------------------- fitting
 def _lad(X: np.ndarray, y: np.ndarray) -> np.ndarray:
-    """Least absolute deviation coefficients (first column of X is the intercept) by linear programming."""
+    """Least absolute deviation coefficients (first column of X is the intercept) by linear programming: the dual
+    (max y'd subject to X'd = 0, -1 <= d <= 1; the coefficients are the multipliers of X'd = 0), which is smaller and
+    faster than the primal; the primal is the fallback."""
+    from scipy.optimize import linprog
+
+    n, p = X.shape
+    res = linprog(-y, A_eq=X.T, b_eq=np.zeros(p), bounds=[(-1.0, 1.0)] * n, method="highs")
+    if res.success and getattr(res, "eqlin", None) is not None:
+        beta = -np.asarray(res.eqlin.marginals, float)
+        if beta.shape == (p,) and np.all(np.isfinite(beta)):
+            return beta
+    return _lad_primal(X, y)
+
+
+def _lad_primal(X: np.ndarray, y: np.ndarray) -> np.ndarray:
     from scipy import sparse
     from scipy.optimize import linprog
 
@@ -275,16 +294,26 @@ def cv_report(kind, x, y, groups, Z=None, covariates=(), level=LEVEL, max_folds=
     return before, {**after, "cv": cv}
 
 
+def structure_key(kind: str, covariates=()) -> str:
+    """'ratio', 'loglinear', 'loglinear+fill_width_m+scr_max_db' (covariates sorted), 'isotonic'."""
+    return "+".join([kind, *sorted(covariates)])
+
+
 def select_model(x, y, groups, Z: pd.DataFrame | None = None, candidates=(), level: float = LEVEL,
                  max_folds: int = 10, min_gain: float = 0.05, iso_gain: float = 0.10, max_covariates: int = 2) -> dict:
     """Choose the model structure by grouped CV on the mean absolute log error (MALE).
 
     1. ratio against loglinear: loglinear only if its MALE is at least `min_gain` (relative) lower.
-    2. covariates, forward: add the candidate (available on every row) that lowers MALE most, if by at least
-       `min_gain`; at most `max_covariates`. Covariates force the loglinear form.
+    2. covariates, best subset: every subset of the candidates (available on every row) of size 1 to `max_covariates`
+       is scored. The best subset of size k replaces the current model (size j < k) only if its MALE is at most
+       (1 - min_gain) ** (k - j) times the current MALE: each covariate must earn `min_gain`, but a pair that helps only
+       jointly is not lost to a forward step. The reference for size 0 is the better of ratio and loglinear, since
+       covariates force the loglinear form.
     3. isotonic replaces the chosen model only if its MALE is at least `iso_gain` lower and its MAE is not higher
        (the simpler model is kept unless the other is clearly better).
-    Returns kind, covariates and the table of every comparison."""
+    Returns kind, covariates, key and the table of every comparison."""
+    from itertools import combinations
+
     x, y = np.asarray(x, float), np.asarray(y, float)
     Z = None if Z is None else Z.reset_index(drop=True)
     table = []
@@ -301,27 +330,75 @@ def select_model(x, y, groups, Z: pd.DataFrame | None = None, candidates=(), lev
     ll = score("loglinear", [])
     if ll["male"] <= best["male"] * (1 - min_gain):
         best = ll
+    length_only = best["kind"]
     usable = [c for c in candidates if Z is not None and c in Z and np.isfinite(pd.to_numeric(Z[c], errors="coerce")).all()
               and pd.to_numeric(Z[c], errors="coerce").nunique() > 1]
-    chosen: list[str] = []
-    base = best if best["kind"] == "loglinear" else ll
-    while len(chosen) < max_covariates:
-        trials = [score("loglinear", chosen + [c]) for c in usable if c not in chosen]
-        if not trials:
-            break
+    cur_male, cur_k = min(best["male"], ll["male"]), 0
+    for k in range(1, min(max_covariates, len(usable)) + 1):
+        trials = [score("loglinear", list(c)) for c in combinations(usable, k)]
         t = min(trials, key=lambda r: r["male"])
-        if t["male"] <= min(best["male"], base["male"]) * (1 - min_gain):
-            chosen = t["covariates"]
-            best = base = t
-        else:
-            break
+        if t["male"] <= cur_male * (1 - min_gain) ** (k - cur_k):
+            best, cur_male, cur_k = t, t["male"], k
     iso = score("isotonic", [])
     if iso["male"] <= best["male"] * (1 - iso_gain) and iso["mae_m"] <= best["mae_m"]:
         best = iso
-    return {"kind": best["kind"], "covariates": list(best["covariates"]), "table": table,
-            "rule": (f"grouped CV, mean absolute log error: loglinear over ratio and each covariate only for a gain of at least "
-                     f"{min_gain:.0%}, at most {max_covariates} covariates (available on every pair); isotonic only for a gain "
-                     f"of at least {iso_gain:.0%} with MAE not higher")}
+    return {"kind": best["kind"], "covariates": list(best["covariates"]), "key": structure_key(best["kind"], best["covariates"]),
+            "length_only": length_only, "table": table,
+            "rule": (f"grouped CV, mean absolute log error: loglinear over ratio only for a gain of at least {min_gain:.0%}; "
+                     f"best covariate subset of each size up to {max_covariates} (covariates available on every pair), each "
+                     f"covariate earning a gain of at least {min_gain:.0%}; isotonic only for a gain of at least "
+                     f"{iso_gain:.0%} with MAE not higher")}
+
+
+STABLE_SHARE = 0.75
+
+
+def selection_stability(x, y, groups, Z: pd.DataFrame | None = None, candidates=(), max_folds: int = 10,
+                        max_drops: int = 40, **kw) -> dict:
+    """Stability of select_model: the selection rerun with one group left out at a time (one fold of groups when
+    there are more than `max_drops` groups, folds as group_folds(groups, max_drops)). Returns the number of runs, the
+    unit left out, the share of runs that pick each structure (structure_key) and each length-only form, the picks in
+    run order, and pred_log: each left-out row predicted by the structure re-selected and fitted without its unit, so
+    that metrics(y, exp(pred_log)) scores the whole selection procedure out of sample."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    g = np.asarray(groups, dtype=object).astype(str)
+    Z = None if Z is None else Z.reset_index(drop=True)
+    ug = np.unique(g)
+    if len(ug) <= max_drops:
+        drop_of, unit = {k: k for k in ug}, "group"
+    else:
+        f = group_folds(g, max_drops)
+        drop_of, unit = dict(zip(g, f.astype(str))), f"fold of groups ({max_drops} folds)"
+    d = np.array([drop_of[k] for k in g])
+    picks, lo_picks, pred = [], [], np.full(len(x), np.nan)
+    for u in np.unique(d):
+        keep = d != u
+        if len(np.unique(g[keep])) < 2:
+            continue
+        Zk = None if Z is None else Z[keep].reset_index(drop=True)
+        s = select_model(x[keep], y[keep], g[keep], Zk, candidates, max_folds=max_folds, **kw)
+        picks.append(s["key"])
+        lo_picks.append(s["length_only"])
+        m = fit_model(s["kind"], x[keep], y[keep], Zk, s["covariates"])
+        pred[~keep] = predict_log(m, x[~keep], None if Z is None else Z[~keep].reset_index(drop=True))
+
+    def shares(v):
+        return {k: round(float(c), 3) for k, c in pd.Series(v, dtype=object).value_counts(normalize=True).items()} if v else {}
+
+    return {"runs": len(picks), "unit_left_out": unit, "shares": shares(picks), "length_only_shares": shares(lo_picks),
+            "picks": picks, "pred_log": pred}
+
+
+def stable_structure(sel: dict, stability: dict | None, min_share: float = STABLE_SHARE) -> dict:
+    """The structure to apply: the selected one when it is the ratio form (the simplest) or when at least `min_share`
+    of the leave-one-out re-selections pick it; else the ratio form. Returns kind, covariates, key, share, rule."""
+    share = None if not stability else stability["shares"].get(sel["key"], 0.0)
+    keep = sel["kind"] == "ratio" or (share is not None and share >= min_share)
+    out = ({"kind": sel["kind"], "covariates": list(sel["covariates"])} if keep else {"kind": "ratio", "covariates": []})
+    out.update({"key": structure_key(out["kind"], out["covariates"]), "selected_key": sel["key"], "share_of_reselections": share,
+                "rule": (f"the selected structure is applied only when it is the ratio form or at least {min_share:.0%} of the "
+                         "leave-one-out re-selections pick it; otherwise the ratio form")})
+    return out
 
 
 # ----------------------------------------------------------------------------------------------- calibration json

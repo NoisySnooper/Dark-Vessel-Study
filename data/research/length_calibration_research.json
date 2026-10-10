@@ -1,66 +1,29 @@
 {
  "schema": "darkvessel.length_calibration/1",
  "build": "research",
- "calibration_id": "length_cal_research_4d3aa433",
+ "calibration_id": "length_cal_research_fd529f83",
  "min_claim_m": 25.0,
  "level": 0.8,
  "model": {
-  "kind": "loglinear",
-  "intercept": 2.562835028312968,
-  "slope": 0.4005936430110127,
-  "covariates": [
-   {
-    "name": "fill_width_m",
-    "centre": 45.68210262828536,
-    "range": [
-     1.5781167806417675,
-     97.50122488975992
-    ],
-    "coef": 0.013816545893846984
-   },
-   {
-    "name": "scr_max_db",
-    "centre": 28.7,
-    "range": [
-     8.2,
-     39.2
-    ],
-    "coef": -0.020661246113706448
-   }
-  ],
-  "interval": {
-   "level": 0.8,
-   "q_lo": -0.48960178581766023,
-   "q_hi": 0.5293416156006119,
-   "factor_lo": 0.6128703992829769,
-   "factor_hi": 1.697814126228252,
-   "source": "held-out log residuals of grouped cross-validation (18 folds)"
-  },
-  "valid_length_est_m": [
-   30.0,
-   449.0
-  ],
-  "n_pairs": 89
- },
- "fallback": {
   "kind": "ratio",
-  "intercept": -0.5869964633596183,
+  "intercept": -0.5885476340100584,
   "slope": 1.0,
   "covariates": [],
   "interval": {
    "level": 0.8,
-   "q_lo": -0.6707558674787455,
-   "q_hi": 0.3690023343627189,
-   "factor_lo": 0.5113219400558502,
-   "factor_hi": 1.446290979838543,
+   "q_lo": -0.7209821447718046,
+   "q_hi": 0.37055350501315854,
+   "factor_lo": 0.48627442946242433,
+   "factor_hi": 1.4485361648408204,
    "source": "held-out log residuals of grouped cross-validation (18 folds)"
   },
   "valid_length_est_m": [
    30.0,
    449.0
   ],
-  "n_pairs": 89
+  "n_pairs": 88
  },
+ "fallback": null,
  "reasons": {
   "missing_length": "no radar length estimate",
   "pixel_floor": "radar length at the 2-pixel floor (24.1 m or less): the extent cannot tell a 5 m boat from a 30 m one",
@@ -70,11 +33,8 @@
   "below_min_claim": "calibrated length under 25 m: the pairs hold almost no vessels this small, so no claim",
   "no_calibration": "no calibration loaded"
  },
- "covariate_definitions": {
-  "fill_width_m": "detected area over radar length (m): n_pixels x 100 / length_est_m, the blob's mean width; low for thin streaks (wakes, smeared or fragmented returns)",
-  "scr_max_db": "peak-to-background ratio of the brighter channel (dB): max(scr_vv_db, scr_vh_db)"
- },
- "created_utc": "2026-10-10T15:36:10+00:00",
+ "covariate_definitions": {},
+ "created_utc": "2026-10-10T22:55:12+00:00",
  "target": "hull length: GFW vessels API registry length (registryInfo lengthM) for the regional pairs; AIS static A + B for the live pairs",
  "contains_gfw_data": true,
  "research_only": true,
@@ -91,37 +51,43 @@
     "quality_position_not_high_or_medium": 89,
     "ratio_below_feasible": 8,
     "radar_at_pixel_floor": 2
-   }
+   },
+   "used_with_rival_candidate": 28,
+   "used_with_n_cand_gt_1": 0,
+   "used_with_n_rivals_gt_1": 28,
+   "length_selection_note": "rule (a) pairing (ais.gfw_identity.pair_sar) assigns contacts to GFW detections at the cost distance (km) plus |log2(radar / registry length)|, so where a contact or a GFW detection had a rival in the cell and hour the pair was chosen partly on length agreement, before any quality grade"
   },
   "live": {
-   "used": 27,
+   "used": 26,
    "passes": [
     "live_S1D_20261010T1032"
    ]
   },
-  "total_used": 89,
+  "total_used": 88,
   "groups": 18,
   "selection": "matched pairs with a hull length; quality_position high or medium (position quality: the match quality rule without its radar/AIS length terms); review_note not 'doubtful'; radar/hull ratio at least 0.25 (live matcher feasibility rule)"
  },
  "structure": {
-  "chosen": {
+  "selected": {
    "kind": "loglinear",
    "covariates": [
     "fill_width_m",
-    "scr_max_db"
+    "dual_pol"
    ],
+   "key": "loglinear+dual_pol+fill_width_m",
+   "length_only": "ratio",
    "table": [
     {
      "kind": "ratio",
      "covariates": [],
-     "male": 0.3608,
-     "mae_m": 43.2,
+     "male": 0.3531,
+     "mae_m": 42.9,
      "n_folds": 18
     },
     {
      "kind": "loglinear",
      "covariates": [],
-     "male": 0.376,
+     "male": 0.3757,
      "mae_m": 45.5,
      "n_folds": 18
     },
@@ -130,8 +96,8 @@
      "covariates": [
       "scr_max_db"
      ],
-     "male": 0.382,
-     "mae_m": 46.1,
+     "male": 0.3814,
+     "mae_m": 46.0,
      "n_folds": 18
     },
     {
@@ -139,8 +105,8 @@
      "covariates": [
       "fill_width_m"
      ],
-     "male": 0.3377,
-     "mae_m": 40.6,
+     "male": 0.3384,
+     "mae_m": 40.4,
      "n_folds": 18
     },
     {
@@ -148,8 +114,8 @@
      "covariates": [
       "inc_angle_deg"
      ],
-     "male": 0.3721,
-     "mae_m": 44.8,
+     "male": 0.3784,
+     "mae_m": 45.6,
      "n_folds": 18
     },
     {
@@ -157,8 +123,8 @@
      "covariates": [
       "dual_pol"
      ],
-     "male": 0.3619,
-     "mae_m": 44.3,
+     "male": 0.3668,
+     "mae_m": 45.2,
      "n_folds": 18
     },
     {
@@ -166,18 +132,48 @@
      "covariates": [
       "mission_s1d"
      ],
-     "male": 0.3806,
-     "mae_m": 45.7,
+     "male": 0.3826,
+     "mae_m": 46.3,
      "n_folds": 18
     },
     {
      "kind": "loglinear",
      "covariates": [
-      "fill_width_m",
-      "scr_max_db"
+      "scr_max_db",
+      "fill_width_m"
      ],
-     "male": 0.3134,
-     "mae_m": 38.5,
+     "male": 0.3129,
+     "mae_m": 38.4,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "scr_max_db",
+      "inc_angle_deg"
+     ],
+     "male": 0.3914,
+     "mae_m": 46.9,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "scr_max_db",
+      "dual_pol"
+     ],
+     "male": 0.3723,
+     "mae_m": 45.5,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "scr_max_db",
+      "mission_s1d"
+     ],
+     "male": 0.3854,
+     "mae_m": 46.6,
      "n_folds": 18
     },
     {
@@ -186,8 +182,8 @@
       "fill_width_m",
       "inc_angle_deg"
      ],
-     "male": 0.3183,
-     "mae_m": 38.5,
+     "male": 0.3128,
+     "mae_m": 38.0,
      "n_folds": 18
     },
     {
@@ -196,8 +192,8 @@
       "fill_width_m",
       "dual_pol"
      ],
-     "male": 0.3138,
-     "mae_m": 39.5,
+     "male": 0.3099,
+     "mae_m": 38.7,
      "n_folds": 18
     },
     {
@@ -206,43 +202,152 @@
       "fill_width_m",
       "mission_s1d"
      ],
-     "male": 0.3279,
-     "mae_m": 39.4,
+     "male": 0.326,
+     "mae_m": 38.9,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "inc_angle_deg",
+      "dual_pol"
+     ],
+     "male": 0.3564,
+     "mae_m": 43.3,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "inc_angle_deg",
+      "mission_s1d"
+     ],
+     "male": 0.3808,
+     "mae_m": 45.8,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "dual_pol",
+      "mission_s1d"
+     ],
+     "male": 0.3661,
+     "mae_m": 45.1,
      "n_folds": 18
     },
     {
      "kind": "isotonic",
      "covariates": [],
-     "male": 0.3509,
-     "mae_m": 42.2,
+     "male": 0.3511,
+     "mae_m": 42.4,
      "n_folds": 18
     }
    ],
-   "rule": "grouped CV, mean absolute log error: loglinear over ratio and each covariate only for a gain of at least 5%, at most 2 covariates (available on every pair); isotonic only for a gain of at least 10% with MAE not higher"
+   "rule": "grouped CV, mean absolute log error: loglinear over ratio only for a gain of at least 5%; best covariate subset of each size up to 2 (covariates available on every pair), each covariate earning a gain of at least 5%; isotonic only for a gain of at least 10% with MAE not higher"
   },
-  "fallback_form": "ratio"
+  "reselection_stability_leave_one_pass_out": {
+   "runs": 18,
+   "unit_left_out": "group",
+   "shares": {
+    "ratio": 0.333,
+    "loglinear+fill_width_m+inc_angle_deg": 0.222,
+    "loglinear+fill_width_m+scr_max_db": 0.167,
+    "loglinear+fill_width_m": 0.111,
+    "loglinear+dual_pol+fill_width_m": 0.111,
+    "loglinear": 0.056
+   },
+   "length_only_shares": {
+    "ratio": 0.944,
+    "loglinear": 0.056
+   },
+   "picks": [
+    "loglinear+fill_width_m",
+    "ratio",
+    "ratio",
+    "ratio",
+    "loglinear+fill_width_m+inc_angle_deg",
+    "loglinear+fill_width_m+scr_max_db",
+    "loglinear+fill_width_m+inc_angle_deg",
+    "ratio",
+    "loglinear+fill_width_m+scr_max_db",
+    "loglinear+fill_width_m+scr_max_db",
+    "loglinear+fill_width_m+inc_angle_deg",
+    "loglinear+dual_pol+fill_width_m",
+    "ratio",
+    "ratio",
+    "loglinear+fill_width_m",
+    "loglinear+dual_pol+fill_width_m",
+    "loglinear+fill_width_m+inc_angle_deg",
+    "loglinear"
+   ]
+  },
+  "applied": {
+   "kind": "ratio",
+   "covariates": [],
+   "key": "ratio",
+   "selected_key": "loglinear+dual_pol+fill_width_m",
+   "share_of_reselections": 0.111,
+   "rule": "the selected structure is applied only when it is the ratio form or at least 75% of the leave-one-out re-selections pick it; otherwise the ratio form"
+  },
+  "fallback_form": "ratio",
+  "selected_structure_cv_not_applied": {
+   "structure": "loglinear+dual_pol+fill_width_m",
+   "before": {
+    "n": 88,
+    "mae_m": 137.5,
+    "median_ae_m": 137.2,
+    "median_ratio": 1.801,
+    "within_1_5": 0.25,
+    "within_2": 0.58,
+    "mean_abs_log_err": 0.7269
+   },
+   "after": {
+    "n": 88,
+    "mae_m": 38.7,
+    "median_ae_m": 27.4,
+    "median_ratio": 0.975,
+    "within_1_5": 0.705,
+    "within_2": 0.909,
+    "mean_abs_log_err": 0.3099,
+    "coverage": 0.807,
+    "n_with_interval": 88,
+    "median_interval_factor": 3.03,
+    "n_folds": 18
+   }
+  },
+  "selection_procedure_cv": {
+   "note": "each left-out pass predicted by the structure re-selected without it: the selection itself scored out of sample",
+   "n": 88,
+   "mae_m": 47.9,
+   "median_ae_m": 43.9,
+   "median_ratio": 1.072,
+   "within_1_5": 0.545,
+   "within_2": 0.886,
+   "mean_abs_log_err": 0.3953
+  }
  },
  "grouped_cv_leave_one_pass_out": {
   "before": {
-   "n": 89,
-   "mae_m": 136.3,
-   "median_ae_m": 136.6,
-   "median_ratio": 1.799,
-   "within_1_5": 0.247,
-   "within_2": 0.584,
-   "mean_abs_log_err": 0.7238
+   "n": 88,
+   "mae_m": 137.5,
+   "median_ae_m": 137.2,
+   "median_ratio": 1.801,
+   "within_1_5": 0.25,
+   "within_2": 0.58,
+   "mean_abs_log_err": 0.7269
   },
   "after": {
-   "n": 89,
-   "mae_m": 38.5,
-   "median_ae_m": 32.0,
-   "median_ratio": 1.055,
-   "within_1_5": 0.674,
-   "within_2": 0.933,
-   "mean_abs_log_err": 0.3134,
-   "coverage": 0.775,
-   "n_with_interval": 89,
-   "median_interval_factor": 2.71,
+   "n": 88,
+   "mae_m": 42.9,
+   "median_ae_m": 28.5,
+   "median_ratio": 0.987,
+   "within_1_5": 0.705,
+   "within_2": 0.864,
+   "mean_abs_log_err": 0.3531,
+   "coverage": 0.841,
+   "n_with_interval": 88,
+   "median_interval_factor": 2.95,
    "n_folds": 18
   },
   "by_source": {
@@ -258,80 +363,80 @@
     },
     "after": {
      "n": 62,
-     "mae_m": 42.1,
-     "median_ae_m": 38.4,
-     "median_ratio": 1.056,
+     "mae_m": 45.6,
+     "median_ae_m": 32.6,
+     "median_ratio": 1.038,
      "within_1_5": 0.661,
-     "within_2": 0.919,
-     "mean_abs_log_err": 0.326,
-     "coverage": 0.774,
+     "within_2": 0.887,
+     "mean_abs_log_err": 0.3713,
+     "coverage": 0.855,
      "n_with_interval": 62,
-     "median_interval_factor": 2.91
+     "median_interval_factor": 2.99
     }
    },
    "live_aisstream": {
     "before": {
-     "n": 27,
-     "mae_m": 122.4,
-     "median_ae_m": 96.6,
-     "median_ratio": 1.761,
-     "within_1_5": 0.333,
-     "within_2": 0.704,
-     "mean_abs_log_err": 0.6886
+     "n": 26,
+     "mae_m": 125.7,
+     "median_ae_m": 97.4,
+     "median_ratio": 1.78,
+     "within_1_5": 0.346,
+     "within_2": 0.692,
+     "mean_abs_log_err": 0.6976
     },
     "after": {
-     "n": 27,
-     "mae_m": 30.2,
-     "median_ae_m": 31.4,
-     "median_ratio": 1.007,
-     "within_1_5": 0.704,
-     "within_2": 0.963,
-     "mean_abs_log_err": 0.2846,
-     "coverage": 0.778,
-     "n_with_interval": 27,
-     "median_interval_factor": 2.66
+     "n": 26,
+     "mae_m": 36.6,
+     "median_ae_m": 17.1,
+     "median_ratio": 0.953,
+     "within_1_5": 0.808,
+     "within_2": 0.808,
+     "mean_abs_log_err": 0.3097,
+     "coverage": 0.808,
+     "n_with_interval": 26,
+     "median_interval_factor": 2.89
     }
    }
   }
  },
  "cv_by_form_length_only": {
   "ratio": {
-   "n": 89,
-   "mae_m": 43.2,
-   "median_ae_m": 28.6,
-   "median_ratio": 0.986,
-   "within_1_5": 0.697,
-   "within_2": 0.854,
-   "mean_abs_log_err": 0.3608,
-   "coverage": 0.831,
-   "n_with_interval": 89,
-   "median_interval_factor": 2.9,
+   "n": 88,
+   "mae_m": 42.9,
+   "median_ae_m": 28.5,
+   "median_ratio": 0.987,
+   "within_1_5": 0.705,
+   "within_2": 0.864,
+   "mean_abs_log_err": 0.3531,
+   "coverage": 0.841,
+   "n_with_interval": 88,
+   "median_interval_factor": 2.95,
    "n_folds": 18
   },
   "loglinear": {
-   "n": 89,
+   "n": 88,
    "mae_m": 45.5,
-   "median_ae_m": 45.7,
-   "median_ratio": 0.991,
-   "within_1_5": 0.64,
-   "within_2": 0.899,
-   "mean_abs_log_err": 0.376,
-   "coverage": 0.798,
-   "n_with_interval": 89,
-   "median_interval_factor": 2.77,
+   "median_ae_m": 46.3,
+   "median_ratio": 0.966,
+   "within_1_5": 0.636,
+   "within_2": 0.898,
+   "mean_abs_log_err": 0.3757,
+   "coverage": 0.795,
+   "n_with_interval": 88,
+   "median_interval_factor": 2.98,
    "n_folds": 18
   },
   "isotonic": {
-   "n": 89,
-   "mae_m": 42.2,
-   "median_ae_m": 36.2,
-   "median_ratio": 0.972,
-   "within_1_5": 0.708,
-   "within_2": 0.921,
-   "mean_abs_log_err": 0.3509,
-   "coverage": 0.798,
-   "n_with_interval": 89,
-   "median_interval_factor": 2.54,
+   "n": 88,
+   "mae_m": 42.4,
+   "median_ae_m": 36.7,
+   "median_ratio": 0.981,
+   "within_1_5": 0.705,
+   "within_2": 0.92,
+   "mean_abs_log_err": 0.3511,
+   "coverage": 0.807,
+   "n_with_interval": 88,
+   "median_interval_factor": 2.81,
    "n_folds": 18
   }
  },
@@ -362,29 +467,29 @@
  },
  "cnn_score_covariate_check": {
   "loglinear+none": {
-   "n": 89,
+   "n": 88,
    "mae_m": 45.5,
-   "median_ae_m": 45.7,
-   "median_ratio": 0.991,
-   "within_1_5": 0.64,
-   "within_2": 0.899,
-   "mean_abs_log_err": 0.376,
-   "coverage": 0.798,
-   "n_with_interval": 89,
-   "median_interval_factor": 2.77,
+   "median_ae_m": 46.3,
+   "median_ratio": 0.966,
+   "within_1_5": 0.636,
+   "within_2": 0.898,
+   "mean_abs_log_err": 0.3757,
+   "coverage": 0.795,
+   "n_with_interval": 88,
+   "median_interval_factor": 2.98,
    "n_folds": 18
   },
   "loglinear+cnn_score": {
-   "n": 89,
-   "mae_m": 42.1,
-   "median_ae_m": 38.9,
-   "median_ratio": 1.029,
-   "within_1_5": 0.674,
-   "within_2": 0.944,
-   "mean_abs_log_err": 0.3331,
-   "coverage": 0.809,
-   "n_with_interval": 89,
-   "median_interval_factor": 2.67,
+   "n": 88,
+   "mae_m": 44.5,
+   "median_ae_m": 41.3,
+   "median_ratio": 1.024,
+   "within_1_5": 0.648,
+   "within_2": 0.932,
+   "mean_abs_log_err": 0.3445,
+   "coverage": 0.807,
+   "n_with_interval": 88,
+   "median_interval_factor": 2.82,
    "n_folds": 18
   },
   "gfw_pairs_cnn_below_threshold": {
@@ -397,25 +502,23 @@
   "live_contacts": {
    "n": 8573,
    "share_by_reason": {
-    "calibrated": 0.4183,
+    "calibrated": 0.5495,
     "pixel_floor": 0.2833,
-    "short_return": 0.265,
-    "below_min_claim": 0.033,
+    "below_min_claim": 0.1668,
     "above_range": 0.0003
    },
-   "median_length_cal_m": 84.6
+   "median_length_cal_m": 56.1
   },
   "regional_contacts": {
    "n": 78615,
    "share_by_reason": {
-    "calibrated": 0.4383,
+    "calibrated": 0.4376,
     "pixel_floor": 0.373,
-    "below_min_claim": 0.1886,
+    "below_min_claim": 0.1892,
     "above_range": 0.0002
    },
    "median_length_cal_m": 50.0
-  },
-  "note": "regional contacts carry no n_pixels in data/detections_regional.gpkg, so a model with fill_width_m uses its fallback"
+  }
  },
  "sensitivity_stored_quality": {
   "fit_set": "stored match_quality high or medium (GFW pairs only)",
@@ -446,68 +549,68 @@
  },
  "external_validation_ai2": {
   "n": 1399,
-  "n_scored": 1355,
+  "n_scored": 1388,
   "null_reasons": {
-   "short_return": 43,
+   "below_min_claim": 10,
    "above_range": 1
   },
   "before": {
-   "n": 1355,
-   "mae_m": 98.5,
-   "median_ae_m": 82.2,
-   "median_ratio": 1.584,
-   "within_1_5": 0.435,
-   "within_2": 0.708,
-   "mean_abs_log_err": 0.5526
+   "n": 1388,
+   "mae_m": 96.9,
+   "median_ae_m": 80.1,
+   "median_ratio": 1.593,
+   "within_1_5": 0.43,
+   "within_2": 0.707,
+   "mean_abs_log_err": 0.5543
   },
   "after": {
-   "n": 1355,
-   "mae_m": 34.6,
-   "median_ae_m": 25.9,
-   "median_ratio": 0.954,
-   "within_1_5": 0.801,
-   "within_2": 0.948,
-   "mean_abs_log_err": 0.2642,
-   "coverage": 0.888,
-   "n_with_interval": 1355,
-   "median_interval_factor": 2.77
+   "n": 1388,
+   "mae_m": 40.0,
+   "median_ae_m": 33.6,
+   "median_ratio": 0.884,
+   "within_1_5": 0.723,
+   "within_2": 0.937,
+   "mean_abs_log_err": 0.3122,
+   "coverage": 0.758,
+   "n_with_interval": 1388,
+   "median_interval_factor": 2.98
   },
   "after_by_radar_length_m": {
    "50-100": {
-    "n": 47,
-    "mae_m": 27.0,
-    "median_ae_m": 19.3,
-    "median_ratio": 1.24,
-    "within_1_5": 0.638,
-    "within_2": 0.851,
-    "mean_abs_log_err": 0.3996,
-    "coverage": 0.681,
-    "n_with_interval": 47,
-    "median_interval_factor": 2.77
+    "n": 77,
+    "mae_m": 19.6,
+    "median_ae_m": 12.5,
+    "median_ratio": 0.843,
+    "within_1_5": 0.727,
+    "within_2": 0.883,
+    "mean_abs_log_err": 0.3441,
+    "coverage": 0.779,
+    "n_with_interval": 77,
+    "median_interval_factor": 2.98
    },
    "100-200": {
-    "n": 462,
-    "mae_m": 22.9,
-    "median_ae_m": 16.8,
-    "median_ratio": 1.008,
-    "within_1_5": 0.833,
-    "within_2": 0.926,
-    "mean_abs_log_err": 0.259,
-    "coverage": 0.885,
-    "n_with_interval": 462,
-    "median_interval_factor": 2.77
+    "n": 464,
+    "mae_m": 27.8,
+    "median_ae_m": 24.9,
+    "median_ratio": 0.81,
+    "within_1_5": 0.728,
+    "within_2": 0.933,
+    "mean_abs_log_err": 0.3169,
+    "coverage": 0.707,
+    "n_with_interval": 464,
+    "median_interval_factor": 2.98
    },
    "200-451": {
-    "n": 846,
-    "mae_m": 41.5,
-    "median_ae_m": 34.8,
-    "median_ratio": 0.912,
-    "within_1_5": 0.792,
-    "within_2": 0.966,
-    "mean_abs_log_err": 0.2595,
-    "coverage": 0.901,
-    "n_with_interval": 846,
-    "median_interval_factor": 2.77
+    "n": 847,
+    "mae_m": 48.6,
+    "median_ae_m": 44.7,
+    "median_ratio": 0.927,
+    "within_1_5": 0.72,
+    "within_2": 0.943,
+    "mean_abs_log_err": 0.3067,
+    "coverage": 0.784,
+    "n_with_interval": 847,
+    "median_interval_factor": 2.98
    }
   }
  },
@@ -529,40 +632,40 @@
   },
   "after": {
    "n": 60,
-   "mae_m": 44.2,
-   "median_ae_m": 32.8,
-   "median_ratio": 1.06,
-   "within_1_5": 0.633,
+   "mae_m": 43.6,
+   "median_ae_m": 30.8,
+   "median_ratio": 1.049,
+   "within_1_5": 0.667,
    "within_2": 0.9,
-   "mean_abs_log_err": 0.3418,
-   "coverage": 0.883,
+   "mean_abs_log_err": 0.3401,
+   "coverage": 0.867,
    "n_with_interval": 60,
-   "median_interval_factor": 3.63
+   "median_interval_factor": 3.37
   },
   "after_by_radar_length_m": {
    "100-200": {
     "n": 13,
-    "mae_m": 29.4,
-    "median_ae_m": 22.3,
-    "median_ratio": 0.823,
+    "mae_m": 30.2,
+    "median_ae_m": 23.2,
+    "median_ratio": 0.813,
     "within_1_5": 0.769,
     "within_2": 0.846,
-    "mean_abs_log_err": 0.298,
+    "mean_abs_log_err": 0.3072,
     "coverage": 0.692,
     "n_with_interval": 13,
-    "median_interval_factor": 3.63
+    "median_interval_factor": 3.37
    },
    "200-451": {
     "n": 44,
-    "mae_m": 47.7,
-    "median_ae_m": 37.9,
-    "median_ratio": 1.19,
-    "within_1_5": 0.614,
+    "mae_m": 46.7,
+    "median_ae_m": 36.6,
+    "median_ratio": 1.177,
+    "within_1_5": 0.659,
     "within_2": 0.955,
-    "mean_abs_log_err": 0.3209,
-    "coverage": 0.955,
+    "mean_abs_log_err": 0.3156,
+    "coverage": 0.932,
     "n_with_interval": 44,
-    "median_interval_factor": 3.63
+    "median_interval_factor": 3.37
    }
   }
  },
@@ -609,13 +712,13 @@
    "spearman_size_adjusted_log_ratio": {
     "scr_max_db": {
      "n": 62,
-     "rho": 0.337,
-     "p": 0.00731
+     "rho": 0.34,
+     "p": 0.00691
     },
     "fill_width_m": {
      "n": 62,
-     "rho": 0.153,
-     "p": 0.236
+     "rho": 0.155,
+     "p": 0.23
     },
     "speed_kn": {
      "n": 0,
@@ -634,8 +737,8 @@
     },
     "inc_angle_deg": {
      "n": 62,
-     "rho": 0.173,
-     "p": 0.179
+     "rho": 0.174,
+     "p": 0.177
     },
     "dual_pol": {
      "n": 62,
@@ -655,6 +758,15 @@
     "share_thin_among_ratio_gt_3": 0.083,
     "share_thin_among_ratio_le_3": 0.06
    },
+   "confidence_class": {
+    "n_high_or_medium": 62,
+    "counts": {
+     "high": 42,
+     "medium": 20
+    },
+    "share_high_equals_dual_pol": 1.0,
+    "note": "detect.postprocess.assign_confidence sets high for detection in both VV and VH and medium for VH only or strong VV only, low for oversized (over 450 m) or weak returns, and 'fixed' for returns on every earlier date: within high and medium the class is the dual_pol indicator"
+   },
    "by_polarisation": {
     "dual": {
      "n": 42,
@@ -669,7 +781,7 @@
  },
  "caveat": "A calibrated radar length is a statistical estimate from the extent of the radar return, not a measurement of the hull. It describes typical pairs of steel ships of 25 m and longer that carry AIS; it makes no claim below 25 m, and a return that holds two hulls side by side or a hull and its wake reads long whatever the calibration. Global Fishing Watch detections and events are another model's output, not ground truth. GFW SAR detections cover industrial vessels and miss most vessels under 15 m (GFW data caveats; Paolo et al. 2024, doi:10.1038/s41586-023-06825-8). GFW's 'matched' flag is GFW's own AIS match, not ours. An AIS gap event is not proof of intent: GFW's own documentation calls the gaps dataset a prototype, and AIS can be off or unreceived for lawful and technical reasons. 'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
  "sources": {
-  "s1_grd_spec": "https://sentiwiki.copernicus.eu/web/s1-products (IW GRDH: resolution 20 x 22 m, pixel spacing 10 x 10 m, 5 x 1 looks, ENL 4.4; Hamming weighting 0.70 to 0.75; resolved 2026-10-10)",
+  "s1_grd_spec": "https://sentiwiki.copernicus.eu/web/s1-products (IW GRDH: resolution 20 x 22 m, pixel spacing 10 x 10 m, 5 x 1 looks, ENL 4.4, 4.3 and 4.3 for IW1 to IW3; Hamming weighting 0.70 to 0.75; resolved 2026-10-10)",
   "ai2_labels": "https://github.com/allenai/vessel-detection-sentinels (README: point labels with properties Length, Width, Heading, ShipAndCargoType, Speed; LICENSE Apache-2.0; resolved 2026-10-10)",
   "stasolla_greidanus_2016": "doi:10.1080/2150704X.2016.1226522 (Remote Sensing Letters 7(12):1219-1228; abstract read via https://api.openalex.org/works/doi:10.1080/2150704X.2016.1226522, resolved 2026-10-10)",
   "conformal_jackknife": "doi:10.1214/20-AOS1965 (Barber, Candes, Ramdas, Tibshirani 2021, Annals of Statistics 49(1); resolved 2026-10-10)"
@@ -679,8 +791,8 @@
  "licence": "CC BY-NC 4.0",
  "licence_url": "https://creativecommons.org/licenses/by-nc/4.0/",
  "terms_url": "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits",
- "attribution": "Global Fishing Watch. 2026, updated daily. public-global-sar-presence:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 to 2026-10-09 at https://globalfishingwatch.org/our-apis/ .",
- "dataset": "public-global-sar-presence:v4.0",
+ "attribution": "Global Fishing Watch. 2026, updated daily. public-global-sar-presence:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 to 2026-10-09 at https://globalfishingwatch.org/our-apis/ . Hull lengths of this fit: Global Fishing Watch, public-global-vessel-identity:v4.0 (vessels API, registryInfo lengthM), accessed 2026-10-08 to 2026-10-09 at https://globalfishingwatch.org/our-apis/ .",
+ "dataset": "public-global-sar-presence:v4.0; public-global-vessel-identity:v4.0",
  "datasets": {
   "sar": "public-global-sar-presence:v4.0",
   "presence": "public-global-presence:v4.0",

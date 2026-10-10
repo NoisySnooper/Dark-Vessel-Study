@@ -3,6 +3,7 @@ guard that the open calibration holds no Global Fishing Watch (GFW) derived numb
 
 import json
 import math
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,7 @@ import pytest
 from darkvessel.config import DATA_DIR
 from darkvessel.detect import length_cal as LC
 
+LIVE_FILES = sorted((DATA_DIR / "live").glob("live_S1*.gpkg"))
 OPEN_JSON = DATA_DIR / "length_calibration.json"
 OPEN_PAIRS = DATA_DIR / "length_calibration_open_pairs.parquet"
 RES_JSON = DATA_DIR / "research" / "length_calibration_research.json"
@@ -63,6 +65,15 @@ def test_loglinear_recovers_a_covariate_and_records_its_range():
     assert c["range"][0] == pytest.approx(scr.min()) and c["range"][1] == pytest.approx(scr.max())
 
 
+def test_lad_dual_matches_the_primal_objective():
+    rng = np.random.default_rng(5)
+    for n in (12, 90, 400):
+        X = np.column_stack([np.ones(n), rng.normal(size=n), rng.uniform(0, 5, n)])
+        y = X @ np.array([1.0, 2.0, -0.5]) + rng.standard_t(2, n)
+        b_dual, b_primal = LC._lad(X, y), LC._lad_primal(X, y)
+        assert np.abs(y - X @ b_dual).sum() == pytest.approx(np.abs(y - X @ b_primal).sum(), rel=1e-7)
+
+
 def test_isotonic_is_non_decreasing():
     x, y, _ = synthetic(n=300)
     m = LC.fit_isotonic(x, y)
@@ -77,6 +88,51 @@ def test_select_model_keeps_ratio_for_a_pure_factor_and_takes_loglinear_for_a_sl
     x2, y2, g2 = synthetic(n=500, sd=0.15, slope=0.6, factor=12.0)
     sel = LC.select_model(x2, y2, g2)
     assert sel["kind"] in ("loglinear", "isotonic") and sel["table"]
+
+
+def test_select_model_keeps_a_covariate_pair_that_helps_only_jointly():
+    # a and b each mostly carry a shared nuisance u; only a - b carries the effect, so neither alone earns 5 %
+    rng = np.random.default_rng(3)
+    n = 400
+    hull = np.exp(rng.uniform(math.log(30), math.log(300), n))
+    g = rng.integers(0, 20, n)
+    u, w = rng.normal(0, 1.0, n), rng.normal(0, 0.25, n)
+    Z = pd.DataFrame({"a": u + w, "b": u - w})
+    radar = 1.7 * hull * np.exp(0.6 * (Z.a - Z.b).to_numpy() + rng.normal(0, 0.15, n))
+    sel = LC.select_model(radar, hull, g, Z, candidates=["a", "b"])
+    t = {LC.structure_key(r["kind"], r["covariates"]): r["male"] for r in sel["table"]}
+    base = min(t["ratio"], t["loglinear"])
+    assert min(t["loglinear+a"], t["loglinear+b"]) > base * 0.95  # a forward step would stop here
+    assert sel["key"] == "loglinear+a+b" and sel["covariates"] == ["a", "b"]
+
+
+def test_selection_stability_and_stable_structure():
+    x, y, g = synthetic(n=240, groups=8, sd=0.2)
+    st = LC.selection_stability(x, y, g, max_folds=10)
+    assert st["runs"] == 8 and st["unit_left_out"] == "group"
+    assert sum(st["shares"].values()) == pytest.approx(1.0, abs=0.01) and st["shares"].get("ratio", 0) >= 0.75
+    assert np.isfinite(st["pred_log"]).all()  # every row predicted once, by a selection made without its group
+    sel = LC.select_model(x, y, g)
+    assert LC.stable_structure(sel, st)["key"] == "ratio"
+    # a strong covariate is picked in every re-selection and kept
+    rng = np.random.default_rng(2)
+    hull = np.exp(rng.uniform(math.log(30), math.log(300), 240))
+    scr = rng.uniform(10, 40, 240)
+    gg = rng.integers(0, 6, 240)
+    radar = 1.6 * hull * np.exp(0.04 * (scr - 25) + rng.normal(0, 0.1, 240))
+    Z = pd.DataFrame({"scr_max_db": scr})
+    sel = LC.select_model(radar, hull, gg, Z, candidates=["scr_max_db"])
+    st = LC.selection_stability(radar, hull, gg, Z, candidates=["scr_max_db"])
+    assert sel["key"] == "loglinear+scr_max_db" and st["shares"] == {"loglinear+scr_max_db": 1.0}
+    assert LC.stable_structure(sel, st)["covariates"] == ["scr_max_db"]
+    # a richer structure picked in under 75 % of the re-selections falls back to the ratio form
+    shaky = {"kind": "loglinear", "covariates": ["fill_width_m"], "key": "loglinear+fill_width_m"}
+    out = LC.stable_structure(shaky, {"shares": {"loglinear+fill_width_m": 0.6, "ratio": 0.4}})
+    assert out["key"] == "ratio" and out["share_of_reselections"] == 0.6 and out["selected_key"] == shaky["key"]
+    # more groups than max_drops: whole folds of groups are left out
+    x, y, g = synthetic(n=300, groups=30, sd=0.2)
+    st = LC.selection_stability(x, y, g, max_drops=5)
+    assert st["runs"] == 5 and st["unit_left_out"].startswith("fold of groups")
 
 
 # ----------------------------------------------------------------------------------------------- CV and intervals
@@ -259,15 +315,39 @@ def test_open_calibration_holds_no_gfw_derived_values():
         assert not found, found
 
 
+@pytest.mark.skipif(not OPEN_PAIRS.exists() or not LIVE_FILES, reason="open calibration or live files absent")
+def test_open_pairs_follow_the_current_live_review():
+    """The calibration is stale when a live pair was regraded (doubtful or no longer doubtful) or unmatched after the
+    script ran: rerun scripts/35_length_calibration.py. New matched pairs only warn (a new pass needs a rerun too)."""
+    import pyogrio
+
+    cur = pd.concat([pyogrio.read_dataframe(f, layer="contacts_4326", read_geometry=False) for f in LIVE_FILES],
+                    ignore_index=True).drop_duplicates("det_id").set_index("det_id")
+    pairs = pd.read_parquet(OPEN_PAIRS)
+    note = (cur.review_note if "review_note" in cur else pd.Series(None, index=cur.index, dtype=object)).reindex(pairs.det_id)
+    doubtful_now = note.fillna("").astype(str).str.lower().str.startswith("doubtful").to_numpy()
+    used, excl = pairs.used.to_numpy(bool), pairs.exclusion.astype(object).to_numpy()
+    stale = pairs.det_id[(used & doubtful_now) | ((excl == "review_doubtful") & ~doubtful_now)].tolist()
+    assert not stale, f"live review changed for {stale}: rerun scripts/35_length_calibration.py"
+    status = cur.ais_status.reindex(pairs.det_id).to_numpy(object)
+    gone = pairs.det_id[status != "matched"].tolist()
+    assert not gone, f"no longer matched in the live files: {gone}: rerun scripts/35_length_calibration.py"
+    new = (set(cur.index[(cur.ais_status == "matched") & (pd.to_numeric(cur.length_ais_m, errors="coerce") > 0)])
+           - set(pairs.det_id))
+    if new:
+        warnings.warn(f"{len(new)} matched live pairs are not in the open calibration: rerun scripts/35_length_calibration.py")
+
+
 @pytest.mark.skipif(not RES_JSON.exists() or not RES_PAIRS.exists(), reason="research calibration not built")
 def test_research_files_carry_licence_and_attribution():
     res = json.loads(RES_JSON.read_text())
     assert res["build"] == "research" and res["research_only"] is True and res["contains_gfw_data"] is True
     assert res["licence"] == "CC BY-NC 4.0" and "Global Fishing Watch" in res["attribution"] and "noncommercial" in res["use"]
+    assert "public-global-vessel-identity" in res["attribution"]  # the registry lengths are the target of the fit
     assert "not mean illegal" in res["caveat"]
     md = {k.decode(): v.decode() for k, v in pq.read_schema(RES_PAIRS).metadata.items() if k != b"pandas"}
     for k in ("use", "licence", "licence_url", "terms_url", "attribution", "caveat", "dark_caveat"):
         assert md.get(k), k
-    assert md["licence"] == "CC BY-NC 4.0"
+    assert md["licence"] == "CC BY-NC 4.0" and "public-global-vessel-identity" in md["attribution"]
     rp = pd.read_parquet(RES_PAIRS)
     assert rp.loc[rp.source == "gfw_registry", "research_only"].all()

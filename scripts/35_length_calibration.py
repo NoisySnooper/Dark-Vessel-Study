@@ -14,14 +14,17 @@ Method (src/darkvessel/detect/length_cal.py; docs/length_calibration.md):
   diagnosis pixel floor, additive and multiplicative bias, brightness (sidelobes, blooming), speed and blob fill (wakes,
             smearing), orientation to the azimuth axis, dual-polarisation maximum: Spearman of the size-adjusted log
             ratio (log radar/hull minus its median fit on log hull) with each candidate cause.
-  models    ratio, loglinear (median fit, at most 2 covariates), isotonic; structure by grouped CV (select_model); 80 %
-            intervals from held-out log residuals (split conformal), nested inside the CV for the coverage figures.
+  models    ratio, loglinear (median fit, at most 2 covariates), isotonic; structure by grouped CV (select_model), applied
+            only when leave-one-group-out re-selection picks it consistently (selection_stability, stable_structure),
+            else the ratio form; 80 % intervals from held-out log residuals (split conformal), nested inside the CV for
+            the coverage figures.
             Applied, a calibration returns null with a reason code at the 2-pixel floor, outside the pairs' radar range,
             where it would make the hull longer than the radar return (short_return) and below 25 m.
             Open: live pairs only. All of them come from one scene so far, so there is no grouped CV of the open model:
             its form (ratio or loglinear, no covariates) is chosen by grouped CV on the AI2 pairs, its interval comes
-            from leave-one-pair-out residuals, and it is validated on the AI2 pairs (other scenes, other years). The open
-            files hold no GFW-derived number. Research: GFW plus live pairs, leave-one-pass-out CV, external check on AI2.
+            from leave-one-pair-out residuals, and it is validated on the AI2 pairs (other scenes, other years), with
+            the AI2 result recomputed leaving out one live pair at a time. The open files hold no GFW-derived number.
+            Research: GFW plus live pairs, leave-one-pass-out CV, external check on AI2.
 Inputs: data/live/live_S1*.gpkg; data/cache/live/scenes/*.objects.parquet and data/cache/ais/aisstream/positions/ (optional:
         azimuth axis and AIS heading for the orientation test); data/ml/candidates.parquet, ai2_s1_labels.parquet;
         data/research/regional_identity.parquet; data/detections_regional.gpkg; data/detections_regional_all.gpkg
@@ -29,7 +32,7 @@ Inputs: data/live/live_S1*.gpkg; data/cache/live/scenes/*.objects.parquet and da
 Output: data/length_calibration.json (open calibration, diagnosis, validation), data/length_calibration_open_pairs.parquet,
         data/research/length_calibration_research.json, data/research/length_calibration_research_pairs.parquet (GFW
         licence, attribution, use and caveat in the file metadata), docs/figures/length_calibration.png
-Usage: python scripts/35_length_calibration.py [--select position|stored] [--no-figure]
+Usage: python scripts/35_length_calibration.py [--select position|stored] [--no-figure]     (about one minute)
 """
 
 import argparse
@@ -287,6 +290,7 @@ def load_research() -> tuple[pd.DataFrame, dict, dict]:
         info["pixel_counts"] = f"data/detections_regional_all.gpkg, {int(m.n_pixels.notna().sum())} of {len(m)} pairs"
     m["source"] = "gfw_registry"
     m["hull_length_m"] = m.length_ais_m
+    m["gfw_rival_in_cell"] = (pd.to_numeric(m.gfw_sar_n_cand, errors="coerce") > 1) | (pd.to_numeric(m.gfw_sar_n_rivals, errors="coerce") > 1)
     m["group"] = m.pass_id.astype(str)
     m["ratio"] = m.length_est_m / m.hull_length_m
     return m, info, meta
@@ -366,6 +370,16 @@ def diagnose(df: pd.DataFrame) -> dict:
                 rho, p = spearmanr(v[ok], e[ok])
                 sub[c] = {"n": int(ok.sum()), "rho": round(float(rho), 3), "p": float(f"{p:.3g}")}
         out["spearman_stationary_only"] = sub
+    if "confidence" in df:
+        conf = df.confidence.astype(object).to_numpy()
+        hm = np.isin(conf, ["high", "medium"]) & np.isfinite(Z.dual_pol.to_numpy(float))
+        out["confidence_class"] = {
+            "n_high_or_medium": int(hm.sum()), "counts": pd.Series(conf).value_counts().to_dict(),
+            "share_high_equals_dual_pol": round(float(np.mean((conf[hm] == "high") == (Z.dual_pol.to_numpy(float)[hm] == 1))), 3)
+            if hm.any() else None,
+            "note": ("detect.postprocess.assign_confidence sets high for detection in both VV and VH and medium for VH "
+                     "only or strong VV only, low for oversized (over 450 m) or weak returns, and 'fixed' for returns on "
+                     "every earlier date: within high and medium the class is the dual_pol indicator")}
     if "dual_pol" in Z and np.isfinite(Z.dual_pol).sum() >= 8:
         d = Z.dual_pol.to_numpy(float)
         out["by_polarisation"] = {"dual": {"n": int(np.sum(d == 1)), "median_ratio": round(float(np.median(ratio[d == 1])), 2) if np.any(d == 1) else None},
@@ -402,10 +416,40 @@ def model_summary(m: dict) -> dict:
     return keep
 
 
-def length_only_kind(table: list[dict]) -> str:
-    r = next(t for t in table if t["kind"] == "ratio")
-    ll = next(t for t in table if t["kind"] == "loglinear" and not t["covariates"])
-    return "loglinear" if ll["male"] <= r["male"] * 0.95 else "ratio"
+def stable_length_only(sel: dict, stab: dict) -> str:
+    """The length-only form: loglinear only when selected and picked by at least LC.STABLE_SHARE of the re-selections."""
+    k = sel["length_only"]
+    return k if k == "ratio" or stab["length_only_shares"].get(k, 0.0) >= LC.STABLE_SHARE else "ratio"
+
+
+def selected_cv(sel: dict, applied: dict, x, y, groups, Z, max_folds: int = 10) -> dict | None:
+    """Grouped CV of the selected structure when the stability rule applies another (reported, not applied; optimistic,
+    since the selection used the same folds)."""
+    if sel["key"] == applied["key"]:
+        return None
+    b, a = LC.cv_report(sel["kind"], x, y, groups, Z, sel["covariates"], max_folds=max_folds)
+    a.pop("cv")
+    return {"structure": sel["key"], "before": b, "after": a}
+
+
+def open_pair_influence(df: pd.DataFrame, kind: str, ai2: pd.DataFrame) -> dict:
+    """The open model refitted leaving out one live pair at a time, each refit checked on the AI2 pairs: how much single
+    pairs move the factor, the interval and the AI2 result."""
+    rows = []
+    for i in range(len(df)):
+        d = df.drop(df.index[i])
+        mi = LC.build_model(kind, d.length_est_m, d.hull_length_m, d.group.to_numpy(object))
+        e = evaluate(mi, ai2, "open")["after"]
+        rows.append({"det_id": df.det_id.iloc[i], "ratio": round(float(df.ratio.iloc[i]), 3),
+                     "factor": round(math.exp(-mi["intercept"]), 3), "factor_lo": round(mi["interval"]["factor_lo"], 3),
+                     "factor_hi": round(mi["interval"]["factor_hi"], 3), "ai2_coverage": e.get("coverage"),
+                     "ai2_mae_m": e.get("mae_m"), "ai2_median_ratio": e.get("median_ratio")})
+    t = pd.DataFrame(rows)
+    span = lambda c: [round(float(t[c].min()), 3), round(float(t[c].median()), 3), round(float(t[c].max()), 3)]  # noqa: E731
+    return {"runs": len(t), "min_median_max": {c: span(c) for c in ("factor", "factor_lo", "factor_hi", "ai2_coverage", "ai2_mae_m",
+                                                                    "ai2_median_ratio")},
+            "largest_coverage_moves": t.assign(move=(t.ai2_coverage - t.ai2_coverage.median()).abs())
+            .sort_values("move", ascending=False).head(3).drop(columns="move").to_dict("records")}
 
 
 # =============================================================================================== main
@@ -426,6 +470,13 @@ ai2_used = ai2[ai2.exclusion.isna()].reset_index(drop=True)
 log(f"AI2: {ai2_info['candidates_within_50m_with_length']} pairs, used {len(ai2_used)} on {ai2_used.group.nunique()} scenes")
 
 res, res_info, res_meta = load_research()
+res_datasets = json.loads(res_meta.get("datasets", "{}"))
+res_accessed = json.loads(res_meta.get("accessed_by_dataset", "{}"))
+VESSELS_DS = res_datasets.get("vessels", "public-global-vessel-identity:v4.0")
+res_meta["attribution"] = (res_meta.get("attribution", "Global Fishing Watch.").rstrip() + " Hull lengths of this fit: Global "
+                           f"Fishing Watch, {VESSELS_DS} (vessels API, registryInfo lengthM), accessed "
+                           f"{res_accessed.get('vessels', 'UNVERIFIED')} at https://globalfishingwatch.org/our-apis/ .")
+res_meta["dataset"] = f"{res_meta.get('dataset', 'public-global-sar-presence:v4.0')}; {VESSELS_DS}"
 res["exclusion"] = selection(res, quality_col)
 res["excl_stored"] = selection(res, "match_quality")
 res_used = res[res.exclusion.isna()].reset_index(drop=True)
@@ -445,10 +496,15 @@ diag_open["contacts_at_pixel_floor"] = {"live_contacts": round(floor_share_live,
 
 # --- structure from the open AI2 grouped CV
 ai2_Z = LC.derive_covariates(ai2_used)
-sel_ai2 = LC.select_model(ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z,
-                          candidates=["scr_max_db", "fill_width_m", "dual_pol"])
-open_kind = length_only_kind(sel_ai2["table"])
-log(f"AI2 selection: {sel_ai2['kind']} {sel_ai2['covariates']}; open length-only form: {open_kind}")
+AI2_CANDS = ["scr_max_db", "fill_width_m", "dual_pol"]
+sel_ai2 = LC.select_model(ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z, candidates=AI2_CANDS)
+stab_ai2 = LC.selection_stability(ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z, candidates=AI2_CANDS,
+                                  max_drops=10)
+ai2_proc = LC.metrics(ai2_used.hull_length_m, np.exp(stab_ai2.pop("pred_log")))
+open_kind = stable_length_only(sel_ai2, stab_ai2)
+ai2_applied = LC.stable_structure(sel_ai2, stab_ai2)
+log(f"AI2 selection: {sel_ai2['key']}; re-selection shares {stab_ai2['shares']}, length-only {stab_ai2['length_only_shares']}; "
+    f"open length-only form: {open_kind}")
 
 # --- open model: live pairs only
 open_groups = live_used.group.to_numpy(object)
@@ -465,6 +521,8 @@ if live_used.group.nunique() >= 2:
     a.pop("cv")
     open_cv = {"before": b, "after": a}
 open_on_ai2 = evaluate(open_model, ai2_used, "open")
+open_influence = open_pair_influence(live_used, open_kind, ai2_used)
+log(f"open model leave-one-pair-out: {open_influence['min_median_max']}")
 open_kinds = {}
 for k in ("ratio", "loglinear", "isotonic"):  # in-sample comparison only; no grouped CV possible on one scene
     mk = LC.fit_model(k, live_used.length_est_m, live_used.hull_length_m)
@@ -479,20 +537,21 @@ if len(stored_live) >= 5:
     open_sens["ai2_external"] = evaluate(ms, ai2_used, "open")["after"]
 
 # AI2 alternative (open data, not applied)
-ai2_alt = LC.build_model(sel_ai2["kind"], ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z, sel_ai2["covariates"])
-b, a = LC.cv_report(sel_ai2["kind"], ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z, sel_ai2["covariates"])
+ai2_alt = LC.build_model(ai2_applied["kind"], ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z,
+                         ai2_applied["covariates"])
+b, a = LC.cv_report(ai2_applied["kind"], ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z,
+                    ai2_applied["covariates"])
 ai2_cv_arrays = a.pop("cv")
 ai2_alt_cv = {"before": b, "after": a}
+ai2_sel_cv = selected_cv(sel_ai2, ai2_applied, ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group, ai2_Z)
 ai2_fb = (LC.build_model(open_kind, ai2_used.length_est_m, ai2_used.hull_length_m, ai2_used.group)
-          if sel_ai2["covariates"] else None)
-if True:
-    cal_alt = LC.make_calibration("open", ai2_alt, ai2_fb)
-    oo = LC.apply_frame(live_used.reset_index(drop=True), cal_alt)
-    ok = oo.length_cal_reason.isna().to_numpy()
-    ai2_alt_on_live = {"n": int(len(live_used)), "n_scored": int(ok.sum()),
-                       "before": LC.metrics(live_used.hull_length_m.to_numpy()[ok], live_used.length_est_m.to_numpy()[ok]),
-                       "after": LC.metrics(live_used.hull_length_m.to_numpy()[ok], oo.length_cal_m.to_numpy(float)[ok],
-                                           oo.length_cal_lo_m.to_numpy(float)[ok], oo.length_cal_hi_m.to_numpy(float)[ok])}
+          if ai2_applied["covariates"] else None)
+oo = LC.apply_frame(live_used.reset_index(drop=True), LC.make_calibration("open", ai2_alt, ai2_fb))
+ok = oo.length_cal_reason.isna().to_numpy()
+ai2_alt_on_live = {"n": int(len(live_used)), "n_scored": int(ok.sum()),
+                   "before": LC.metrics(live_used.hull_length_m.to_numpy()[ok], live_used.length_est_m.to_numpy()[ok]),
+                   "after": LC.metrics(live_used.hull_length_m.to_numpy()[ok], oo.length_cal_m.to_numpy(float)[ok],
+                                       oo.length_cal_lo_m.to_numpy(float)[ok], oo.length_cal_hi_m.to_numpy(float)[ok])}
 log(f"open model {model_summary(open_model)}")
 log(f"open in-sample {open_insample}")
 log(f"open on AI2 {open_on_ai2}")
@@ -507,16 +566,22 @@ both_Z = LC.derive_covariates(both)
 cands = ["scr_max_db", "fill_width_m", "inc_angle_deg", "dual_pol", "mission_s1d"]  # measurement covariates only (no cnn_score)
 LOPO = 40  # max folds above the number of passes: one fold per pass (leave-one-pass-out)
 sel_res = LC.select_model(both.length_est_m, both.hull_length_m, both.group, both_Z, candidates=cands, max_folds=LOPO)
-log(f"research selection: {sel_res['kind']} {sel_res['covariates']}")
-res_model = LC.build_model(sel_res["kind"], both.length_est_m, both.hull_length_m, both.group, both_Z, sel_res["covariates"],
-                           max_folds=LOPO)
-res_fb_kind = length_only_kind(sel_res["table"])
+stab_res = LC.selection_stability(both.length_est_m, both.hull_length_m, both.group, both_Z, candidates=cands, max_folds=LOPO,
+                                  max_drops=LOPO)
+res_proc = LC.metrics(both.hull_length_m, np.exp(stab_res.pop("pred_log")))
+res_applied = LC.stable_structure(sel_res, stab_res)
+log(f"research selection: {sel_res['key']}; leave-one-pass-out re-selection shares {stab_res['shares']}; "
+    f"applied {res_applied['key']}")
+res_model = LC.build_model(res_applied["kind"], both.length_est_m, both.hull_length_m, both.group, both_Z,
+                           res_applied["covariates"], max_folds=LOPO)
+res_fb_kind = stable_length_only(sel_res, stab_res)
 res_fallback = (LC.build_model(res_fb_kind, both.length_est_m, both.hull_length_m, both.group, max_folds=LOPO)
-                if sel_res["covariates"] else None)
-b, a = LC.cv_report(sel_res["kind"], both.length_est_m, both.hull_length_m, both.group, both_Z, sel_res["covariates"],
+                if res_applied["covariates"] else None)
+b, a = LC.cv_report(res_applied["kind"], both.length_est_m, both.hull_length_m, both.group, both_Z, res_applied["covariates"],
                     max_folds=LOPO)
 res_cv_arrays = a.pop("cv")
 res_cv = {"before": b, "after": a}
+res_sel_cv = selected_cv(sel_res, res_applied, both.length_est_m, both.hull_length_m, both.group, both_Z, max_folds=LOPO)
 by_source = {}
 for s in ("gfw_registry", "live_aisstream"):
     k = (both.source == s).to_numpy()
@@ -566,14 +631,15 @@ def coverage_on_contacts(cal: dict) -> dict:
         out[name] = {"n": int(len(d)), "share_by_reason": {str(k if isinstance(k, str) else "calibrated"): round(float(v), 4) for k, v in
                                                            o.length_cal_reason.fillna("calibrated").value_counts(normalize=True).items()},
                      "median_length_cal_m": round(float(o.length_cal_m.median()), 1) if o.length_cal_m.notna().any() else None}
-    out["note"] = "regional contacts carry no n_pixels in data/detections_regional.gpkg, so a model with fill_width_m uses its fallback"
+    if any(c["name"] == "fill_width_m" for c in cal["model"].get("covariates") or []):
+        out["note"] = "regional contacts carry no n_pixels in data/detections_regional.gpkg, so the model uses its fallback there"
     return out
 
 
 # =============================================================================================== outputs
 SOURCES = {
     "s1_grd_spec": "https://sentiwiki.copernicus.eu/web/s1-products (IW GRDH: resolution 20 x 22 m, pixel spacing 10 x 10 m, "
-                   "5 x 1 looks, ENL 4.4; Hamming weighting 0.70 to 0.75; resolved 2026-10-10)",
+                   "5 x 1 looks, ENL 4.4, 4.3 and 4.3 for IW1 to IW3; Hamming weighting 0.70 to 0.75; resolved 2026-10-10)",
     "ai2_labels": "https://github.com/allenai/vessel-detection-sentinels (README: point labels with properties Length, Width, "
                   "Heading, ShipAndCargoType, Speed; LICENSE Apache-2.0; resolved 2026-10-10)",
     "stasolla_greidanus_2016": "doi:10.1080/2150704X.2016.1226522 (Remote Sensing Letters 7(12):1219-1228; abstract read via "
@@ -588,8 +654,9 @@ reliability = (
     f"The open calibration rests on {len(live_used)} pairs from {live_used.group.nunique()} scene(s) of one live pass. No "
     "grouped cross-validation is possible with one scene, so its in-sample numbers are optimistic and its interval comes "
     "from leave-one-pair-out residuals within that scene. The AI2 Sentinel-1A pairs (other scenes, Sentinel-1A in 2022, same "
-    "detector) are the open out-of-sample check. Treat the open calibration as provisional until pairs from at least "
-    "three more scenes land; rerun this script after each live pass.")
+    "detector) are the open out-of-sample check, and that check moves with single live pairs (external_validation_ai2 "
+    "leave_one_live_pair_out). Treat the open calibration as provisional until pairs from at least three more scenes "
+    "land; rerun this script after each live pass.")
 
 open_cal = LC.make_calibration(
     "open", open_model, None,
@@ -600,13 +667,19 @@ open_cal = LC.make_calibration(
            "passes": sorted(live_used.pass_id.unique().tolist()) if len(live_used) else [],
            "excluded": live.exclusion.value_counts().to_dict() if len(live) else {}, "selection": selection_text},
     structure={"form": open_kind, "chosen_by": "grouped CV on the AI2 Sentinel-1A pairs (open data): " + sel_ai2["rule"],
-               "ai2_selection_table": sel_ai2["table"], "covariates": "none (too few pairs to select any)"},
+               "ai2_selection": sel_ai2["key"], "ai2_selection_table": sel_ai2["table"],
+               "ai2_reselection_stability": stab_ai2, "stability_rule": ai2_applied["rule"] + "; the length-only form likewise",
+               "covariates": "none (too few pairs to select any)"},
     in_sample=open_insample, grouped_cv=open_cv if open_cv else "not possible: all open pairs come from one scene",
     external_validation_ai2={"data": "CFAR candidates within 50 m of an AI2 Sentinel-1A point label with a Length attribute "
                                      "(data/ml/candidates.parquet), same CFAR settings; " + AI2_LICENCE,
-                             **ai2_info, "used": int(len(ai2_used)), "result": open_on_ai2, "by_form_fitted_on_live": open_kinds},
+                             **ai2_info, "used": int(len(ai2_used)), "result": open_on_ai2, "by_form_fitted_on_live": open_kinds,
+                             "leave_one_live_pair_out": open_influence},
     alternative_ai2={"note": "open model fitted on the AI2 pairs; reported, not applied (the open calibration uses live pairs only)",
-                     "selection": sel_ai2["covariates"], "model": model_summary(ai2_alt), "grouped_cv_by_scene": ai2_alt_cv,
+                     "selection": sel_ai2["key"], "applied_structure": ai2_applied, "model": model_summary(ai2_alt),
+                     "grouped_cv_by_scene": ai2_alt_cv, "selected_structure_cv_not_applied": ai2_sel_cv, "selection_procedure_cv": {
+                         "note": ("each left-out fold of scenes predicted by the structure re-selected without it: the selection "
+                                  "itself scored out of sample"), **ai2_proc},
                      "on_live_pairs": ai2_alt_on_live},
     sensitivity_stored_quality=open_sens, diagnosis=diag_open, reliability=reliability,
     on_project_contacts=coverage_on_contacts(LC.make_calibration("open", open_model)),
@@ -638,10 +711,20 @@ res_cal = LC.make_calibration(
                              "AIS static A + B for the live pairs"),
     contains_gfw_data=True, research_only=True,
     pairs={"gfw": {**res_info, "used": int(len(res_used)), "passes": int(res_used.group.nunique()),
-                   "excluded": res.exclusion.value_counts().to_dict()},
+                   "excluded": res.exclusion.value_counts().to_dict(),
+                   "used_with_rival_candidate": int(res_used.gfw_rival_in_cell.sum()),
+                   "used_with_n_cand_gt_1": int((res_used.gfw_sar_n_cand > 1).sum()),
+                   "used_with_n_rivals_gt_1": int((res_used.gfw_sar_n_rivals > 1).sum()),
+                   "length_selection_note": ("rule (a) pairing (ais.gfw_identity.pair_sar) assigns contacts to GFW detections "
+                                             "at the cost distance (km) plus |log2(radar / registry length)|, so where a "
+                                             "contact or a GFW detection had a rival in the cell and hour the pair was chosen "
+                                             "partly on length agreement, before any quality grade")},
            "live": {"used": int(len(live_used)), "passes": sorted(live_used.pass_id.unique().tolist())},
            "total_used": int(len(both)), "groups": int(both.group.nunique()), "selection": selection_text},
-    structure={"chosen": sel_res, "fallback_form": res_fb_kind},
+    structure={"selected": sel_res, "reselection_stability_leave_one_pass_out": stab_res, "applied": res_applied,
+               "fallback_form": res_fb_kind, "selected_structure_cv_not_applied": res_sel_cv,
+               "selection_procedure_cv": {"note": ("each left-out pass predicted by the structure re-selected without it: "
+                                                   "the selection itself scored out of sample"), **res_proc}},
     grouped_cv_leave_one_pass_out=res_cv, cv_by_form_length_only=res_kinds, gfw_pairs_only=res_gfw_only,
     cnn_score_covariate_check=cnn_check,
     on_project_contacts=coverage_on_contacts(LC.make_calibration("research", res_model, res_fallback)),
@@ -649,12 +732,16 @@ res_cal = LC.make_calibration(
     diagnosis=diag_res, caveat=LENGTH_CAVEAT + " " + res_meta.get("caveat", ""),
     sources=SOURCES, script="scripts/35_length_calibration.py",
     **{k: res_meta[k] for k in ("use", "licence", "licence_url", "terms_url", "attribution", "dataset") if k in res_meta},
-    datasets=json.loads(res_meta.get("datasets", "{}")), accessed_by_dataset=json.loads(res_meta.get("accessed_by_dataset", "{}")))
+    datasets=res_datasets, accessed_by_dataset=res_accessed)
 write_json(OUT_RES, res_cal)
 
-rp = pd.concat([res.reindex(columns=pair_cols + ["pass_id", "match_method", "gfw_vessel_id", "width_est_m"]).loc[:, lambda d: ~d.columns.duplicated()],
+rp = pd.concat([res.reindex(columns=pair_cols + ["pass_id", "match_method", "gfw_vessel_id", "width_est_m", "gfw_sar_n_cand",
+                                                 "gfw_sar_n_rivals", "gfw_rival_in_cell"]).loc[:, lambda d: ~d.columns.duplicated()],
                 live.reindex(columns=pair_cols)], ignore_index=True)
 rp["research_only"] = rp.source == "gfw_registry"
+rp["gfw_rival_in_cell"] = rp.gfw_rival_in_cell.astype("boolean")
+for k in ("gfw_sar_n_cand", "gfw_sar_n_rivals"):
+    rp[k] = pd.to_numeric(rp[k], errors="coerce").astype("Int64")
 rp = pd.concat([rp, LC.derive_covariates(pd.concat([res, live], ignore_index=True))[["scr_max_db", "fill_width_m"]]], axis=1)
 rc = LC.apply_frame(pd.concat([res, live], ignore_index=True), res_cal)
 for k in ("length_cal_m", "length_cal_lo_m", "length_cal_hi_m", "length_cal_reason"):
