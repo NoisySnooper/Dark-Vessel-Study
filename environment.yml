@@ -19,6 +19,7 @@ dependencies:
   - pandas
   - pyarrow
   - matplotlib
+  - pillow           # WebP chips and backdrops of the single-file pages (app/build), libwebp from conda-forge
   - pystac-client
   - planetary-computer
   - pytorch-cpu
@@ -35,6 +36,7 @@ dependencies:
   - pyyaml
   - tqdm
   - pytest
+  - httpx=0.28.1     # fastapi.testclient: backend tests and the bundle builder's spot records (conda-forge build)
   - jupyterlab
   - pip
   # Node 22 (with npm 10) is needed for the app/frontend builds (make app-build). It is not part of

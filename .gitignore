@@ -15,7 +15,7 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 .venv/
-build/
+/build/
 dist/
 
 # ---- Data: raw and heavy files stay out of git ----
@@ -63,7 +63,12 @@ app/frontend/node_modules/
 app/frontend/dist/
 app/frontend/dist-single/
 app/frontend/fixtures/*.html
+app/frontend/checks/shots/
 app/**/__pycache__/
+# Single-file pages, reports and check screenshots of app/build/build_single.py (published as private artifacts, never committed)
+app/build/out/
 
 # Rebuilt in about 2 min by scripts/31_gfw_identity.py --steps outputs --offline (112 MB); the parquet is the committed copy
 data/research/regional_identity.gpkg
+# Rebuilt by scripts/33_leads.py --build research (85 MB, per-row evidence); data/research/leads_research.parquet is the committed copy
+data/research/leads_research.gpkg

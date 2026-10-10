@@ -15,6 +15,8 @@
 #   make ais-passes         refresh the Sentinel-1 pass plan from ESA's acquisition plan
 #   make live               one live-pass cycle: new scenes, detection, CNN, AIS match, identity
 #   make live-watch         live-pass watcher in the background (log: data/cache/live/watch.log)
+#   make live-review RUN=live_S1D_20261010T1032    hand-check tables data/live/<RUN>_review_{matched,unmatched}.csv
+#   make live-figures RUN=live_S1D_20261010T1032   map, match chips and AIS-only panels of a processed pass
 # CNN verification of the regional run:
 #   make cnn-regional       detached run, classes high, medium, fixed, then low
 #   make cnn-regional-build outputs from the checkpoints;  make cnn-regional-status  progress
@@ -22,29 +24,42 @@
 #   make ocean              static and daily ocean layers (depth, ports, shipping presence, SST, fronts, ...)
 #   make object-context     ocean and weather context at every radar contact and light
 #   make expected           expected-activity model and anomalies
-#   make leads              leads queue, open build;  make leads-research  research build (needs make gfw)
+#   make length-cal         radar length calibration (open from live AIS pairs; research from GFW registry lengths)
+#   make leads              leads queue, open and research builds (research reads the committed data/research/ files)
+#   make leads-open, make leads-research   one build only
 #   make gfw                Global Fishing Watch pull and September identity, RESEARCH ONLY (CC BY-NC 4.0,
 #                           noncommercial, outputs under data/research/); never part of all
 # Product (SCS Vessel Watch):
 #   make serve              local web app (BUILD=open|research, PORT=8750)
-#   make app-build          frontend (app/frontend/dist/) and single-file page (app/frontend/dist-single/); needs Node 22
+#   make app-build          frontend (app/frontend/dist/) and single-file shell (app/frontend/dist-single/); needs Node 22
+#   make app-single         both shareable single-file pages in app/build/out/ (open and research, at most 15,000,000
+#                           bytes each; FRONTEND=path/to/shell.html to build from a frozen shell copy)
+#   make app-check          bundle check (Playwright, 1280 and 390 px, dark and light) and the frontend smoke check
+#                           on both pages; Node 22 and the preinstalled Chromium in /opt/pw-browsers
 #
 # Keys, read from the git-ignored .env at the repo root: the aisstream recorder, started by
-# make ais-watchdog, needs AISSTREAM_API_KEY; ais-status, ais-reach, ais-passes, live and live-watch
-# use the recording and need no key. The research build (gfw) needs GFW_API_TOKEN. The rest of the
-# open pipeline needs none.
+# make ais-watchdog, needs AISSTREAM_API_KEY; ais-status, ais-reach, ais-passes, live, live-watch,
+# live-review and live-figures use the recording and need no key. The GFW pull (gfw) needs
+# GFW_API_TOKEN. The research builds of leads, length-cal, serve and app-single read the GFW pull's
+# committed outputs under data/research/ and need no key; their open builds never read data/research/.
+# app-single reads .env only to scan each page for credential prefixes (never printed or written).
+# The rest of the open pipeline needs no key.
 
 PY ?= python
 BUILD ?= open
 PORT ?= 8750
+RUN ?= live_S1D_20261010T1032
+FRONTEND ?= app/frontend/dist-single/index.html
+PW_ENV ?= NODE_PATH=/opt/node-tools/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
 OUT ?= data/outputs/demo/scs_vessel_watch.html
 DAYS ?= 12
 VIIRS_START ?= 2026-09-05
 VIIRS_END ?= 2026-10-01
 
 .PHONY: all test regional context camau demo aoi search coverage detect merge density look weather viirs optical \
-	ais-watchdog ais-status ais-reach ais-passes live live-watch cnn-regional cnn-regional-build \
-	cnn-regional-status ocean gfw leads leads-research expected object-context serve app-build
+	ais-watchdog ais-status ais-reach ais-passes live live-watch live-review live-figures cnn-regional \
+	cnn-regional-build cnn-regional-status ocean gfw leads leads-open leads-research length-cal expected \
+	object-context serve app-build app-single app-check
 
 all: regional context camau demo
 
@@ -124,6 +139,12 @@ live:
 live-watch:
 	nohup setsid nice -n 10 $(PY) scripts/30_live_pass.py --watch >> data/cache/live/watch.log 2>&1 &
 
+live-review:
+	$(PY) scripts/30_live_pass.py --review $(RUN)
+
+live-figures:
+	nice -n 10 $(PY) scripts/30_live_pass.py --figures $(RUN)
+
 # ---- CNN verifier on every regional contact ----
 cnn-regional:
 	$(PY) scripts/32_cnn_regional.py --detach --phases main,low
@@ -151,12 +172,19 @@ gfw:
 	$(PY) scripts/27_gfw_pull.py --steps outputs,compare --offline
 	$(PY) scripts/31_gfw_identity.py --steps presence,identify,vessels,outputs
 
+# ---- Radar length calibration (no producer reads it yet: board D6.4) ----
+length-cal:
+	nice -n 10 $(PY) scripts/35_length_calibration.py
+
 # ---- Leads queue ----
 leads:
-	$(PY) scripts/33_leads.py --build open
+	nice -n 10 $(PY) scripts/33_leads.py --build both
+
+leads-open:
+	nice -n 10 $(PY) scripts/33_leads.py --build open
 
 leads-research:
-	$(PY) scripts/33_leads.py --build research
+	nice -n 10 $(PY) scripts/33_leads.py --build research
 
 # ---- Product: SCS Vessel Watch ----
 serve:
@@ -164,3 +192,12 @@ serve:
 
 app-build:
 	cd app/frontend && npm ci && npm run build && npm run build:single
+
+# Single-file pages (app/build/README.md): build both, then check both before the lead publishes them.
+app-single:
+	PYTHONPATH=app/backend nice -n 10 $(PY) app/build/build_single.py --build both --frontend $(FRONTEND)
+
+app-check:
+	$(PW_ENV) nice -n 10 node app/build/check_bundle.mjs app/build/out
+	$(PW_ENV) nice -n 10 node app/frontend/checks/smoke.mjs $(CURDIR)/app/build/out/scs_vessel_watch_open.html app/build/out/shots/smoke_open
+	$(PW_ENV) nice -n 10 node app/frontend/checks/smoke.mjs $(CURDIR)/app/build/out/scs_vessel_watch_research.html app/build/out/shots/smoke_research

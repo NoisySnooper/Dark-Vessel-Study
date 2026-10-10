@@ -12,6 +12,7 @@ requires-python = ">=3.10"
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# app/frontend/fixtures: encoder round trips and the lead-code display strings (board D5.1, D6.5)
+testpaths = ["tests", "app/frontend/fixtures"]
 markers = ["network: test needs internet access (skipped by default)"]
 addopts = "-m 'not network'"
