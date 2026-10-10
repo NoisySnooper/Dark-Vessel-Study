@@ -12,7 +12,7 @@ export function AboutPage() {
     <article className="scs-page scs-about" data-page="about">
       <ObjectHeader title={`About ${PRODUCT_NAME}`} icon="info-sign" back="leads" subtitle={`Build ${meta.build}, contract ${meta.contract_version}, generated ${meta.generated_utc}, git ${meta.git_hash}`} />
       <CaveatCallout caveat={meta.caveat} />
-      {meta.fixture?.synthetic && <Callout intent="danger" compact style={{ marginTop: 8 }}>FIXTURE: {meta.fixture.note}</Callout>}
+      {meta.fixture && <Callout intent={meta.fixture.synthetic ? "danger" : "warning"} compact style={{ marginTop: 8 }}>FIXTURE: {meta.fixture.note}</Callout>}
       <Section title="What the product answers" compact collapsible>
         <SectionCard>
           <p>For every Sentinel-1C/1D radar contact over the South China Sea AOI the product answers, in this order: <strong>Detection</strong>, is it a vessel (detector class, clutter and fixed-structure rules, persistence, CNN verifier score, optical and Satlas checks where they exist); and <strong>Identification</strong>, who is it (an AIS match to an MMSI with its self-reported identity, or, when nothing matches, a dark lead with all its evidence). Everything else is context.</p>

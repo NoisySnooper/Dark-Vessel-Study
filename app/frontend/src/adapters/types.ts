@@ -1,4 +1,5 @@
-// Record shapes of app/CONTRACT.md section 3 (version 1.2.0). Both adapters return these.
+// Record shapes of app/CONTRACT.md section 3 (version 1.2.0, plus the board D5.3 and D5.4 shapes of 1.3.0). Both
+// adapters return these.
 // Field names are the contract's; nulls are null. `src` is the record's default source key and `prov` maps
 // field names to source keys where they differ (section 2).
 
@@ -14,6 +15,71 @@ export interface Provenanced {
   caveat: string;
   research_only: boolean;
   extra?: Record<string, unknown>;
+}
+
+/** One ocean field at an object (board D5.3): value, unit, valid time and source as the context table states them. */
+export interface ContextField {
+  value: number | boolean | null;
+  unit: string | null;
+  time: string | null;
+  src: string | null;
+}
+/** `object_context` of a Contact or Light (board D5.3); null when the object has no row in the context table. */
+export interface ObjectContext {
+  time_utc: string | null;
+  cell_id: string | null;
+  region: string | null;
+  fields: Record<string, ContextField>;
+  caveat: string;
+}
+/** One tested row of the expected-activity table (board D5.4). */
+export interface ExpectedRow {
+  unit_id: string;
+  night: string;
+  time_start_utc: string | null;
+  time_end_utc: string | null;
+  tested: boolean;
+  observed: number | null;
+  expected: number | null;
+  z: number | null;
+  q_bh: number | null;
+  flag: string | null;
+  flag_robust: string | null;
+  calm: boolean | null;
+  exposure_km2: number | null;
+}
+/** Per-target counts when only a summary is embedded (single-file page under its budget). */
+export interface ExpectedSummary {
+  n_tested: number | null;
+  n_flag: number | null;
+  n_flag_robust: number | null;
+}
+/** `expected_activity` of a Cell (board D5.4): tested rows per target, newest first; or a counts-only summary. */
+export interface ExpectedActivity {
+  model_id: string | null;
+  caveat: string;
+  targets: Record<string, ExpectedRow[]>;
+  summary?: Record<string, ExpectedSummary> | null;
+  note?: string | null;
+}
+
+/** Raster overlay registry entry (contract 3.7, Raster layers). `image` is a data URI in the single-file page. */
+export interface RasterEntry {
+  name: string;
+  unit: string | null;
+  resolution_deg: number | null;
+  valid_period: string | null;
+  colormap: string;
+  vmin: number | null;
+  vmax: number | null;
+  bounds: [number, number, number, number];
+  src: string;
+  licence: string | null;
+  default_on: boolean;
+  note: string | null;
+  research_only: boolean;
+  label?: string | null;
+  image?: string | null;
 }
 
 export interface Contact extends Provenanced {
@@ -87,6 +153,24 @@ export interface Contact extends Provenanced {
   lead_ids: string[];
   chip: string | null;
   synthetic?: boolean | null;
+  /** Ocean context at the contact (board D5.3); null or absent until the context table has a row for it. */
+  object_context?: ObjectContext | null;
+  /** Live passes: the pairing could not tell this contact apart from two or more AIS vessels (darkvessel.live.assign). */
+  match_ambiguous?: boolean | null;
+  /** Candidate MMSIs of an ambiguous contact: one MMSI or several joined by ';' (contract 1.3.0). */
+  ambiguous_mmsi?: string | null;
+  match_alt_dist_m?: number | null;
+  /** Hand check of R3-T7: '<grade>: <reason>' (grade confirmed, plausible or doubtful); null when not checked. */
+  review_note?: string | null;
+  review_grade?: "confirmed" | "plausible" | "doubtful" | null;
+  /** Board D4.7 label of an aisstream-derived identity, as the API states it. */
+  identity_label?: string | null;
+  az_time_utc?: string | null;
+  az_shift_m?: number | null;
+  match_dist_uncorr_m?: number | null;
+  velocity_source?: string | null;
+  pred_method?: string | null;
+  [k: string]: unknown;
 }
 
 export interface Vessel extends Provenanced {
@@ -173,6 +257,8 @@ export interface Light extends Provenanced {
   site_id: string | null;
   contacts_2km_same_night: string[];
   cell_id: string;
+  /** Ocean context at the light (board D5.3). */
+  object_context?: ObjectContext | null;
 }
 
 export interface EventRecord extends Provenanced {
@@ -204,7 +290,8 @@ export interface LeadFactor {
   source: string;
 }
 export interface LeadEvidence {
-  type: "contact" | "vessel" | "light" | "event" | "cell" | "pass";
+  /** `weather` is the weather sidecar row of the primary contact (id = det_id), not an object page. */
+  type: "contact" | "vessel" | "light" | "event" | "cell" | "pass" | "weather";
   id: string;
   role: string;
   /** Resolved preview from GET /leads/{id} (contract section 5): label, lon, lat and a few type fields. */
@@ -249,6 +336,8 @@ export interface Lead extends Provenanced {
   cnn_score?: number | null;
   length_est_m?: number | null;
   pass_id?: string | null;
+  /** Set by the embedded adapter when the lead no longer stands against its primary contact (identity.ts staleLeadReason). */
+  stale_reason?: string | null;
 }
 
 export interface Pass extends Provenanced {
@@ -276,6 +365,40 @@ export interface Pass extends Provenanced {
   scene_counts?: Record<string, unknown>[];
   note?: string | null;
   fixture_note?: string | null;
+  contacts_in_bundle?: boolean | null;
+  /** Contract 1.3.0: AIS vessels in the footprint that no contact matched (full list on the pass record only). */
+  n_ais_only?: number | null;
+  ais_only?: AisOnlyVessel[] | null;
+  azimuth_check?: { by_scene: Record<string, unknown>[]; note?: string | null } | null;
+  identity_label?: string | null;
+}
+
+/** One AIS vessel of a live pass that no radar contact matched (live file layer ais_only_4326). */
+export interface AisOnlyVessel {
+  mmsi: string | null;
+  vessel_key?: string | null;
+  vessel_name?: string | null;
+  call_sign?: string | null;
+  imo?: string | null;
+  flag?: string | null;
+  ship_type?: string | null;
+  ais_class?: string | null;
+  length_ais_m?: number | null;
+  sog_kn?: number | null;
+  lon?: number | null;
+  lat?: number | null;
+  scene_id?: string | null;
+  pred_method?: string | null;
+  pred_dt_s?: number | null;
+  n_reports?: number | null;
+  on_tested_sea?: boolean | null;
+  dist_coast_km?: number | null;
+  nearest_object_m?: number | null;
+  nearest_object_class?: string | null;
+  ambiguous_det_id?: string | null;
+  oversized_det_id?: string | null;
+  identity_source?: string | null;
+  identity_label?: string | null;
 }
 
 export interface SourceEntry {
@@ -420,6 +543,10 @@ export interface DataAdapter {
   /** Local app only: build a missing chip (`chip.webp?fetch=1`); resolves to an image URL or throws with the reason. */
   fetchChip?(det_id: string): Promise<string>;
   cell(cell_id: string): Promise<CellRecord | null>;
+  /** Raster overlay registry (contract 3.7); empty when the build has none. */
+  rasters(): Promise<RasterEntry[]>;
+  /** Image URL of one overlay for the theme (a data URI in the single-file page). */
+  rasterImage(name: string, theme: "dark" | "light"): Promise<string | null>;
 }
 
 /** Cell context record (contract section 3.7). Known fields typed; the rest pass through. */
@@ -433,7 +560,7 @@ export interface CellRecord extends Provenanced {
   nightly?: Record<string, unknown> | null;
   pass_context?: Record<string, unknown> | null;
   object_context?: Record<string, unknown> | null;
-  expected_activity?: Record<string, unknown> | null;
+  expected_activity?: ExpectedActivity | null;
   eez?: Record<string, unknown> | null;
   caveat: string;
   [k: string]: unknown;

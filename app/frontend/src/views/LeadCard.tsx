@@ -1,12 +1,13 @@
 // Lead card (spec section 4.1): radar chip, factor list with points, the full caveat, lawful explanations,
 // "what would change this", decision buttons with the reason picker. Decisions go through the adapter
 // (POST in http mode; page memory plus JSONL export in embedded mode).
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button, ButtonGroup, Callout, Dialog, DialogBody, DialogFooter, HTMLSelect, Tag, TextArea, useHotkeys, type HotkeyConfig } from "@blueprintjs/core";
-import type { Lead, LeadState } from "../adapters/types";
-import { useApp } from "../app/state";
-import { CHANGE_TEXT, EXPLAINED_REASONS, FACTOR_LABEL, FALSE_ALARM_REASONS, LAWFUL_TEXT, LEAD_TYPE_NAME, STATE_LABEL, STORAGE_WARNING, UNCALIBRATED, codeText } from "../app/text";
-import { fmtRelative, fmtTime, priorityBand } from "../app/format";
+import type { Contact, Lead, LeadState } from "../adapters/types";
+import { useApp, useAsync } from "../app/state";
+import { CHANGE_TEXT, EXPLAINED_REASONS, FACTOR_LABEL, FALSE_ALARM_REASONS, LAWFUL_TEXT, LEAD_TYPE_NAME, LOW_QUALITY_LABEL, STALE_LEAD_LABEL, STALE_LEAD_NOTE, STATE_LABEL, STORAGE_WARNING, UNCALIBRATED, codeText } from "../app/text";
+import { fmtMetres, fmtNum, fmtRelative, fmtTime, pct, priorityBand } from "../app/format";
+import { ambiguousCandidates, identityLabel, isAmbiguous, lowQualityPairing, staleLeadReason } from "../app/identity";
 import { Field, ProvChip, sourceFor } from "./Provenance";
 import { CaveatCallout, ObjectLink, StatusChip, downloadText } from "./common";
 import { ChipImage } from "./ChipImage";
@@ -107,6 +108,9 @@ export function LeadCard({ lead, onUpdate, full }: { lead: Lead; onUpdate?: (l: 
   const [current, setCurrent] = useState(lead);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => setCurrent(lead), [lead]);
+  // The primary contact as it stands now: who it is (identification line) and whether the lead still stands against it.
+  const { data: primary } = useAsync<Contact | null>(() => (lead.primary_type === "contact" ? adapter.contact(lead.primary_id).catch(() => null) : Promise.resolve(null)), [adapter, lead.primary_type, lead.primary_id]);
+  const stale = staleLeadReason(current, primary);
   const closed = current.state.startsWith("closed");
   const done = (l: Lead) => {
     setCurrent(l);
@@ -125,22 +129,24 @@ export function LeadCard({ lead, onUpdate, full }: { lead: Lead; onUpdate?: (l: 
     }
   };
   // On the full lead page the card owns the decision keys; in the console the queue registers them.
-  const hotkeys = useMemo<HotkeyConfig[]>(() => (full ? [
+  const hotkeys = useMemo<HotkeyConfig[]>(() => (full && !stale ? [
     { combo: "r", global: true, group: "Lead", label: "Set reviewing", onKeyDown: () => { if (!closed) void reviewing(); } },
     { combo: "e", global: true, group: "Lead", label: "Close as explained (reason picker)", onKeyDown: () => !closed && setDlg("closed_explained") },
     { combo: "u", global: true, group: "Lead", label: "Close as unexplained (note)", onKeyDown: () => !closed && setDlg("closed_unexplained") },
     { combo: "x", global: true, group: "Lead", label: "Close as false alarm (reason picker)", onKeyDown: () => !closed && setDlg("closed_false_alarm") },
   ] : []), // eslint-disable-next-line react-hooks/exhaustive-deps
-  [full, closed, current]);
+  [full, closed, current, stale]);
   useHotkeys(hotkeys);
   return (
-    <div className="scs-leadcard" data-lead-id={current.lead_id} data-state={current.state}>
+    <div className="scs-leadcard" data-lead-id={current.lead_id} data-state={current.state} data-stale={stale ? "1" : undefined}>
       <div className="scs-tagrow">
+        {stale && <Tag intent="warning" data-stale-tag="1">{STALE_LEAD_LABEL}</Tag>}
         <Tag minimal>{current.lead_type}: {LEAD_TYPE_NAME[current.lead_type] || current.lead_type}</Tag>
         <Tag minimal intent={current.state === "new" ? "primary" : undefined}>{STATE_LABEL[current.state]}</Tag>
         {!current.calibrated && <Tag minimal intent="warning">{UNCALIBRATED}</Tag>}
         {current.synthetic && <Tag intent="danger" minimal>SYNTHETIC fixture lead</Tag>}
       </div>
+      {stale && <Callout compact intent="warning" icon="warning-sign" data-stale-lead="1" style={{ margin: "8px 0" }}>Not a lead: {stale}. {STALE_LEAD_NOTE}</Callout>}
       {!full && <div className="title">{current.title}</div>}
       <div className="scs-fields" style={{ margin: "8px 0" }}>
         <Field label="Review priority (not a risk score)" rec={current} field="priority" judgment modelId={current.priority_model_id}><PriorityBar p={current.priority} /></Field>
@@ -150,6 +156,7 @@ export function LeadCard({ lead, onUpdate, full }: { lead: Lead; onUpdate?: (l: 
         <Field label="Time" rec={current} field="time_utc" value={fmtTime(current.time_utc, tz)} />
         <Field label="Reporting box" rec={current} field="region_box" value={current.region_box ? `${current.region_box} (statistics only, not a boundary)` : "other"} />
         {current.ais_status && <Field label="AIS status of the contact" rec={current} field="ais_status"><StatusChip status={current.ais_status} /></Field>}
+        {current.primary_type === "contact" && primary && <LeadIdentity c={primary} />}
         <Field label="Next radar look" rec={current} field="next_look_utc" value={current.next_look_utc ? `${fmtTime(current.next_look_utc, tz, false)} (${fmtRelative(current.next_look_utc)}, from the acquisition plan)` : "none planned in the plan window"} />
       </div>
       {current.primary_type === "contact" && <ChipImage det_id={current.primary_id} />}
@@ -172,14 +179,14 @@ export function LeadCard({ lead, onUpdate, full }: { lead: Lead; onUpdate?: (l: 
       <ul style={{ margin: "0 0 8px", paddingLeft: 18, fontSize: 13 }}>
         {current.change_indicators.map((x) => <li key={x}>{codeText(x, CHANGE_TEXT)}</li>)}
       </ul>
-      <div className="scs-decisions" role="group" aria-label="Lead decision">
+      {stale ? <p className="scs-muted" data-stale-decisions="1" style={{ fontSize: 12 }}>No decision buttons: this record is not a lead.</p> : <div className="scs-decisions" role="group" aria-label="Lead decision">
         {current.state === "new" && <Button icon="eye-open" text="Reviewing (R)" onClick={() => void reviewing()} />}
         {current.state === "new" && <Button minimal small text="Reviewing with a note" onClick={() => setDlg("reviewing")} />}
         {!closed && <Button icon="tick" text="Explained (E)" onClick={() => setDlg("closed_explained")} />}
         {!closed && <Button icon="help" text="Unexplained (U)" onClick={() => setDlg("closed_unexplained")} />}
         {!closed && <Button icon="cross" text="False alarm (X)" onClick={() => setDlg("closed_false_alarm")} />}
         {closed && <Button icon="undo" text="Reopen to reviewing" onClick={() => setDlg("reopen")} />}
-      </div>
+      </div>}
       {err && <Callout compact intent="danger">{err}</Callout>}
       {storageBlocked && <Callout compact intent="warning" data-storage-warning="1" style={{ marginBottom: 8 }}>{STORAGE_WARNING}</Callout>}
       {storageBlocked && !full && <ExportDecisions highlight={decisionsVersion > 0} noWarning />}
@@ -199,3 +206,27 @@ export function LeadCard({ lead, onUpdate, full }: { lead: Lead; onUpdate?: (l: 
   );
 }
 
+
+/** Who the lead's primary contact is (spec 4.1, owner priority P0): identity for a match (with the board D6.2 label for a
+ * low-quality pairing), the nearest AIS vessel for a contact with no match, the candidates of an ambiguous contact. */
+function LeadIdentity({ c }: { c: Contact }) {
+  const { units } = useApp();
+  const label = identityLabel(c);
+  let body: React.ReactNode;
+  if (c.ais_status === "matched") {
+    body = <span data-lead-identity="matched">{c.vessel_name || "no name heard"}, MMSI {c.mmsi ? <ObjectLink type="vessel" id={c.vessel_key || `mmsi:${c.mmsi}`} label={c.mmsi} /> : "unknown"}, <span className="judgment">{c.match_quality || "?"} quality</span>
+      {lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</span>;
+  } else if (c.ais_status === "unmatched" && isAmbiguous(c)) {
+    const cand = ambiguousCandidates(c);
+    body = <span data-lead-identity="ambiguous">ambiguous between {cand.length ? cand.join(", ") : "two or more AIS vessels"}; an ambiguous contact is never a lead</span>;
+  } else if (c.ais_status === "unmatched") {
+    body = <span data-lead-identity="unmatched">no AIS match; nearest AIS vessel {c.nearest_ais_mmsi ? <ObjectLink type="vessel" id={c.nearest_vessel_key || `mmsi:${c.nearest_ais_mmsi}`} label={c.nearest_vessel_name || c.nearest_ais_mmsi} /> : "none heard"}{c.nearest_ais_dist_m !== null ? `, ${fmtMetres(c.nearest_ais_dist_m, units)}` : ""}; {fmtNum(c.n_ais_10km)} AIS vessels within 10 km; reach {pct(c.ais_reach)}</span>;
+  } else {
+    body = <span data-lead-identity={c.ais_status}>{c.ais_status === "no_coverage" ? "no AIS coverage at the contact" : "AIS not checked for this run"}</span>;
+  }
+  return (
+    <Field label="Identification" rec={c} field={c.ais_status === "matched" ? "mmsi" : "nearest_ais_mmsi"}>
+      {body}{label ? <span className="scs-muted" data-identity-label="1"> ({label})</span> : null}
+    </Field>
+  );
+}

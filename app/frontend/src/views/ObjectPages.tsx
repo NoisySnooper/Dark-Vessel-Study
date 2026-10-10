@@ -1,17 +1,20 @@
 // Object pages (spec sections 4.2 to 4.7): Contact, Vessel, Lead, Light, Event, Pass. Every field has a provenance chip.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, ButtonGroup, Callout, Section, SectionCard, Tag } from "@blueprintjs/core";
 import type { CellRecord, Contact, EventRecord, Lead, LeadEvidence, Light, Pass, Track, Vessel } from "../adapters/types";
 import { useApp, useAsync } from "../app/state";
 import {
-  AISSTREAM_NOTE, AIS_STATUS_LABEL, AIS_STATUS_MEANING, CHANGE_TEXT, CNN_HELD_OUT, CNN_LIMITS, DARK_CAVEAT_SHORT, EEZ_STATEMENT, FACTOR_LABEL,
-  GAP_NOTE, IDENTITY_NOTE, LAWFUL_TEXT, LENGTH_NOTE, LIGHT_NOTE, OCEAN_NOTE, PRODUCT_CAVEAT, codeText,
+  AISSTREAM_LABEL, AIS_STATUS_LABEL, AIS_STATUS_MEANING, AMBIGUOUS_NOTE, CHANGE_TEXT, CNN_HELD_OUT, CNN_LIMITS, DARK_CAVEAT_SHORT, EEZ_STATEMENT, FACTOR_LABEL,
+  GAP_NOTE, IDENTITY_NOTE, LAWFUL_TEXT, LENGTH_NOTE, LIGHT_NOTE, LOW_QUALITY_LABEL, OCEAN_NOTE, PRODUCT_CAVEAT, STALE_LEAD_LABEL, codeText,
 } from "../app/text";
+import { ambiguousCandidates, identityLabel, isAmbiguous, lowQualityPairing, reviewGrade, reviewReason, shipTypeText, staleLeadReason } from "../app/identity";
 import { fmtDtg, fmtDuration, fmtMetres, fmtNum, fmtRelative, fmtTime, pct, sentinelName } from "../app/format";
 import { Field, ProvenanceTable } from "./Provenance";
 import { CaveatCallout, ConfidenceTag, CoordBlock, Loading, Missing, NotBuilt, ObjectHeader, ObjectLink, StatusChip, copyText, downloadText } from "./common";
 import { ChipImage } from "./ChipImage";
 import { LeadCard, ExportDecisions } from "./LeadCard";
+import { ContextSection, ExpectedActivitySection } from "./ContextSection";
+export { PassPage } from "./PassPage";
 import { MapView } from "../map/MapView";
 import { fmtDd, fmtDms, fmtMgrs } from "../app/format";
 
@@ -44,13 +47,21 @@ export function ContactPage({ id }: { id: string }) {
   }, [adapter, c?.det_id]);
   if (loading) return <Loading what="contact" />;
   if (!c) return <Missing what="Contact" id={id} />;
+  // A lead built before this contact's rematch (now ambiguous, matched or without coverage) is stale: listed, never shown as a lead.
+  const staleOf = (l: Lead) => (l.primary_type === "contact" && l.primary_id === c.det_id ? staleLeadReason(l, c) : null);
+  const standing = (leads || []).filter((l) => !staleOf(l));
+  const staleIds = (leads || []).filter((l) => staleOf(l)).map((l) => l.lead_id);
+  const standingIds = c.lead_ids.filter((l) => !staleIds.includes(l));
   const subtitle = `Radar contact, ${sentinelName(c.mission)} IW, ${fmtTime(c.acq_utc, tz)} (${fmtDtg(c.acq_utc)})`;
-  const ident = c.ais_status;
   const cnnVerdict = c.cnn_score === null ? "not scored" : c.cnn_vessel ? "CNN accepts" : "CNN rejects";
   return (
     <article className="scs-page" data-page="contact" data-det-id={c.det_id} data-ais-status={c.ais_status}>
       <ObjectHeader title={c.det_id} subtitle={subtitle} icon="satellite" back="leads" tags={<span className="scs-tagrow">
         <ConfidenceTag c={c.confidence} /><Tag minimal className="judgment">{cnnVerdict}</Tag><StatusChip status={c.ais_status} />
+        {c.ais_status === "matched" && <Tag minimal data-header-identity="1">{c.vessel_name || "no name heard"}{c.mmsi ? `, MMSI ${c.mmsi}` : ""}</Tag>}
+        {lowQualityPairing(c) && <Tag minimal intent="warning" data-low-quality="1">{LOW_QUALITY_LABEL}</Tag>}
+        {c.ais_status === "unmatched" && isAmbiguous(c) && <Tag minimal data-header-ambiguous="1">ambiguous, not a lead</Tag>}
+        {c.ais_status === "unmatched" && !isAmbiguous(c) && c.dark_lead && <Tag minimal intent="primary" data-header-dark-lead="1">dark lead</Tag>}
         {c.research_only && <Tag minimal intent="warning">research</Tag>}{c.synthetic && <Tag minimal intent="danger">SYNTHETIC fixture status</Tag>}</span>} />
       <ButtonGroup className="scs-actions" style={{ marginBottom: 8 }}>
         <Button small icon="locate" text="Centre map" onClick={() => { focusMap(c.lon, c.lat, 10); if (phone) window.location.hash = "#/map"; }} />
@@ -77,7 +88,7 @@ export function ContactPage({ id }: { id: string }) {
       <Section title="Verification" compact collapsible>
         <SectionCard>
           <div className="scs-fields">
-            <Field label="CNN score" rec={c} field="cnn_score" judgment modelId={c.cnn_model_id} value={c.cnn_score === null ? "not scored" : `${c.cnn_score.toFixed(3)} against threshold ${c.cnn_threshold ?? 0.6318} (${cnnVerdict})`} />
+            <Field label="CNN score" rec={c} field="cnn_score" judgment modelId={c.cnn_model_id} value={c.cnn_score === null ? "not scored" : `${c.cnn_score.toFixed(3)} against threshold ${(c.cnn_threshold ?? 0.6318).toFixed(4)} (${cnnVerdict})`} />
             <Field label="Held-out performance" rec={c} field="cnn_model_id" judgment value={CNN_HELD_OUT} />
             <Field label="Knowledge limits" rec={c} field="cnn_model_id" judgment value={CNN_LIMITS} />
             <Field label="Chip valid fraction" rec={c} field="cnn_chip_valid_frac" value={c.cnn_chip_valid_frac === null || c.cnn_chip_valid_frac === undefined ? "unknown" : pct(c.cnn_chip_valid_frac)} />
@@ -86,80 +97,157 @@ export function ContactPage({ id }: { id: string }) {
           </div>
         </SectionCard>
       </Section>
-      <Section title="Identification: who is it" compact collapsible>
-        <SectionCard>
-          <p><StatusChip status={ident} /> <span className="scs-muted">{AIS_STATUS_MEANING[ident]}</span></p>
-          {ident === "matched" && (
-            <div className="scs-fields" data-identification="matched">
-              <Field label="MMSI" rec={c} field="mmsi" value={c.mmsi ? <ObjectLink type="vessel" id={`mmsi:${c.mmsi}`} label={c.mmsi} /> : null} />
-              <Field label="Vessel name" rec={c} field="vessel_name" value={c.vessel_name} />
-              <Field label="Call sign" rec={c} field="call_sign" value={c.call_sign} />
-              <Field label="IMO" rec={c} field="imo" value={c.imo} />
-              <Field label="Flag (MID country, as claimed by the transponder)" rec={c} field="flag" value={c.flag} />
-              <Field label="Ship type" rec={c} field="ship_type" value={c.ship_type} />
-              <Field label="AIS length against radar length" rec={c} field="length_ais_m" value={c.length_ais_m === null ? "no AIS length" : `${fmtNum(c.length_ais_m)} m against ${fmtNum(c.length_est_m)} m${c.length_ratio ? ` (ratio ${c.length_ratio.toFixed(2)})` : ""}`} />
-              <Field label="Match distance" rec={c} field="match_dist_m" value={fmtMetres(c.match_dist_m, units)} />
-              <Field label="Time offset" rec={c} field="match_dt_s" value={fmtDuration(c.match_dt_s)} />
-              <Field label="Gate used" rec={c} field="match_gate_m" value={c.match_gate_m === null ? "unknown" : fmtMetres(c.match_gate_m, units)} />
-              <Field label="Method" rec={c} field="match_method" value={c.match_method} />
-              <Field label="Match quality" rec={c} field="match_quality" judgment value={c.match_quality ? `${c.match_quality} (rule: ${meta.live_rules?.match_quality_rule || "see the file's about layer"})` : null} />
-              <Field label="Identity source" rec={c} field="identity_source" value={c.identity_source} />
-            </div>
-          )}
-          {ident === "matched" && <p className="scs-muted" style={{ fontSize: 12 }}>Every identity field is a transponder self-report. {AISSTREAM_NOTE}</p>}
-          {ident === "unmatched" && (
-            <div className="scs-fields" data-identification="unmatched">
-              <Field label="Nearest AIS vessel" rec={c} field="nearest_ais_mmsi" value={c.nearest_ais_mmsi ? <><ObjectLink type="vessel" id={`mmsi:${c.nearest_ais_mmsi}`} label={nearest?.name || c.nearest_ais_mmsi} /> (MMSI {c.nearest_ais_mmsi}), {fmtMetres(c.nearest_ais_dist_m, units)} away, {fmtDuration(c.nearest_ais_dt_s)} offset</> : "none heard"} />
-              <Field label="AIS vessels within 10 km during the window" rec={c} field="n_ais_10km" value={c.n_ais_10km === null ? "unknown" : String(c.n_ais_10km)} />
-              <Field label="AIS reach of the cell (share of recorded hours with any AIS)" rec={c} field="ais_reach" value={pct(c.ais_reach)} />
-              <Field label="VIIRS light within 2 km the same night" rec={c} field="light_ids" value="see Links below" />
-              <Field label="Lead" rec={c} field="lead_ids" value={c.lead_ids.length ? c.lead_ids.map((l) => <ObjectLink key={l} type="lead" id={l} />) : "no lead (the L1 rule adds CNN, weather and clutter conditions)"} />
-            </div>
-          )}
-          {ident === "no_coverage" && (
-            <div data-identification="no_coverage">
-              <p>No AIS coverage here: nothing was heard in this cell during the window. {c.ais_reach !== null ? `AIS reach of the cell: ${pct(c.ais_reach)}.` : ""}</p>
-              <p className="scs-muted" style={{ fontSize: 12 }}>Rule: {meta.live_rules?.no_coverage_rule || "no AIS position recorded during the window in the contact's 0.25 degree cell or within 20 km"}. This says nothing about the contact.</p>
-              {c.nearest_ais_mmsi && <Field label="Nearest AIS vessel heard anywhere, for scale" rec={c} field="nearest_ais_mmsi" value={<><ObjectLink type="vessel" id={`mmsi:${c.nearest_ais_mmsi}`} label={nearest?.name || c.nearest_ais_mmsi} />, {fmtMetres(c.nearest_ais_dist_m, units)} away</>} />}
-            </div>
-          )}
-          {ident === "not_checked" && <p data-identification="not_checked">AIS not checked for this run in this build.</p>}
-          <p className="scs-muted" style={{ fontSize: 12, marginTop: 8 }}>{DARK_CAVEAT_SHORT}</p>
-        </SectionCard>
-      </Section>
-      <Section title="Context" compact collapsible>
+      <Identification c={c} nearestName={nearest?.name ?? null} staleIds={staleIds} />
+      <Section title="Weather and radar looks" compact collapsible>
         <SectionCard>
           <div className="scs-fields">
             <Field label="Wind (GFS 10 m)" rec={c} field="wind_ms" value={c.wind_ms === undefined || c.wind_ms === null ? "weather unknown for this run" : `${c.wind_ms.toFixed(1)} m/s`} />
             <Field label="Cloud-top temperature (Himawari-9)" rec={c} field="ctt_k" value={c.ctt_k === undefined || c.ctt_k === null ? "unknown" : `${c.ctt_k.toFixed(0)} K${c.deep_convection ? ", deep convection" : ""}`} />
-            <Field label="Cell" rec={c} field="cell_id" value={c.cell_id} />
+            <Field label="Cell" rec={c} field="cell_id" value={<ObjectLink type="cell" id={c.cell_id} />} />
             <Field label="Last radar look" rec={c} field="acq_utc" value={fmtTime(c.acq_utc, tz)} />
             <Field label="Next planned pass" rec={pass} field="start_utc" value={leads && leads[0]?.next_look_utc ? `${fmtTime(leads[0].next_look_utc, tz, false)} (${fmtRelative(leads[0].next_look_utc)})` : "see the Pass pages"} />
           </div>
-          <p className="scs-muted" style={{ fontSize: 12 }}>{OCEAN_NOTE} Ocean fields (depth, distance to coast and port, SST, fronts, currents, waves, shipping density) arrive with the cells part.</p>
         </SectionCard>
       </Section>
+      <ContextSection ctx={c.object_context} kind="contact" />
       <Section title="Position" compact collapsible><SectionCard><CoordBlock lat={c.lat} lon={c.lon} /><div className="scs-object-map"><MapView compact marker={{ lon: c.lon, lat: c.lat }} /></div></SectionCard></Section>
       <Section title="Links" compact collapsible>
         <SectionCard>
           <ul className="scs-linklist">
             <li>Pass: {c.pass_id ? <ObjectLink type="pass" id={c.pass_id} /> : "unknown"}{c.scene_id ? <span className="scs-muted"> scene {c.scene_id}</span> : null}</li>
-            <li>Leads citing this contact: {c.lead_ids.length ? c.lead_ids.map((l) => <ObjectLink key={l} type="lead" id={l} />) : "none"}</li>
+            <li data-contact-leads="1">Leads citing this contact: {standingIds.length ? standingIds.map((l) => <ObjectLink key={l} type="lead" id={l} />) : "none"}
+              {staleIds.length ? <span data-stale-leads="1">; {STALE_LEAD_LABEL}: {staleIds.map((l) => <ObjectLink key={l} type="lead" id={l} />)} <span className="scs-muted">(built before this contact was matched again; it no longer stands)</span></span> : null}</li>
             <li>Contacts within 2 km on the same pass: {nearby && nearby.length ? nearby.slice(0, 12).map((x) => <span key={x.det_id}><ObjectLink type="contact" id={x.det_id} /> </span>) : "none in this build"}</li>
             <li>Lights within 2 km the same night: see the Light pages (join in the local app)</li>
-            <li>Cell: {c.cell_id}</li>
+            <li>Cell: <ObjectLink type="cell" id={c.cell_id} /></li>
           </ul>
         </SectionCard>
       </Section>
-      {leads && leads.length > 0 && <Section title="Lead" compact collapsible><SectionCard><LeadCard lead={leads[0]} /></SectionCard></Section>}
+      {standing.length > 0 && <Section title="Lead" compact collapsible data-lead-section="1"><SectionCard><LeadCard lead={standing[0]} /></SectionCard></Section>}
       <Section title="Provenance" compact collapsible><SectionCard><ProvenanceTable rec={c} fields={CONTACT_FIELDS} /></SectionCard></Section>
       {c.extra?.synthetic_note ? <Callout intent="danger" compact>{String(c.extra.synthetic_note)}</Callout> : null}
     </article>
   );
 }
 
+/** Identification (spec section 4.2 item 5): who the contact is, for every AIS status, each field with its source chip. */
+function Identification({ c, nearestName, staleIds }: { c: Contact; nearestName: string | null; staleIds: string[] }) {
+  const { units, meta } = useApp();
+  const ident = c.ais_status;
+  const aisstream = c.ais_source === "aisstream";
+  const researchSource = c.research_only ? (meta.sources.find((s) => s.key === (c.prov?.ais_status || ""))?.name || meta.research_label || "research source") : null;
+  const sourceLine = identityLabel(c) || researchSource;
+  const nearestKey = c.nearest_vessel_key || (c.nearest_ais_mmsi ? `mmsi:${c.nearest_ais_mmsi}` : null);
+  const lowQ = lowQualityPairing(c);
+  const grade = reviewGrade(c);
+  const ambiguous = ident === "unmatched" && isAmbiguous(c);
+  const candidates = ambiguousCandidates(c);
+  // Research evidence: every field of this contact whose source is a research-only registry entry and that no other block shows.
+  const researchKeys = new Set(meta.sources.filter((s) => s.research_only).map((s) => s.key));
+  const shown = new Set(["ais_status", "ais_source", "match_method", "match_dist_m", "match_dt_s", "match_quality", "mmsi", "imo", "vessel_name", "call_sign", "flag", "ship_type",
+    "length_ais_m", "identity_source", "nearest_ais_mmsi", "nearest_ais_dist_m", "nearest_ais_dt_s", "n_ais_10km", "ais_reach", "vessel_key", "nearest_vessel_key"]);
+  const researchFields = Object.keys(c.prov || {}).filter((f) => researchKeys.has(c.prov[f]) && !shown.has(f) && c[f] !== undefined && c[f] !== null);
+  const handCheck = c.review_note ? <Field label="Hand check (analyst)" rec={c} field="review_note" judgment value={<span data-review-note="1">{grade ? <strong>{grade}</strong> : null}{grade ? ": " : ""}{reviewReason(c)}</span>} /> : null;
+  return (
+    <Section title="Identification: who is it" compact collapsible>
+      <SectionCard>
+        <p><StatusChip status={ident} /> <span className="scs-muted">{AIS_STATUS_MEANING[ident]}</span></p>
+        {ident === "matched" && (
+          <p className="scs-identity-headline" data-identity-headline="1">
+            {/* a low-quality pairing is not an identification (D6.2): its name is not set in bold */}
+            {lowQ ? <span>{c.vessel_name || "no name heard"}</span> : <strong>{c.vessel_name || "no name heard"}</strong>}, MMSI {c.mmsi ? <ObjectLink type="vessel" id={c.vessel_key || `mmsi:${c.mmsi}`} label={c.mmsi} /> : "unknown"}
+            {c.match_quality ? <span className="judgment">, {c.match_quality} quality</span> : null}
+            {lowQ ? <Tag minimal intent="warning" className="scs-lowq" data-low-quality="1" style={{ marginLeft: 6 }}>{LOW_QUALITY_LABEL}</Tag> : null}
+            {sourceLine ? <span className="scs-muted" data-identity-label="1">. Identity source: {sourceLine}.</span> : null}
+          </p>
+        )}
+        <div className="scs-fields">
+          <Field label="AIS status" rec={c} field="ais_status" value={AIS_STATUS_LABEL[ident]} />
+          {ident !== "not_checked" && <Field label="AIS source" rec={c} field="ais_source" value={c.ais_source ? `${c.ais_source}${sourceLine ? ` (${sourceLine})` : ""}` : null} />}
+        </div>
+        {ident === "matched" && (
+          <div className="scs-fields" data-identification="matched" data-low-quality={lowQ ? "1" : "0"}>
+            <Field label="MMSI" rec={c} field="mmsi" value={c.mmsi ? <ObjectLink type="vessel" id={c.vessel_key || `mmsi:${c.mmsi}`} label={c.mmsi} /> : null} />
+            <Field label="Vessel name" rec={c} field="vessel_name" value={c.vessel_name || "no name heard (no static message recorded)"} />
+            <Field label="Call sign" rec={c} field="call_sign" value={c.call_sign || "none heard"} />
+            <Field label="IMO" rec={c} field="imo" value={c.imo || "none reported"} />
+            <Field label="Flag (MID country, as claimed by the transponder)" rec={c} field="flag" value={c.flag} />
+            <Field label="Ship type" rec={c} field="ship_type" value={shipTypeText(c.ship_type) || "not reported"} />
+            <Field label="AIS length against radar length" rec={c} field="length_ais_m" value={c.length_ais_m === null ? `no AIS length; radar ${fmtNum(c.length_est_m)} m` : `${fmtNum(c.length_ais_m)} m against ${fmtNum(c.length_est_m)} m${c.length_ratio ? ` (ratio ${c.length_ratio.toFixed(2)})` : ""}`} />
+            <Field label="Match distance (to the expected radar position)" rec={c} field="match_dist_m" value={fmtMetres(c.match_dist_m, units)} />
+            {typeof c.az_shift_m === "number" && <Field label="Azimuth shift applied (moving target)" rec={c} field="az_shift_m" value={`${fmtMetres(Math.abs(c.az_shift_m), units)}; distance without it ${fmtMetres(c.match_dist_uncorr_m ?? null, units)}`} />}
+            <Field label="Time offset" rec={c} field="match_dt_s" value={fmtDuration(c.match_dt_s)} />
+            <Field label="Gate used" rec={c} field="match_gate_m" value={c.match_gate_m === null || c.match_gate_m === undefined ? "see the method" : fmtMetres(c.match_gate_m, units)} />
+            <Field label="Method" rec={c} field="match_method" value={c.match_method} />
+            <Field label="Match quality" rec={c} field="match_quality" judgment value={c.match_quality ? <>{c.match_quality}{lowQ ? <strong data-low-quality-label="1">: {LOW_QUALITY_LABEL}</strong> : null} <span className="scs-muted">(rule: {aisstream && meta.live_rules?.match_quality_rule ? meta.live_rules.match_quality_rule : "stated in the source file's about layer and summary"})</span></> : null} />
+            {handCheck}
+            {c.match_ambiguous ? <Field label="Ambiguity" rec={c} field="match_ambiguous" judgment value="the pairing could not tell this contact apart from two or more AIS vessels" /> : null}
+            {c.ais_class ? <Field label="AIS class" rec={c} field="ais_class" value={c.ais_class} /> : null}
+            <Field label="Identity source" rec={c} field="identity_source" value={c.identity_source} />
+            {c.vessel_key && !c.vessel_key.startsWith("mmsi:") && <Field label="Source vessel id" rec={c} field="vessel_key" value={c.vessel_key} />}
+          </div>
+        )}
+        {ident === "matched" && lowQ && <Callout compact intent="warning" data-low-quality-note="1" style={{ margin: "6px 0" }}>{LOW_QUALITY_LABEL}: the name and MMSI shown are the AIS vessel this contact was paired with, kept for review (board D6.2). They are not a confirmed identity of the contact.</Callout>}
+        {ident === "matched" && <p className="scs-muted" style={{ fontSize: 12 }}>{sourceLine ? `Identity source: ${sourceLine}. ` : ""}{IDENTITY_NOTE}</p>}
+        {ident === "unmatched" && ambiguous && (
+          <div className="scs-fields" data-identification="unmatched" data-ambiguous="1">
+            <p style={{ margin: "4px 0" }} data-ambiguous-note="1">{AMBIGUOUS_NOTE}</p>
+            <Field label="Candidate AIS vessels" rec={c} field="ambiguous_mmsi" value={candidates.length ? <span data-candidates="1">{candidates.map((m, i) => <span key={m}>{i ? ", " : ""}<ObjectLink type="vessel" id={`mmsi:${m}`} label={m} /></span>)}</span> : "not listed in this record"} />
+            {typeof c.match_alt_dist_m === "number" && <Field label="Distance of the closest alternative" rec={c} field="match_alt_dist_m" value={fmtMetres(c.match_alt_dist_m, units)} />}
+            <Field label="Nearest AIS vessel" rec={c} field="nearest_ais_mmsi" value={c.nearest_ais_mmsi && nearestKey ? <><ObjectLink type="vessel" id={nearestKey} label={c.nearest_vessel_name || nearestName || c.nearest_ais_mmsi} /> (MMSI {c.nearest_ais_mmsi}), {fmtMetres(c.nearest_ais_dist_m, units)}</> : "none heard"} />
+            <Field label="Lead" rec={c} field="lead_ids" value={`none: an ambiguous contact never forms a lead${staleIds.length ? "; a lead built before the rematch still cites it and is marked stale under Links" : ""}`} />
+            {handCheck}
+            {aisstream && <p className="scs-muted" style={{ fontSize: 12 }}>AIS evidence: {AISSTREAM_LABEL}.</p>}
+          </div>
+        )}
+        {ident === "unmatched" && !ambiguous && (
+          <div className="scs-fields" data-identification="unmatched" data-dark-lead={c.dark_lead ? "1" : "0"}>
+            <Field label="Nearest AIS vessel" rec={c} field="nearest_ais_mmsi" value={c.nearest_ais_mmsi && nearestKey ? <><ObjectLink type="vessel" id={nearestKey} label={c.nearest_vessel_name || nearestName || c.nearest_ais_mmsi} /> (MMSI {c.nearest_ais_mmsi})</> : "none heard"} />
+            <Field label="Distance to it at the scene time" rec={c} field="nearest_ais_dist_m" value={fmtMetres(c.nearest_ais_dist_m, units)} />
+            <Field label="Time from the scene to its nearest report" rec={c} field="nearest_ais_dt_s" value={fmtDuration(c.nearest_ais_dt_s)} />
+            <Field label="AIS vessels within 10 km during the window" rec={c} field="n_ais_10km" value={c.n_ais_10km === null ? "unknown" : String(c.n_ais_10km)} />
+            <Field label="AIS reach of the cell (share of recorded hours with any AIS)" rec={c} field="ais_reach" value={pct(c.ais_reach)} />
+            <Field label="Radar length and class (evidence)" rec={c} field="length_est_m" value={`${c.length_est_m === null ? "unknown" : `${fmtNum(c.length_est_m)} m`}, ${c.confidence}; CNN ${c.cnn_score === null ? "not scored" : c.cnn_score.toFixed(2)}`} />
+            <Field label="Rule" rec={c} field="ais_status" value={aisstream ? meta.live_rules?.ais_status_rule || "not matched, and AIS was heard during the window in the contact's 0.25 degree cell or within 20 km" : "not matched; the source's AIS presence rule is stated in its about layer and summary"} />
+            {c.dark_lead !== null && c.dark_lead !== undefined && <Field label="Dark lead (L1 candidate)" rec={c} field="dark_lead" judgment value={c.dark_lead ? "yes: an unmatched high or medium contact where the feed was listening; a lead for review, not evidence of wrongdoing" : c.confidence === "fixed" ? "no: a fixed return (structure or long-moored hull) never forms a lead" : "no"} />}
+            <Field label="Lead" rec={c} field="lead_ids" value={c.lead_ids.length ? c.lead_ids.map((l) => <ObjectLink key={l} type="lead" id={l} />) : "no lead (the L1 rule adds CNN, weather and clutter conditions)"} />
+            {handCheck}
+            {aisstream && <p className="scs-muted" style={{ fontSize: 12 }}>AIS evidence: {AISSTREAM_LABEL}. Weather and lights near the contact are in the sections below.</p>}
+          </div>
+        )}
+        {ident === "no_coverage" && (
+          <div data-identification="no_coverage">
+            <p>No AIS coverage here: nothing was heard in this cell during the window.</p>
+            <div className="scs-fields">
+              <Field label="Rule" rec={c} field="ais_status" value={aisstream ? meta.live_rules?.no_coverage_rule || "no AIS position recorded during the window in the contact's 0.25 degree cell or within 20 km" : "no AIS presence in the source near the contact during the window; the rule is stated in the source's about layer and summary"} />
+              <Field label="AIS reach of the cell (share of recorded hours with any AIS)" rec={c} field="ais_reach" value={pct(c.ais_reach)} />
+              <Field label="AIS vessels within 10 km during the window" rec={c} field="n_ais_10km" value={c.n_ais_10km === null ? "unknown" : String(c.n_ais_10km)} />
+              {c.nearest_ais_mmsi && nearestKey && <Field label="Nearest AIS vessel heard anywhere, for scale" rec={c} field="nearest_ais_mmsi" value={<><ObjectLink type="vessel" id={nearestKey} label={c.nearest_vessel_name || nearestName || c.nearest_ais_mmsi} />, {fmtMetres(c.nearest_ais_dist_m, units)} away</>} />}
+              {handCheck}
+            </div>
+            <p className="scs-muted" style={{ fontSize: 12 }}>This says nothing about the contact: the feed did not listen here, so no AIS status can be given and no lead is formed.{aisstream ? ` AIS source: ${AISSTREAM_LABEL}.` : ""}</p>
+          </div>
+        )}
+        {ident === "not_checked" && (
+          <div data-identification="not_checked">
+            <p>AIS not checked for this run in this build.</p>
+            <div className="scs-fields"><Field label="Why" rec={c} field="ais_status" value={c.view === "camau" ? "the Ca Mau detail scene has no AIS source connected" : "no AIS source was applied to the September run in the open build (the research build adds one)"} /></div>
+          </div>
+        )}
+        {researchFields.length > 0 && (
+          <div className="scs-fields" data-identification="research-evidence" style={{ marginTop: 8 }}>
+            <h6 style={{ margin: "4px 0" }}>Research evidence ({meta.research_label || "research build"})</h6>
+            {researchFields.map((f) => <Field key={f} label={f.replace(/_/g, " ")} rec={c} field={f} value={typeof c[f] === "boolean" ? (c[f] ? "yes" : "no") : String(c[f])} />)}
+          </div>
+        )}
+        {ident !== "no_coverage" && <p className="scs-muted" style={{ fontSize: 12, marginTop: 8 }}>{DARK_CAVEAT_SHORT}</p>}
+      </SectionCard>
+    </Section>
+  );
+}
+
 export function VesselPage({ id }: { id: string }) {
-  const { adapter, tz, units } = useApp();
+  const { adapter, tz, units, meta } = useApp();
   const { data: v, loading } = useAsync(() => adapter.vessel(id), [adapter, id]);
   const { data: track } = useAsync(() => adapter.track(id), [adapter, id]);
   const { data: matched } = useAsync(async () => (v ? (await Promise.all(v.contacts_matched.map((d) => adapter.contact(d)))).filter(Boolean) as Contact[] : []), [adapter, v?.vessel_key]);
@@ -169,8 +257,8 @@ export function VesselPage({ id }: { id: string }) {
   return (
     <article className="scs-page" data-page="vessel" data-vessel-key={v.vessel_key}>
       <ObjectHeader title={v.name || v.vessel_key} icon="drive-time" back="leads" subtitle={`AIS vessel, MMSI ${v.mmsi ?? "unknown"}, last heard ${fmtTime(v.last_seen_utc, tz)}`}
-        tags={<span className="scs-tagrow">{v.ais_class && <Tag minimal>class {v.ais_class}</Tag>}{v.ship_type && <Tag minimal>{v.ship_type}</Tag>}{v.gear_beacon_like && <Tag minimal intent="warning">MMSI pattern of nets and buoys</Tag>}{v.stub && <Tag minimal>stub</Tag>}</span>} />
-      <Callout compact icon="info-sign">{IDENTITY_NOTE} {AISSTREAM_NOTE}</Callout>
+        tags={<span className="scs-tagrow">{v.ais_class && <Tag minimal>class {v.ais_class}</Tag>}{shipTypeText(v.ship_type) && <Tag minimal>{shipTypeText(v.ship_type)}</Tag>}{v.gear_beacon_like && <Tag minimal intent="warning">MMSI pattern of nets and buoys</Tag>}{v.stub && <Tag minimal>stub</Tag>}</span>} />
+      <Callout compact icon="info-sign" data-identity-label="1">{IDENTITY_NOTE} {v.src === "aisstream" || v.vessel_key.startsWith("mmsi:") ? `Identity source: ${AISSTREAM_LABEL}.` : `Identity source: ${meta.sources.find((x) => x.key === v.src)?.name || v.src}${v.research_only ? ` (${meta.research_label || "research build"})` : ""}.`}</Callout>
       <Section title="Identity" compact collapsible>
         <SectionCard>
           <div className="scs-fields">
@@ -179,7 +267,7 @@ export function VesselPage({ id }: { id: string }) {
             <Field label="Call sign" rec={v} field="call_sign" value={v.call_sign} />
             <Field label="IMO" rec={v} field="imo" value={v.imo} />
             <Field label="Flag (MID country, as claimed)" rec={v} field="flag" value={v.flag ? `${v.flag} (MID ${v.mid})` : v.mid ? `MID ${v.mid}, country not resolved` : null} />
-            <Field label="Ship type" rec={v} field="ship_type" value={v.ship_type} />
+            <Field label="Ship type" rec={v} field="ship_type" value={shipTypeText(v.ship_type)} />
             <Field label="Length and width" rec={v} field="length_m" value={v.length_m === null ? null : `${fmtNum(v.length_m)} m x ${v.width_m === null ? "?" : fmtNum(v.width_m)} m`} />
             <Field label="AIS class" rec={v} field="ais_class" value={v.ais_class} />
             <Field label="Destination (self-reported)" rec={v} field="destination" value={v.destination} />
@@ -214,7 +302,7 @@ export function VesselPage({ id }: { id: string }) {
           {matched && matched.length ? (
             <table className="bp6-html-table bp6-compact" style={{ width: "100%" }}>
               <thead><tr><th>det_id</th><th>time</th><th>match distance</th><th>time offset</th><th>quality</th></tr></thead>
-              <tbody>{matched.map((c) => <tr key={c.det_id}><td><ObjectLink type="contact" id={c.det_id} /></td><td>{fmtTime(c.acq_utc, tz)}</td><td>{fmtMetres(c.match_dist_m, units)}</td><td>{fmtDuration(c.match_dt_s)}</td><td className="judgment">{c.match_quality}</td></tr>)}</tbody>
+              <tbody>{matched.map((c) => <tr key={c.det_id}><td><ObjectLink type="contact" id={c.det_id} /></td><td>{fmtTime(c.acq_utc, tz)}</td><td>{fmtMetres(c.match_dist_m, units)}</td><td>{fmtDuration(c.match_dt_s)}</td><td className="judgment">{c.match_quality}{lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}</td></tr>)}</tbody>
             </table>
           ) : <p className="scs-muted">No radar contact matched to this vessel in this build.</p>}
         </SectionCard>
@@ -277,14 +365,14 @@ export function LeadPage({ id }: { id: string }) {
         <SectionCard>
           <ul className="scs-linklist" data-evidence="1">
             {(evidence || []).map(({ e, rec }, i) => (
-              <li key={i}><Tag minimal>{e.role}</Tag> {e.type}: <ObjectLink type={e.type === "cell" ? "cell" : e.type} id={e.id} />
+              <li key={i}><Tag minimal>{e.role}</Tag> {e.type}: {e.type === "weather" ? <>weather at the contact (<ObjectLink type="contact" id={e.id} label="Weather and radar looks on the Contact page" />)</> : <ObjectLink type={e.type} id={e.id} />}
                 {rec && e.type === "contact" ? <span className="scs-muted"> {(rec as Contact).confidence}, {fmtNum((rec as Contact).length_est_m)} m, CNN {(rec as Contact).cnn_score?.toFixed(2) ?? "none"}, {AIS_STATUS_LABEL[(rec as Contact).ais_status]}</span> : null}
-                {rec && e.type === "vessel" ? <span className="scs-muted"> {(rec as Vessel).name || ""} MMSI {(rec as Vessel).mmsi}, {(rec as Vessel).ship_type || "type unknown"}</span> : null}
+                {rec && e.type === "vessel" ? <span className="scs-muted"> {(rec as Vessel).name || ""} MMSI {(rec as Vessel).mmsi}, {shipTypeText((rec as Vessel).ship_type) || "type unknown"}</span> : null}
                 {rec && e.type === "light" ? <span className="scs-muted"> {(rec as Light).satellite}, {(rec as Light).quality}, {(rec as Light).radiance_nw} nW cm-2 sr-1</span> : null}
                 {rec && e.type === "pass" ? <span className="scs-muted"> {(rec as Pass).mission}, {fmtTime((rec as Pass).start_utc, tz)}</span> : null}
                 {rec && e.type === "cell" ? <span className="scs-muted"> {(rec as CellRecord).region_box || "other"}, centre {fmtDd((rec as CellRecord).lat, (rec as CellRecord).lon)}</span> : null}
                 {!rec && e.preview ? <span className="scs-muted"> {previewText(e.preview, tz)}</span> : null}
-                {!rec && !e.preview && <span className="scs-muted"> {adapter.kind === "http" ? "not resolved in this build (no record with this id)" : e.type === "cell" ? "cell context in the local app" : "no preview in this page"}</span>}
+                {!rec && !e.preview && e.type !== "weather" && <span className="scs-muted"> {adapter.kind === "http" ? "not resolved in this build (no record with this id)" : e.type === "cell" ? "cell context in the local app" : "no preview in this page"}</span>}
               </li>
             ))}
           </ul>
@@ -377,10 +465,11 @@ export function LightPage({ id }: { id: string }) {
             <Field label="Satlas infrastructure distance" rec={L} field="satlas_infra_m" value={fmtMetres(L.satlas_infra_m, units)} />
             <Field label="Sentinel-1 passes in 90 days over the spot" rec={L} field="s1_passes_90d" value={String(L.s1_passes_90d)} />
             <Field label="Radar contacts within 2 km the same night" rec={L} field="contacts_2km_same_night" value={L.contacts_2km_same_night.length ? L.contacts_2km_same_night.map((d) => <span key={d}><ObjectLink type="contact" id={d} /> </span>) : "none in this build"} />
-            <Field label="Cell" rec={L} field="cell_id" value={L.cell_id} />
+            <Field label="Cell" rec={L} field="cell_id" value={<ObjectLink type="cell" id={L.cell_id} />} />
           </div>
         </SectionCard>
       </Section>
+      <ContextSection ctx={L.object_context} kind="light" />
       <Section title="Position" compact collapsible><SectionCard><CoordBlock lat={L.lat} lon={L.lon} /><div className="scs-object-map"><MapView compact marker={{ lon: L.lon, lat: L.lat }} /></div></SectionCard></Section>
       <Section title="Provenance" compact collapsible><SectionCard><ProvenanceTable rec={L} fields={["light_id", "satellite", "time_utc", "radiance_nw", "quality", "moon_illum_pct", "satlas_infra_m", "s1_passes_90d"]} /></SectionCard></Section>
     </article>
@@ -418,85 +507,6 @@ export function EventPage({ id }: { id: string }) {
   );
 }
 
-export function PassPage({ id }: { id: string }) {
-  const { adapter, tz } = useApp();
-  const { data: p, loading } = useAsync(() => adapter.pass(id), [adapter, id]);
-  const { data: contacts } = useAsync(() => (p?.processed ? adapter.contacts({ pass_id: p.pass_id, limit: 1000 }) : Promise.resolve({ items: [] as Contact[], total: 0 })), [adapter, p?.pass_id]);
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const x of contacts?.items || []) c[x.ais_status] = (c[x.ais_status] || 0) + 1;
-    return c;
-  }, [contacts]);
-  if (loading) return <Loading what="pass" />;
-  if (!p) return <Missing what="Pass" id={id} />;
-  const n = p.n_contacts || counts;
-  const total = Object.values(n).reduce((a, b) => a + b, 0);
-  const mostlyNoCov = total > 0 && (n.no_coverage || 0) / total > 0.5;
-  return (
-    <article className="scs-page" data-page="pass" data-pass-id={p.pass_id}>
-      <ObjectHeader title={p.pass_id} icon="satellite" back="leads" subtitle={`${sentinelName(p.mission)} pass, relative orbit ${p.relative_orbit ?? "?"}, ${p.pass_dir?.toLowerCase() ?? ""}, ${fmtTime(p.start_utc, tz)} to ${fmtTime(p.stop_utc, tz, false)}`}
-        tags={<span className="scs-tagrow"><Tag minimal intent={p.status === "upcoming" ? "primary" : undefined}>{p.status}</Tag>{p.sources.map((s) => <Tag key={s} minimal>{s === "esa_plan" ? "ESA acquisition plan" : s === "repeat_cycle" ? "12-day repeat prediction (not ESA's plan)" : s}</Tag>)}</span>} />
-      {mostlyNoCov && p.processed && (
-        <Callout intent="primary" compact icon="cell-tower" data-coverage-result="1">
-          Coverage result: {p.ais_footprint_positions === 0 ? "No AIS was heard inside" : `${fmtNum(p.ais_footprint_positions)} AIS positions were heard inside`}
-          {p.ais_near_footprint_mmsi === 0 ? " or within 0.3 degree of" : ""} the {p.scenes.length} scene{p.scenes.length === 1 ? "" : "s"}, so {fmtNum(n.no_coverage || 0)} of the {fmtNum(total)} contacts could not be checked against AIS.
-          {p.ais_aoi_positions ? ` The feed was up: ${fmtNum(p.ais_aoi_positions)} positions were recorded elsewhere in the AOI during the scene windows.` : ""} {DARK_CAVEAT_SHORT}
-        </Callout>
-      )}
-      <Section title="Pass" compact collapsible>
-        <SectionCard>
-          <div className="scs-fields">
-            <Field label="Status" rec={p} field="status" value={`${p.status}${p.status === "upcoming" ? ` (${fmtRelative(p.start_utc)})` : ""}`} />
-            <Field label="Source" rec={p} field="sources" value={p.sources.join(", ")} />
-            <Field label="AOI overlap" rec={p} field="aoi_overlap_km2" value={p.aoi_overlap_km2 === null ? null : `${fmtNum(p.aoi_overlap_km2)} km2`} />
-            <Field label="AOI parts" rec={p} field="aoi_parts" value={p.aoi_parts?.join(", ")} />
-            <Field label="Scenes" rec={p} field="scenes" value={p.scenes.length ? `${p.scenes.length} processed` : p.processed ? "none" : "not processed yet"} />
-            {p.ais_heard_share !== null && p.ais_heard_share !== undefined && <Field label="Share of the planned footprint with AIS heard so far" rec={p} field="ais_heard_share" value={pct(p.ais_heard_share, 1)} />}
-          </div>
-          {p.note && <p className="scs-muted" style={{ fontSize: 12 }}>{p.note}</p>}
-          {p.fixture_note && <p className="scs-muted" style={{ fontSize: 12 }}>{p.fixture_note}</p>}
-        </SectionCard>
-      </Section>
-      {p.processed && (
-        <Section title="AIS recorded during the window" compact collapsible>
-          <SectionCard>
-            <div className="scs-fields">
-              <Field label="1. Inside the footprint" rec={p} field="ais_footprint_positions" value={`${fmtNum(p.ais_footprint_positions)} positions, ${fmtNum(p.ais_footprint_mmsi)} MMSI`} />
-              <Field label="2. Within 0.3 degree of it (what the matcher sees)" rec={p} field="ais_near_footprint_mmsi" value={`${fmtNum(p.ais_near_footprint_mmsi)} MMSI`} />
-              <Field label="3. Anywhere in the AOI (only shows that the feed was up)" rec={p} field="ais_aoi_positions" value={`${fmtNum(p.ais_aoi_positions)} positions, ${fmtNum(p.ais_aoi_mmsi)} MMSI`} />
-            </div>
-          </SectionCard>
-        </Section>
-      )}
-      {p.processed && (
-        <Section title="Contacts by AIS status" compact collapsible>
-          <SectionCard>
-            <div className="scs-fields">
-              {(["matched", "unmatched", "no_coverage", "not_checked"] as const).map((s) => <Field key={s} label={AIS_STATUS_LABEL[s]} rec={p} field="n_contacts" value={fmtNum(n[s] || 0)} />)}
-            </div>
-            {contacts && contacts.items.length > 0 && (
-              <p style={{ fontSize: 12 }}>{fmtNum(contacts.total)} contacts of this pass in this build: {contacts.items.slice(0, 20).map((c) => <span key={c.det_id}><ObjectLink type="contact" id={c.det_id} /> </span>)}{contacts.total > 20 ? "..." : ""}</p>
-            )}
-            {contacts && contacts.items.length === 0 && <p className="scs-muted">Contacts of this pass are in the local app.</p>}
-            <p className="scs-muted" style={{ fontSize: 12 }}>{DARK_CAVEAT_SHORT} no_coverage contacts never form L1 leads.</p>
-          </SectionCard>
-        </Section>
-      )}
-      {p.scene_counts && (
-        <Section title="Scenes" compact collapsible>
-          <SectionCard>
-            <table className="bp6-html-table bp6-compact" style={{ width: "100%" }}>
-              <thead><tr><th>scene</th><th>contacts</th><th>both channels</th><th>one channel</th><th>fixed</th><th>AIS positions in the AOI</th></tr></thead>
-              <tbody>{p.scene_counts.map((s) => <tr key={String(s.product_id)}><td style={{ overflowWrap: "anywhere" }}>{String(s.product_id)}</td><td>{String(s.n_contacts)}</td><td>{String(s.n_high)}</td><td>{String(s.n_medium)}</td><td>{String(s.n_fixed)}</td><td>{String(s.ais_aoi_positions)}</td></tr>)}</tbody>
-            </table>
-          </SectionCard>
-        </Section>
-      )}
-      <Section title="Provenance" compact collapsible><SectionCard><ProvenanceTable rec={p} fields={["pass_id", "start_utc", "status", "sources", "ais_footprint_positions", "ais_near_footprint_mmsi", "ais_aoi_positions", "n_contacts"]} /></SectionCard></Section>
-    </article>
-  );
-}
-
 // Nightly sea fields come from several sources; the API gives one key for the block, so the page names each field's source.
 const NIGHTLY_SOURCE: Record<string, string> = {
   sst_mean_c: "mur_sst", sst_sd_c: "mur_sst", sst_grad_mean: "mur_sst", front_share: "mur_sst", dist_front_km: "mur_sst",
@@ -508,8 +518,14 @@ function numText(v: unknown, digits: number, unit: string): string | null {
   return typeof v === "number" && Number.isFinite(v) ? `${v.toFixed(digits)}${unit ? " " + unit : ""}` : null;
 }
 
+function validText(v: unknown, tz: "UTC" | "ICT"): string {
+  if (v === null || v === undefined || v === "") return "unknown";
+  const t = String(v);
+  return /T\d\d:/.test(t) ? fmtTime(t, tz, false) : t;
+}
+
 export function CellPage({ id }: { id: string }) {
-  const { adapter, layers, units, focusMap, phone } = useApp();
+  const { adapter, layers, units, focusMap, phone, tz } = useApp();
   const { data: cell, loading } = useAsync(() => adapter.cell(id), [adapter, id]);
   if (loading) return <Loading what="cell" />;
   if (!cell) {
@@ -529,6 +545,8 @@ export function CellPage({ id }: { id: string }) {
   const ship = Object.keys(c).filter((k) => /^ship_(presence_share|density)_/.test(k));
   const km = (v: unknown) => (typeof v === "number" ? fmtMetres(v * 1000, units) : null);
   const share = (v: unknown) => (typeof v === "number" ? pct(v) : null);
+  // look probability is a percent in the API and the bundle (contract 3.7, raster unit "percent of start days")
+  const lookPct = (v: unknown) => (typeof v === "number" ? `${v.toFixed(0)} %` : "unknown");
   return (
     <article className="scs-page" data-page="cell" data-cell-id={c.cell_id}>
       <ObjectHeader title={c.cell_id} icon="grid" back="map" subtitle={`0.25 degree model-grid cell, centre ${fmtDd(c.lat, c.lon)}, ${c.region_box || "other"} (reporting box, not a boundary)`} />
@@ -544,7 +562,7 @@ export function CellPage({ id }: { id: string }) {
             <Field label="Mean slope" rec={c} field="slope_mean_m_per_km" value={numText(c.slope_mean_m_per_km, 1, "m/km")} />
             <Field label="Distance to coast (mean, minimum)" rec={c} field="dist_coast_km" value={typeof c.dist_coast_km === "number" ? `${km(c.dist_coast_km)}, ${km(c.dist_coast_min_km)}` : null} />
             <Field label="Distance to the nearest major port (mean, minimum)" rec={c} field="dist_port_km" value={typeof c.dist_port_km === "number" ? `${km(c.dist_port_km)}, ${km(c.dist_port_min_km)}` : null} />
-            {ship.map((k) => <Field key={k} label={k.replace(/^ship_(presence_share|density)_/, "Shipping, ") } rec={c} field={k} value={typeof c[k] === "number" ? (k.includes("share") ? share(c[k]) : fmtNum(c[k] as number)) : null} />)}
+            {ship.map((k) => <Field key={k} label={`Shipping presence, ${k.replace(/^ship_(presence_share|density)_/, "").replace("oilgas", "oil and gas")} (share of the cell's 0.01 degree cells with a published value above 0)`} rec={c} field={k} value={typeof c[k] === "number" ? (k.includes("share") ? share(c[k]) : "present") : null} />)}
           </div>
           {typeof c.shipping_note === "string" && <p className="scs-muted" style={{ fontSize: 12 }}>Shipping: {c.shipping_note}.</p>}
         </SectionCard>
@@ -563,7 +581,7 @@ export function CellPage({ id }: { id: string }) {
               <Field label="Moon illumination" rec={nightlyRec} field="moon_illum_pct" value={numText(nightly.moon_illum_pct, 0, "%")} />
             </div>
           ) : <p className="scs-muted">No nightly fields for this cell.</p>}
-          {nightly && <p className="scs-muted" style={{ fontSize: 12 }}>Valid times: SST {String(nightly.sst_date ?? "unknown")}, chlorophyll {String(nightly.chl_date ?? "unknown")}, currents {String(nightly.rtofs_valid_utc ?? "unknown")}, waves {String(nightly.wave_valid_utc ?? "unknown")}, wind {String(nightly.wind_valid_utc ?? "unknown")}.</p>}
+          {nightly && <p className="scs-muted" style={{ fontSize: 12 }}>Valid times: SST {validText(nightly.sst_date, tz)}, chlorophyll {validText(nightly.chl_date, tz)}, currents {validText(nightly.rtofs_valid_utc, tz)}, waves {validText(nightly.wave_valid_utc, tz)}, wind {validText(nightly.wind_valid_utc, tz)}.</p>}
         </SectionCard>
       </Section>
       <Section title="AIS reach and radar looks" compact collapsible>
@@ -571,12 +589,12 @@ export function CellPage({ id }: { id: string }) {
           <div className="scs-fields">
             <Field label="AIS reach (share of recorded hours with any AIS)" rec={c} field="ais_reach_share" value={share(c.ais_reach_share)} />
             <Field label="AIS vessels heard in the cell" rec={c} field="ais_reach_mmsi" value={typeof c.ais_reach_mmsi === "number" ? fmtNum(c.ais_reach_mmsi) : null} />
-            <Field label="Sentinel-1 look probability, 1 / 7 / 30 days" rec={c} field="look_prob_7d" value={typeof c.look_prob_7d === "number" ? `${share(c.look_prob_1d)} / ${share(c.look_prob_7d)} / ${share(c.look_prob_30d)}` : null} />
+            <Field label="Sentinel-1 look probability, 1 / 7 / 30 days (percent of start days)" rec={c} field="look_prob_7d" value={typeof c.look_prob_7d === "number" ? `${lookPct(c.look_prob_1d)} / ${lookPct(c.look_prob_7d)} / ${lookPct(c.look_prob_30d)}` : null} />
             <Field label="Sentinel-1 passes in 90 days" rec={c} field="passes_90d" value={typeof c.passes_90d === "number" ? fmtNum(c.passes_90d) : null} />
-            <Field label="Expected activity" rec={c} field="expected_activity" value={c.expected_activity ? JSON.stringify(c.expected_activity) : "absent (the model output is not in this build)"} />
           </div>
         </SectionCard>
       </Section>
+      <ExpectedActivitySection ea={c.expected_activity} />
       {layers.eez_boundaries && c.eez && (
         <Section title="As published by Marine Regions" compact collapsible>
           <SectionCard>

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Button, ButtonGroup, HotkeysProvider, Navbar, NavbarDivider, NavbarGroup, NavbarHeading, Popover, Tag, useHotkeys, type HotkeyConfig } from "@blueprintjs/core";
 import { useApp } from "./state";
 import { useRoute, navigate, isObjectRoute } from "./router";
-import { BUILD_LINE, BUILD_TAG, DARK_CAVEAT_SHORT, DATA_CREDIT, GFW_ATTRIBUTION, GFW_URL, PRODUCT_NAME, RESEARCH_LABEL } from "./text";
+import { BUILD_LINE, BUILD_TAG, DARK_CAVEAT_SHORT, DATA_CREDIT, PRODUCT_NAME } from "./text";
 import { Console } from "../views/Console";
 import { AboutPage } from "../views/AboutPage";
 import { CellPage, ContactPage, EventPage, LeadPage, LightPage, PassPage, VesselPage } from "../views/ObjectPages";
@@ -13,7 +13,17 @@ import { OmnibarSearch } from "../search/OmnibarSearch";
 function Banner({ position }: { position: "top" | "bottom" }) {
   const { meta, phone } = useApp();
   const research = meta.build === "research";
-  const line = research ? BUILD_LINE.research : BUILD_LINE.open;
+  // The research label, attribution and its link come from the build's meta (API envelope or bundle meta part), so the
+  // shell shared by both builds names no research source itself (spec section 2.2).
+  const line = meta.build_label || (research ? meta.research_label || "" : BUILD_LINE.open);
+  const attribution = research ? meta.attribution || null : null;
+  const attrSource = meta.sources.find((s) => s.research_only && s.url);
+  let attrHref: string | null = null;
+  try {
+    attrHref = attrSource?.url ? new URL(attrSource.url).origin : null;
+  } catch {
+    attrHref = null;
+  }
   const full = (
     <div className="scs-prov-pop" style={{ maxWidth: 420 }}>
       <strong>Dark does not mean illegal.</strong>
@@ -22,13 +32,13 @@ function Banner({ position }: { position: "top" | "bottom" }) {
   );
   return (
     <div className={"scs-banner scs-banner-" + position} role="note" aria-label="Handling banner" data-banner={position}>
-      {research && <Tag className="scs-research-tag" minimal data-research-label="1">{RESEARCH_LABEL}</Tag>}
+      {research && <Tag className="scs-research-tag" minimal data-research-label="1">{meta.research_label || "Research build"}</Tag>}
       <span className="scs-banner-short" data-caveat="short">{DARK_CAVEAT_SHORT}</span>
       <Popover content={full} interactionKind="click" placement={position === "top" ? "bottom" : "top"} fill={false}>
         <button type="button" aria-label="Read the full caveat" data-caveat-link="1">full caveat</button>
       </Popover>
-      {!phone && <span className="scs-build-line">{line.replace(` ${DARK_CAVEAT_SHORT}`, "")}</span>}
-      {research && <a href={GFW_URL} target="_blank" rel="noreferrer" data-gfw-attribution="1">{GFW_ATTRIBUTION}</a>}
+      {!phone && <span className="scs-build-line">{(attribution ? line.replace(attribution, "") : line).replace(` ${DARK_CAVEAT_SHORT}`, "").trim()}</span>}
+      {attribution && (attrHref ? <a href={attrHref} target="_blank" rel="noreferrer" data-attribution="1">{attribution}</a> : <span data-attribution="1">{attribution}</span>)}
       {position === "bottom" && <span className="scs-muted" style={{ color: "inherit", opacity: 0.85 }}>{DATA_CREDIT}</span>}
     </div>
   );
@@ -42,7 +52,7 @@ function TopNav() {
       <NavbarGroup align="start">
         <NavbarHeading><a href="#/leads" style={{ color: "inherit", textDecoration: "none" }}>{PRODUCT_NAME}</a></NavbarHeading>
         <Tag className={"scs-build-tag" + (research ? " scs-research-tag" : "")} minimal={!research} data-build-tag={meta.build}>{BUILD_TAG[meta.build]}</Tag>
-        {meta.fixture?.synthetic && <Tag intent="danger" minimal style={{ marginLeft: 6 }} data-fixture-tag="1">FIXTURE</Tag>}
+        {meta.fixture && <Tag intent={meta.fixture.synthetic ? "danger" : "warning"} minimal style={{ marginLeft: 6 }} data-fixture-tag="1">FIXTURE</Tag>}
         {!phone && <NavbarDivider />}
         {!phone && <ButtonGroup minimal>
           <Button className="scs-navbtn" icon="inbox" text="Leads" aria-label="Leads" onClick={() => navigate("leads")} />

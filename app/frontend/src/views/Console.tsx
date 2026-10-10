@@ -5,11 +5,14 @@ import { Button, Callout, InputGroup, Switch, Tab, Tabs, Tag } from "@blueprintj
 import { useApp, LAYER_DEFAULTS, type LayerId } from "../app/state";
 import { MapView } from "../map/MapView";
 import { LAYER_INFO } from "../map/layers";
-import { DEFAULT_FILTERS, LeadsQueue, QueueFilterRail, useLeads, type QueueFilters } from "./LeadsQueue";
+import { DEFAULT_FILTERS, LeadsQueue, QueueFilterRail, RUN_LABEL, useLeads, useNewestLivePass, type QueueFilters } from "./LeadsQueue";
 import { ExportDecisions, LeadCard } from "./LeadCard";
 import { Timeline } from "../timeline/Timeline";
 import { ProvChip } from "./Provenance";
-import { EEZ_DISCLAIMER, EEZ_DISCLAIMER_URL, EEZ_STATEMENT } from "../app/text";
+import { EEZ_DISCLAIMER, EEZ_DISCLAIMER_URL, EEZ_STATEMENT, LOW_QUALITY_LABEL, OCEAN_NOTE } from "../app/text";
+import { ambiguousCandidates, identityLabel, isAmbiguous, lowQualityPairing, shipTypeText } from "../app/identity";
+import { OVERLAY_GROUPS, isPresence, rasterGroup, rasterLabel } from "../map/overlays";
+import { SHIPPING_PRESENCE_NOTE } from "../adapters/context";
 import { fmtDd, fmtMgrs, fmtTime, fmtNum } from "../app/format";
 import { parseCoordinates } from "../adapters/search";
 import type { Contact, Lead, Light, Vessel } from "../adapters/types";
@@ -37,6 +40,42 @@ export function LayersTab() {
           {EEZ_STATEMENT} <em>{EEZ_DISCLAIMER}</em> (<a href={EEZ_DISCLAIMER_URL} target="_blank" rel="noreferrer">source</a>). Licence: {eezSource?.licence || "CC BY 4.0"}. Drawn as thin neutral lines, no fill, no labels. The GeoPackage holds the published geometry.
         </Callout>
       )}
+      <ContextLayers />
+    </div>
+  );
+}
+
+/** Context raster overlays (spec section 6.2): grouped, every one off by default, with unit, valid time, licence and source. */
+function ContextLayers() {
+  const { adapter, overlays, setOverlay, meta } = useApp();
+  const { data: rasters, loading } = useAsync(() => adapter.rasters(), [adapter]);
+  const anyOn = Object.values(overlays).some(Boolean);
+  return (
+    <div className="scs-context-layers" data-context-layers="1">
+      <h6 className="scs-overlay-group" style={{ fontSize: 13 }}>Context layers</h6>
+      <p className={anyOn ? "scs-ocean-caveat" : "scs-muted"} style={{ fontSize: 12, margin: "2px 0 6px" }}>{OCEAN_NOTE} All off by default; switching one on draws it under the radar contacts.</p>
+      {loading && <p className="scs-muted" style={{ fontSize: 12 }}>Loading the raster list.</p>}
+      {!loading && (!rasters || rasters.length === 0) && <p className="scs-muted" style={{ fontSize: 12 }} data-no-rasters="1">No context rasters in this build.</p>}
+      {OVERLAY_GROUPS.map((g) => {
+        const rows = (rasters || []).filter((r) => rasterGroup(r) === g);
+        if (!rows.length) return null;
+        return (
+          <div key={g} data-overlay-group={g}>
+            <div className="scs-overlay-group">{g}</div>
+            {g === "Shipping presence" && <p className="scs-muted" style={{ fontSize: 11, margin: "0 0 4px" }}>Drawn as a mask: {SHIPPING_PRESENCE_NOTE}. Never a ranking or a lane.</p>}
+            {rows.map((r) => (
+              <div className="scs-layer-row" key={r.name} data-overlay-switch={r.name} data-on={overlays[r.name] ? "1" : "0"}>
+                <Switch checked={!!overlays[r.name]} onChange={(e) => setOverlay(r.name, e.currentTarget.checked)} aria-label={`Context layer ${rasterLabel(r)}`}
+                  labelElement={<span><span>{rasterLabel(r)}</span><span className="meta">off by default</span>
+                    <span className="meta">{isPresence(r) ? "presence (1 = published value above 0)" : `unit: ${r.unit || "unknown"}`}; valid: {r.valid_period || "static layer"}</span>
+                    <span className="meta">licence: {r.licence || meta.sources.find((x) => x.key === r.src)?.licence || "see provenance"}</span>
+                    {r.research_only && <span className="meta">{r.label || meta.research_label || "research build only"}</span>}</span>} />
+                <ProvChip sourceKey={r.src} field={r.name} />
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -83,7 +122,7 @@ export function InfoTab() {
         <dt>data access</dt><dd>{adapter.kind === "embedded" ? "embedded bundle (static snapshot)" : "local API, polls for new files"}</dd>
         <dt>priority model</dt><dd>{meta.priority_model_id || "none"}</dd>
       </dl>
-      {meta.fixture?.synthetic && <Callout compact intent="danger" style={{ marginTop: 8 }} data-fixture="1"><strong>FIXTURE.</strong> {meta.fixture.note}</Callout>}
+      {meta.fixture && <Callout compact intent={meta.fixture.synthetic ? "danger" : "warning"} style={{ marginTop: 8 }} data-fixture="1"><strong>FIXTURE.</strong> {meta.fixture.note}</Callout>}
       <h6>Counts in this build</h6>
       <dl>{Object.entries(meta.counts || {}).map(([k, v]) => <React.Fragment key={k}><dt>{k}</dt><dd>{fmtNum(v)}</dd></React.Fragment>)}</dl>
       <h6>Files</h6>
@@ -137,9 +176,11 @@ function ContactSummary({ c }: { c: Contact }) {
       <div className="scs-field"><span className="k">time</span><span className="v">{fmtTime(c.acq_utc, tz)}</span></div>
       <div className="scs-field"><span className="k">class, length</span><span className="v">{c.confidence}, {c.length_est_m === null ? "?" : Math.round(c.length_est_m)} m</span></div>
       <div className="scs-field"><span className="k">CNN score</span><span className="v judgment">{c.cnn_score === null ? "not scored" : c.cnn_score.toFixed(3)}</span></div>
-      {c.ais_status === "matched" && <div className="scs-field"><span className="k">identity</span><span className="v">{c.vessel_name || "?"} (MMSI {c.mmsi})</span></div>}
+      {c.ais_status === "matched" && <div className="scs-field"><span className="k">identity</span><span className="v">{c.vessel_name || "?"} (MMSI {c.mmsi}), <span className="judgment">{c.match_quality || "?"} quality</span>
+        {lowQualityPairing(c) ? <Tag minimal intent="warning" style={{ marginLeft: 4 }} data-low-quality="1">{LOW_QUALITY_LABEL}</Tag> : null}{identityLabel(c) ? <span className="scs-muted"> ({identityLabel(c)})</span> : null}</span></div>}
+      {c.ais_status === "unmatched" && isAmbiguous(c) && <div className="scs-field"><span className="k">ambiguous</span><span className="v">candidates {ambiguousCandidates(c).join(", ") || "in the record"}; never a lead</span></div>}
       {c.ais_status === "unmatched" && <div className="scs-field"><span className="k">nearest AIS</span><span className="v">{c.nearest_vessel_name || c.nearest_ais_mmsi || "none"}, {c.nearest_ais_dist_m === null ? "?" : Math.round(c.nearest_ais_dist_m / 100) / 10 + " km"}</span></div>}
-      {c.lead_ids.length > 0 && <div className="scs-field"><span className="k">leads</span><span className="v">{c.lead_ids.map((l) => <ObjectLink key={l} type="lead" id={l} />)}</span></div>}
+      {c.lead_ids.length > 0 && <div className="scs-field"><span className="k">cited by leads</span><span className="v">{c.lead_ids.map((l) => <ObjectLink key={l} type="lead" id={l} />)}</span></div>}
       {c.synthetic && <Tag intent="danger" minimal>SYNTHETIC fixture status</Tag>}
     </div>
   );
@@ -151,7 +192,7 @@ function VesselSummary({ v }: { v: Vessel }) {
     <div className="scs-fields">
       <div className="scs-field"><span className="k">name</span><span className="v">{v.name || "unknown"}</span></div>
       <div className="scs-field"><span className="k">MMSI, class</span><span className="v">{v.mmsi}, {v.ais_class || "?"}</span></div>
-      <div className="scs-field"><span className="k">type, length</span><span className="v">{v.ship_type || "?"}, {v.length_m === null ? "?" : v.length_m + " m"}</span></div>
+      <div className="scs-field"><span className="k">type, length</span><span className="v">{shipTypeText(v.ship_type) || "?"}, {v.length_m === null ? "?" : v.length_m + " m"}</span></div>
       <div className="scs-field"><span className="k">flag (as claimed)</span><span className="v">{v.flag || `MID ${v.mid}`}</span></div>
       <div className="scs-field"><span className="k">last heard</span><span className="v">{fmtTime(v.last_seen_utc, tz)}</span></div>
       <div className="scs-field"><span className="k">contacts matched</span><span className="v">{v.contacts_matched.length}</span></div>
@@ -172,7 +213,7 @@ function LightSummary({ l }: { l: Light }) {
 }
 
 export function FilterBar({ filters, setFilters }: { filters: QueueFilters; setFilters: (f: QueueFilters) => void }) {
-  const { layers, setLayer, window: win, setWindow } = useApp();
+  const { layers, setLayer, window: win, setWindow, overlays, setOverlay, clearOverlays } = useApp();
   const pills: { k: string; label: string; clear: () => void }[] = [];
   const stateDefault = filters.states.length === 2 && filters.states.includes("new") && filters.states.includes("reviewing");
   if (!stateDefault) pills.push({ k: "state", label: `state: ${filters.states.join(", ") || "none"}`, clear: () => setFilters({ ...filters, states: DEFAULT_FILTERS.states }) });
@@ -180,17 +221,19 @@ export function FilterBar({ filters, setFilters }: { filters: QueueFilters; setF
   if (filters.band) pills.push({ k: "band", label: `priority: ${filters.band}`, clear: () => setFilters({ ...filters, band: "" }) });
   if (filters.region_box) pills.push({ k: "box", label: `box: ${filters.region_box}`, clear: () => setFilters({ ...filters, region_box: "" }) });
   if (filters.pass_id) pills.push({ k: "pass", label: `pass: ${filters.pass_id}`, clear: () => setFilters({ ...filters, pass_id: "" }) });
+  if (filters.run) pills.push({ k: "run", label: `run: ${RUN_LABEL[filters.run] || filters.run}`, clear: () => setFilters({ ...filters, run: "" }) });
   if (filters.ais_status) pills.push({ k: "ais", label: `AIS: ${filters.ais_status}`, clear: () => setFilters({ ...filters, ais_status: "" }) });
   if (filters.cnn_accepted) pills.push({ k: "cnn", label: "CNN accepted", clear: () => setFilters({ ...filters, cnn_accepted: false }) });
   if (win) pills.push({ k: "win", label: "time window: last 12 days", clear: () => setWindow(null) });
   for (const id of Object.keys(layers) as LayerId[]) if (layers[id] !== LAYER_DEFAULTS[id]) pills.push({ k: "layer:" + id, label: `${layers[id] ? "layer on" : "layer off"}: ${LAYER_INFO.find((l) => l.id === id)?.name || id}`, clear: () => setLayer(id, LAYER_DEFAULTS[id]) });
+  for (const name of Object.keys(overlays)) if (overlays[name]) pills.push({ k: "overlay:" + name, label: `context layer on: ${rasterLabel({ name })}`, clear: () => setOverlay(name, false) });
   return (
     <div className="scs-filterbar" data-filterbar="1">
       <span className="scs-muted">Filters:</span>
       {pills.length === 0 && <span className="scs-muted">queue shows new and reviewing leads, sorted by priority; layer defaults</span>}
       {pills.map((p) => <Tag key={p.k} minimal onRemove={p.clear}>{p.label}</Tag>)}
       <span className="scs-spacer" />
-      {pills.length > 0 && <Button small minimal text="Clear filters" onClick={() => { setFilters(DEFAULT_FILTERS); setWindow(null); for (const id of Object.keys(layers) as LayerId[]) setLayer(id, LAYER_DEFAULTS[id]); }} />}
+      {pills.length > 0 && <Button small minimal text="Clear filters" onClick={() => { setFilters(DEFAULT_FILTERS); setWindow(null); clearOverlays(); for (const id of Object.keys(layers) as LayerId[]) setLayer(id, LAYER_DEFAULTS[id]); }} />}
     </div>
   );
 }
@@ -213,7 +256,7 @@ function LeadRailList({ leads, selectedId, onSelect }: { leads: Lead[]; selected
 export function Console({ focusMapTab }: { focusMapTab: boolean }) {
   const { phone, tablet, railTab, setRailTab, inspectorOpen, setInspectorOpen, selection, setSelection, bumpDecisions } = useApp();
   const [filters, setFilters] = useState<QueueFilters>(DEFAULT_FILTERS);
-  const { leads, all, loading } = useLeads(filters);
+  const { leads, all, total, loading } = useLeads(filters);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const selectedLead = useMemo(() => leads.find((l) => l.lead_id === selectedLeadId) || all.find((l) => l.lead_id === selectedLeadId) || null, [leads, all, selectedLeadId]);
   const [phoneTab, setPhoneTab] = useState<"queue" | "map" | "search" | "info">(focusMapTab ? "map" : "queue");
@@ -225,8 +268,16 @@ export function Console({ focusMapTab }: { focusMapTab: boolean }) {
     else setSelection(null);
     if (l && !phone) setInspectorOpen(true);
   };
+  const newest = useNewestLivePass();
+  const newestOn = !!newest && filters.pass_id === newest.pass_id;
   const queueHead = (
-    <div className="scs-queue-head"><strong>Leads</strong><Tag minimal>{leads.length} of {all.length}</Tag><span className="scs-muted">priority high first; new and reviewing by default</span><span className="scs-kbd">J K N Enter R E U X</span></div>
+    <div className="scs-queue-head"><strong>Leads</strong><Tag minimal data-queue-count="1">{fmtNum(leads.length)} of {fmtNum(all.length)}</Tag>
+      {total > all.length && <span className="scs-muted" title="The local app and the GeoPackage hold every lead">the {fmtNum(all.length)} highest priority of {fmtNum(total)} loaded</span>}
+      {newest && <Button small minimal={!newestOn} active={newestOn} icon="satellite" data-quick-filter="newest-live-pass" aria-pressed={newestOn}
+        text={phone ? "Newest live pass" : `Newest live pass (${fmtTime(newest.start_utc, "UTC", false)})`} title={newest.pass_id}
+        onClick={() => setFilters({ ...filters, pass_id: newestOn ? "" : newest.pass_id })} />}
+      {newest && <a href={`#/pass/${encodeURIComponent(newest.pass_id)}`} className="scs-muted" style={{ fontSize: 12 }}>pass page</a>}
+      <span className="scs-muted">priority high first; new and reviewing by default</span><span className="scs-kbd">J K N Enter R E U X</span></div>
   );
   const queueTable = (
     <div className="scs-queue" data-view="queue">

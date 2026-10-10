@@ -29,6 +29,7 @@
   --band-low: #8f99a8;
   --band-medium: #c87619;
   --band-high: #184a90;
+  --overlay-mask: #404854;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -59,6 +60,7 @@
     --band-low: #738091;
     --band-medium: #ec9a3c;
     --band-high: #8abbff;
+    --overlay-mask: #c5cbd3;
   }
 }
 :root[data-theme="dark"] {
@@ -89,4 +91,5 @@
   --band-low: #738091;
   --band-medium: #ec9a3c;
   --band-high: #8abbff;
+  --overlay-mask: #c5cbd3;
 }

@@ -13,6 +13,7 @@ import type { Meta } from "./adapters/types";
 import { AppProvider } from "./app/state";
 import { App } from "./app/App";
 import { initTheme } from "./theme/theme";
+import { preloadIcons } from "./theme/icons";
 import { DARK_CAVEAT_SHORT, PRODUCT_CAVEAT } from "./app/text";
 
 initTheme();
@@ -31,7 +32,9 @@ function Failed({ message }: { message: string }) {
   );
 }
 
-adapter.meta().then(
+Promise.all([adapter.meta(), preloadIcons()]).then(
+  ([meta]: [Meta, void]) => meta,
+).then(
   (meta: Meta) => {
     root.render(
       <React.StrictMode>

@@ -6,11 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/check_build.mjs",
     "build": "vite build",
+    "prebuild:single": "node scripts/check_build.mjs",
     "build:single": "vite build --mode single",
     "typecheck": "tsc --noEmit",
     "fixture:inject": "node fixtures/inject.mjs",
-    "check": "NODE_PATH=/opt/node-tools/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node checks/smoke.mjs"
+    "check": "NODE_PATH=/opt/node-tools/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node checks/smoke.mjs",
+    "check:build": "node scripts/check_build.mjs"
   },
   "dependencies": {
     "@blueprintjs/colors": "5.1.16",

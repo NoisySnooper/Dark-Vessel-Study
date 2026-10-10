@@ -10,17 +10,40 @@ export const PRODUCT_CAVEAT =
   "unmatched contact as a lead for review, not as evidence of wrongdoing. An AIS gap is not proof of intent.";
 export const GAP_NOTE = "An AIS gap is not proof of intent.";
 export const OCEAN_NOTE = "Ocean and weather layers describe the sea, not what any vessel does.";
+// darkvessel.ocean.grid.OCEAN_CAVEAT, and the anomaly sentence data/expected_activity.json adds to it.
+export const OCEAN_CAVEAT =
+  OCEAN_NOTE + " Expected activity says where lit boats or radar candidates usually are, given the sea and the weather; a cell " +
+  "above or below it is a lead for review, not evidence. " + DARK_CAVEAT_SHORT;
+export const ANOMALY_CAVEAT =
+  "An activity anomaly is a difference between a count of detections in a cell and a model's expectation for that cell, night or " +
+  "pass. It is not a count of vessels and not evidence of wrongdoing: model error, weather, cloud, moonlight, fleet movements and " +
+  "the sensors' limits (unlit boats for VIIRS, small boats for radar) all produce it. A lead for review only.";
+export const NO_CONTEXT = "No ocean context for this object yet";
 export const DATA_CREDIT = "Contains modified Copernicus Sentinel data 2026";
+// The research build's label and attribution are read from the build's meta (meta.build_label, research_label,
+// attribution), so the shell shared by both builds carries no research source name.
 export const BUILD_LINE = {
-  open: "Open build. Open-licensed sources and live AIS relayed by aisstream.io. " + DARK_CAVEAT_SHORT,
-  research: "Research build, noncommercial, CC BY-NC 4.0. Contains Global Fishing Watch data. Powered by Global Fishing Watch. " + DARK_CAVEAT_SHORT,
+  open: "Open build. Open-licensed sources and live AIS relayed by aisstream.io.",
 };
 export const BUILD_TAG = { open: "OPEN BUILD", research: "RESEARCH BUILD" };
-export const RESEARCH_LABEL = "Research build, noncommercial, CC BY-NC 4.0";
-export const GFW_ATTRIBUTION = "Powered by Global Fishing Watch.";
-export const GFW_URL = "https://globalfishingwatch.org";
 export const IDENTITY_NOTE = "All identity fields are self-reported by the transponder or published by the data source; they can be wrong, reused or spoofed.";
 export const AISSTREAM_NOTE = "Live AIS relayed by aisstream.io; terms UNVERIFIED.";
+/** Board D4.7: the label on every aisstream-derived identity in the open build. */
+export const AISSTREAM_LABEL = "live AIS relayed by aisstream.io; terms UNVERIFIED";
+/** Board D6.2: a low-quality or doubtful pairing stays in the files and is shown with this label, never as an identification. */
+export const LOW_QUALITY_LABEL = "low-quality pairing, identity not confirmed";
+export const AMBIGUOUS_NOTE =
+  "Ambiguous: the pairing could not tell which of these AIS vessels this return is (for example two ships alongside each other " +
+  "give one return and two MMSIs). It is very likely one of them, so it names neither and is never a lead.";
+/** A lead whose primary contact changed status after the lead was built (the leads file predates a rematch). */
+export const STALE_LEAD_LABEL = "stale: not a lead";
+export const STALE_LEAD_NOTE =
+  "This lead was built before its contact was matched again and no longer stands, so it is not shown as a lead and takes no " +
+  "decision. The next lead rebuild drops it.";
+export const AIS_ONLY_NOTE =
+  "AIS vessels placed inside the footprint at the scene time that no radar contact matched. Most lie in the 1 km shore buffer " +
+  "or on water the detector does not test, are held back as ambiguous, or were dropped as oversized returns; it is a recall " +
+  "check of the radar, not a finding about any vessel.";
 export const EEZ_LAYER_NAME = "Maritime boundaries as published by Marine Regions";
 export const EEZ_STATEMENT =
   "Lines and polygons as published by Marine Regions (Flanders Marine Institute, VLIZ), World EEZ v12, CC BY 4.0, doi:10.14284/632. " +
@@ -111,6 +134,7 @@ export const FACTOR_LABEL: Record<string, string> = {
   ais_reach: "AIS reach quality at the spot",
   persistence: "Persistence across passes",
   area_weight: "Area weight",
+  "weather unknown": "Weather unknown (lead kept, 0 weather points)",
 };
 export const LAWFUL_TEXT: Record<string, string> = {
   no_carriage_requirement:

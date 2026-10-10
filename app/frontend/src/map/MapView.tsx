@@ -8,7 +8,11 @@ import { PointLayer, type HitResult } from "./PointLayer";
 import { featureRings } from "../adapters/columns";
 import type { GeoLayer, Lead, PointLayerData } from "../adapters/types";
 import { AIS_STATUS_ORDER } from "../adapters/types";
-import { AIS_STATUS_LABEL, DARK_CAVEAT_SHORT, EEZ_DISCLAIMER, EEZ_STATEMENT, REPORTING_BOX_NOTE } from "../app/text";
+import { AIS_STATUS_LABEL, DARK_CAVEAT_SHORT, EEZ_DISCLAIMER, EEZ_STATEMENT, OCEAN_NOTE, REPORTING_BOX_NOTE } from "../app/text";
+import type { RasterEntry } from "../adapters/types";
+import { fmtLegendValue, isPresence, rampCss, rasterLabel, reprojectOverlay } from "./overlays";
+import { SHIPPING_PRESENCE_NOTE } from "../adapters/context";
+import { ProvChip } from "../views/Provenance";
 import { fmtDd, fmtDms, fmtMgrs, fmtNum, fmtTime } from "../app/format";
 import { cssToken } from "../theme/theme";
 import { navigate } from "../app/router";
@@ -54,7 +58,10 @@ export interface MapViewProps {
 }
 
 export function MapView({ compact, marker }: MapViewProps) {
-  const { adapter, layers, theme, selection, setSelection, window: win, mapFocus, decisionsVersion, phone } = useApp();
+  const { adapter, layers, overlays, theme, selection, setSelection, window: win, mapFocus, decisionsVersion, phone } = useApp();
+  const overlayRefs = useRef<Record<string, { layer: L.ImageOverlay; theme: string }>>({});
+  const [rasterList, setRasterList] = useState<RasterEntry[]>([]);
+  const [overlayErr, setOverlayErr] = useState<string | null>(null);
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const groups = useRef<Record<string, L.LayerGroup>>({});
@@ -76,6 +83,10 @@ export function MapView({ compact, marker }: MapViewProps) {
       zoomSnap: 0.5, keyboard: true,
     });
     map.fitBounds(AOI_BOUNDS, { padding: [4, 4] });
+    // Context overlays sit under land, outlines and points (overlayPane is z-index 400).
+    const ctxPane = map.createPane("scs-context");
+    ctxPane.style.zIndex = "350";
+    ctxPane.style.pointerEvents = "none";
     if (!compact) L.control.scale({ imperial: false, position: "bottomright" }).addTo(map);
     for (const id of ["land", "aoi", "reporting_boxes", "eez_boundaries", "footprints", "next_passes", "tracks", "leads"]) {
       groups.current[id] = L.layerGroup();
@@ -145,6 +156,8 @@ export function MapView({ compact, marker }: MapViewProps) {
         g.remove();
       }
       for (const pl of Object.values(points.current)) pl.remove();
+      for (const o of Object.values(overlayRefs.current)) o.layer.remove();
+      overlayRefs.current = {};
       if (selRing.current) selRing.current.remove();
       if (markerRef.current) markerRef.current.remove();
       selRing.current = null;
@@ -270,6 +283,48 @@ export function MapView({ compact, marker }: MapViewProps) {
     }
   }, [layers]);
 
+  // Context raster overlays: off at load; each one reprojected to Web Mercator when first switched on (and per theme).
+  const activeOverlays = useMemo(() => Object.keys(overlays).filter((k) => overlays[k]).sort(), [overlays]);
+  useEffect(() => {
+    if (compact || !activeOverlays.length || rasterList.length) return;
+    let alive = true;
+    adapter.rasters().then((r) => { if (alive) setRasterList(r); });
+    return () => { alive = false; };
+  }, [adapter, compact, activeOverlays.length, rasterList.length]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || compact) return;
+    let alive = true;
+    for (const [name, o] of Object.entries(overlayRefs.current)) {
+      if (!overlays[name] || o.theme !== theme) {
+        o.layer.remove();
+        delete overlayRefs.current[name];
+      }
+    }
+    (async () => {
+      for (const name of activeOverlays) {
+        if (overlayRefs.current[name]) continue;
+        const entry = rasterList.find((r) => r.name === name);
+        if (!entry) continue;
+        try {
+          const url = await adapter.rasterImage(name, theme);
+          if (!url) throw new Error("no image for " + name);
+          const img = await reprojectOverlay(url, entry.bounds, isPresence(entry), cssToken("--overlay-mask") || "#c5cbd3");
+          if (!alive || mapRef.current !== map || !overlays[name] || overlayRefs.current[name]) continue;
+          const [w, s2, e, n] = entry.bounds;
+          const layer = L.imageOverlay(img, [[s2, w], [n, e]], { opacity: isPresence(entry) ? 1 : 0.85, interactive: false, pane: "scs-context", className: "scs-overlay" });
+          layer.addTo(map);
+          overlayRefs.current[name] = { layer, theme };
+          setOverlayErr(null);
+        } catch (err) {
+          console.warn("overlay " + name + " not drawn", err);
+          if (alive) setOverlayErr(`${rasterLabel(entry)} could not be drawn in this page.`);
+        }
+      }
+    })();
+    return () => { alive = false; };
+  }, [adapter, compact, activeOverlays, rasterList, theme, overlays]);
+
   // Time window.
   useEffect(() => {
     const w: [number, number] | null = win ? [win.t0, win.t1] : null;
@@ -333,10 +388,36 @@ export function MapView({ compact, marker }: MapViewProps) {
     </div>
   ), [layers.structures, layers.lights, layers.vessels, layers.leads, counts, compact, ringInfo]);
 
+  const overlayLegend = (
+        <div className="scs-overlay-legend" data-overlay-legend="1" aria-label="Context layer legend">
+          <div className="scs-ocean-caveat" data-ocean-caveat="1">{OCEAN_NOTE}</div>
+          {activeOverlays.map((name) => {
+            const r = rasterList.find((x) => x.name === name);
+            if (!r) return <div key={name} className="scs-muted">loading {name}</div>;
+            const presence = isPresence(r);
+            return (
+              <div key={name} className="scs-overlay-row" data-overlay={name}>
+                <div className="scs-overlay-title">{rasterLabel(r)} <ProvChip sourceKey={r.src} field={r.name} /></div>
+                {presence
+                  ? <div className="scs-overlay-scale"><i className="scs-swatch square" style={{ background: "repeating-linear-gradient(45deg, var(--overlay-mask) 0 2px, transparent 2px 4px)" }} /> hatched: published value above 0 ({SHIPPING_PRESENCE_NOTE})</div>
+                  : <><div className="scs-overlay-ramp" style={{ background: rampCss(r.colormap) }} /><div className="scs-overlay-scale"><span>{fmtLegendValue(r.vmin)}</span><span>{r.unit || ""}</span><span>{fmtLegendValue(r.vmax)}</span></div></>}
+                <div className="scs-muted">valid: {r.valid_period || "static layer"}{r.resolution_deg ? `; ${r.resolution_deg} degree grid` : ""}</div>
+              </div>
+            );
+          })}
+          {overlayErr && <div className="scs-muted">{overlayErr}</div>}
+        </div>
+  );
+
   return (
     <div className="scs-map-area" style={compact ? { height: 260 } : undefined}>
       <div ref={el} className="scs-map" role="application" aria-label="Map of radar contacts and AIS vessels over the South China Sea AOI" tabIndex={0} data-eez-on={layers.eez_boundaries ? "1" : "0"} />
-      {!compact && legend}
+      {!compact && (
+        <div className="scs-map-side">
+          {legend}
+          {activeOverlays.length > 0 && overlayLegend}
+        </div>
+      )}
       {!compact && !phone && readout && <div className="scs-map-readout" aria-live="off">{readout}</div>}
       {hover && !compact && (
         <div className="scs-map-hover" style={{ left: Math.min(hover.x + 12, Math.max(0, (el.current?.clientWidth || 300) - 270)), top: hover.y + 12 }}>

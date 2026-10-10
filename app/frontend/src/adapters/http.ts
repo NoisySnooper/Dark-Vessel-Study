@@ -2,9 +2,10 @@
 import { decodePart, decodeGeom, type ColumnarPart } from "./columns";
 import { pointsFromDecoded } from "./embedded";
 import { parseCoordinates } from "./search";
+import { normalizeExpected, normalizeObjectContext } from "./context";
 import type {
   CellRecord, Contact, DataAdapter, Decision, EventRecord, GeoLayer, Lead, LeadState, Light, ListQuery, ListResult, Meta, Pass, PointLayerData,
-  SearchResponse, TimelineRows, Track, Vessel,
+  RasterEntry, SearchResponse, TimelineRows, Track, Vessel,
 } from "./types";
 
 interface Envelope<T> {
@@ -74,7 +75,9 @@ export class HttpAdapter implements DataAdapter {
     return this.list(await this.get<Contact>("/contacts", q));
   }
   async contact(det_id: string): Promise<Contact | null> {
-    return this.getOrNull<Contact>(`/contacts/${encodeURIComponent(det_id)}`);
+    const c = await this.getOrNull<Contact>(`/contacts/${encodeURIComponent(det_id)}`);
+    if (c) c.object_context = normalizeObjectContext(c.object_context);
+    return c;
   }
   private async cols(name: string, kind: "contacts" | "lights" | "vessels"): Promise<PointLayerData | null> {
     const r = await fetch(`${this.base}/layers/${name}.cols`);
@@ -110,7 +113,9 @@ export class HttpAdapter implements DataAdapter {
     return this.list(await this.get<Light>("/lights", q));
   }
   async light(light_id: string): Promise<Light | null> {
-    return this.getOrNull<Light>(`/lights/${encodeURIComponent(light_id)}`);
+    const l = await this.getOrNull<Light>(`/lights/${encodeURIComponent(light_id)}`);
+    if (l) l.object_context = normalizeObjectContext(l.object_context);
+    return l;
   }
   async lightPoints(): Promise<PointLayerData | null> {
     return this.cols("lights", "lights");
@@ -149,10 +154,12 @@ export class HttpAdapter implements DataAdapter {
     return [...this.decisions];
   }
   async passes(q?: ListQuery): Promise<ListResult<Pass>> {
-    return this.list(await this.get<Pass>("/passes", q));
+    const r = this.list(await this.get<Pass>("/passes", q));
+    return { ...r, items: r.items.map(passShape) };
   }
   async pass(pass_id: string): Promise<Pass | null> {
-    return this.getOrNull<Pass>(`/passes/${encodeURIComponent(pass_id)}`);
+    const p = await this.getOrNull<Pass>(`/passes/${encodeURIComponent(pass_id)}`);
+    return p ? passShape(p) : null;
   }
   async geo(name: string): Promise<GeoLayer | null> {
     const r = await fetch(`${this.base}/geo/${encodeURIComponent(name)}.geojson`);
@@ -199,8 +206,31 @@ export class HttpAdapter implements DataAdapter {
     return URL.createObjectURL(await r.blob());
   }
   async cell(cell_id: string): Promise<CellRecord | null> {
-    return this.getOrNull<CellRecord>(`/cells/${encodeURIComponent(cell_id)}`);
+    const c = await this.getOrNull<CellRecord>(`/cells/${encodeURIComponent(cell_id)}`);
+    if (c) c.expected_activity = normalizeExpected(c.expected_activity);
+    return c;
   }
+  private rasterCache: RasterEntry[] | null = null;
+  async rasters(): Promise<RasterEntry[]> {
+    if (this.rasterCache) return this.rasterCache;
+    try {
+      const e = await this.get<RasterEntry>("/rasters");
+      this.rasterCache = (e.items || []).filter((x) => x && x.name && Array.isArray(x.bounds)).map((x) => ({ ...x, default_on: false }));
+    } catch {
+      this.rasterCache = [];
+    }
+    return this.rasterCache;
+  }
+  async rasterImage(name: string, theme: "dark" | "light"): Promise<string | null> {
+    return `${this.base}/rasters/${encodeURIComponent(name)}.webp?theme=${theme}`;
+  }
+}
+
+/** Pass records: the API keeps per-scene counts under `extra.scene_counts`; the views read `scene_counts`. */
+function passShape(p: Pass): Pass {
+  const extra = (p.extra || {}) as Record<string, unknown>;
+  if (!p.scene_counts && Array.isArray(extra.scene_counts)) p.scene_counts = extra.scene_counts as Record<string, unknown>[];
+  return p;
 }
 
 /** GeoJSON features to the GeoLayer shape used by the map (same as the decoded `geom` encoding). */

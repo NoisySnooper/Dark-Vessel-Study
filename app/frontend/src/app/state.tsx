@@ -38,6 +38,10 @@ export interface AppState {
   setSelection: (s: Selection) => void;
   layers: Record<LayerId, boolean>;
   setLayer: (id: LayerId, on: boolean) => void;
+  /** Context raster overlays by registry name (contract 3.7): every one off at load (spec section 6.2). */
+  overlays: Record<string, boolean>;
+  setOverlay: (name: string, on: boolean) => void;
+  clearOverlays: () => void;
   window: TimeWindow | null;
   setWindow: (w: TimeWindow | null) => void;
   decisionsVersion: number;
@@ -82,6 +86,7 @@ export function AppProvider({ adapter, meta, children }: { adapter: DataAdapter;
   const [units, setUnitsState] = useState<Units>(() => (readItem("units") === "nm" ? "nm" : "km"));
   const [selection, setSelection] = useState<Selection>(null);
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({ ...LAYER_DEFAULTS });
+  const [overlays, setOverlays] = useState<Record<string, boolean>>({});
   const [win, setWindow] = useState<TimeWindow | null>(null);
   const [decisionsVersion, setDv] = useState(0);
   const [omnibarOpen, setOmnibarOpen] = useState(false);
@@ -106,16 +111,18 @@ export function AppProvider({ adapter, meta, children }: { adapter: DataAdapter;
     setUnitsState(u);
   }, []);
   const setLayer = useCallback((id: LayerId, on: boolean) => setLayers((prev) => ({ ...prev, [id]: on })), []);
+  const setOverlay = useCallback((name: string, on: boolean) => setOverlays((prev) => ({ ...prev, [name]: on })), []);
+  const clearOverlays = useCallback(() => setOverlays({}), []);
   const bumpDecisions = useCallback(() => setDv((v) => v + 1), []);
   const focusMap = useCallback((lon: number, lat: number, zoom?: number) => setMapFocus({ lon, lat, zoom, nonce: Date.now() }), []);
 
   const value = useMemo<AppState>(
     () => ({
-      adapter, meta, theme, setTheme, tz, setTz, units, setUnits, selection, setSelection, layers, setLayer,
+      adapter, meta, theme, setTheme, tz, setTz, units, setUnits, selection, setSelection, layers, setLayer, overlays, setOverlay, clearOverlays,
       window: win, setWindow, decisionsVersion, bumpDecisions, storageOk, omnibarOpen, setOmnibarOpen, phone, tablet,
       railTab, setRailTab, inspectorOpen, setInspectorOpen, timelineOpen, setTimelineOpen, mapFocus, focusMap,
     }),
-    [adapter, meta, theme, setTheme, tz, setTz, units, setUnits, selection, layers, setLayer, win, decisionsVersion,
+    [adapter, meta, theme, setTheme, tz, setTz, units, setUnits, selection, layers, setLayer, overlays, setOverlay, clearOverlays, win, decisionsVersion,
       bumpDecisions, storageOk, omnibarOpen, phone, tablet, railTab, inspectorOpen, timelineOpen, mapFocus, focusMap],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

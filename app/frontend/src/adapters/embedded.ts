@@ -2,13 +2,15 @@
 // parses a part on first use and answers the same queries as the HTTP adapter with the same record shapes.
 // Lead decisions are held in page memory (plus a guarded storage copy) and exported as JSONL (spec section 13).
 import { decodeGeom, decodePart, numberArray, timeMs, type ColumnarPart, type GeomSpec, type Getter } from "./columns";
+import { normalizeExpected, normalizeObjectContext } from "./context";
 import { parseQuery } from "./search";
 import { cellIdOf, haversineM, priorityBand } from "../app/format";
-import { AIS_STATUS_LABEL, GAP_NOTE, LEAD_LAWFUL, LEAD_TYPE_NAME, PRODUCT_CAVEAT } from "../app/text";
+import { AIS_STATUS_LABEL, GAP_NOTE, LEAD_LAWFUL, LEAD_TYPE_NAME, OCEAN_CAVEAT, PRODUCT_CAVEAT } from "../app/text";
+import { staleLeadReason } from "../app/identity";
 import { readJson, writeJson } from "../storage";
 import type {
   AisStatus, CellRecord, Contact, DataAdapter, Decision, EventRecord, GeoLayer, Lead, LeadFactor, LeadState, Light, ListQuery, ListResult,
-  Meta, Pass, PointLayerData, SearchResponse, SearchResult, TimelineRows, Track, Vessel,
+  Meta, ObjectContext, Pass, PointLayerData, RasterEntry, SearchResponse, SearchResult, TimelineRows, Track, Vessel,
 } from "./types";
 import { AIS_STATUS_ORDER } from "./types";
 
@@ -46,6 +48,56 @@ function bool(v: unknown): boolean | null {
 
 const SHAPE: Record<string, number> = { high: 0, medium: 1, fixed: 2, low: 3 };
 
+// Record keys that are not contact fields (bundle reading 1): provenance, pass-through extras and lead links.
+const RECORD_META_KEYS = new Set(["prov", "extra", "lead_ids", "object_context"]);
+
+type ContextDefaults = Record<string, { unit?: string | null; src?: string | null; time?: string | null }>;
+interface ContextBlock {
+  n: number;
+  columns: ColumnarPart["columns"];
+  /** Per field: unit, registry key or dataset, and the column holding its valid time or source (README reading 13). */
+  fields?: Record<string, { unit?: string | null; src?: string | null; time?: string | null; time_col?: string | null; src_col?: string | null }>;
+  caveat?: string;
+}
+
+/**
+ * `object_context` of row `i` of a part (board D5.3, README reading 13): the record's own `object_context` when present,
+ * else the part's columnar `object_context` block (rows parallel to the part's rows; a row whose `time_utc` is null has
+ * no context). Units, times and sources a record omits come from the block's `fields` map.
+ */
+function contextOf(d: Decoded, i: number, rec: Record<string, unknown>, cache: Map<string, unknown>, cacheKey: string): ObjectContext | null {
+  const block = d.part.object_context as ContextBlock | undefined;
+  const defaults = (block?.fields || (d.part.context_fields as ContextDefaults | undefined)) as ContextDefaults | undefined;
+  const caveat = block?.caveat || OCEAN_CAVEAT;
+  if (rec.object_context !== undefined) return normalizeObjectContext(rec.object_context, defaults, caveat);
+  if (!block || !block.columns) return null;
+  if (!cache.has(cacheKey)) cache.set(cacheKey, decodePart({ type: "object_context", n: block.n, columns: block.columns }));
+  const g = (cache.get(cacheKey) as { get: Record<string, Getter> }).get;
+  const t = g.time_utc ? g.time_utc(i) : null;
+  if (t === null || t === undefined) return null;
+  const fields: Record<string, unknown> = {};
+  for (const [name, spec] of Object.entries(block.fields || {})) {
+    const col = g[name];
+    if (!col) continue;
+    fields[name] = {
+      value: col(i),
+      unit: spec.unit ?? null,
+      time: spec.time_col && g[spec.time_col] ? g[spec.time_col](i) : spec.time ?? null,
+      src: spec.src_col && g[spec.src_col] ? g[spec.src_col](i) : spec.src ?? null,
+    };
+  }
+  return normalizeObjectContext({ time_utc: t, cell_id: g.cell_id ? g.cell_id(i) : null, region: g.region ? g.region(i) : null, fields, caveat }, defaults, caveat);
+}
+
+/** Provenance set of a contact row (bundle `prov_sets` with `prov_set_rule`): live, camau, research, structures or regional. */
+function provSetName(view: unknown, researchOnly: unknown, confidence: unknown): string {
+  if (view === "live") return "live";
+  if (view === "camau") return "camau";
+  if (researchOnly === true) return "research";
+  if (confidence === "fixed") return "structures";
+  return "regional";
+}
+
 /** Bulk point layer from a decoded columnar part (contacts, structures, lights or vessels). Shared with the HTTP adapter. */
 export function pointsFromDecoded(d: Decoded, kind: "contacts" | "lights" | "vessels"): PointLayerData {
   const n = d.n;
@@ -81,6 +133,17 @@ export function pointsFromDecoded(d: Decoded, kind: "contacts" | "lights" | "ves
     for (let i = 0; i < n; i++) faded[i] = q(i) === "under_cloud" ? 1 : 0;
   }
   return { n, lon, lat, ids: (i) => String(idGetter ? idGetter(i) : i), status, shape, size, faded, time };
+}
+
+/** Part-level code lists by lead type: `{L1: [codes]}` or `{L1: {code: sentence}}` (the builder may write either). */
+function listsByType(raw: unknown): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [t, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (Array.isArray(v)) out[t] = v.map(String);
+    else if (v && typeof v === "object") out[t] = Object.keys(v as Record<string, unknown>);
+  }
+  return out;
 }
 
 export class EmbeddedAdapter implements DataAdapter {
@@ -162,9 +225,14 @@ export class EmbeddedAdapter implements DataAdapter {
     const vg = (name: string, row: number | null) => (row === null || !vessels || !vessels.get[name] ? null : vessels.get[name](row));
     const lon = num(v("lon")) ?? 0;
     const lat = num(v("lat")) ?? 0;
-    const mmsi = str(v("mmsi")) ?? str(vg("mmsi", vrow));
-    const nearestMmsi = str(v("nearest_ais_mmsi")) ?? str(vg("mmsi", nrow));
-    const prov = { ...(d.part.prov || {}), ...((rec.prov as Record<string, string>) || {}) };
+    const mmsi = str(rec.mmsi) ?? str(v("mmsi")) ?? str(vg("mmsi", vrow));
+    const nearestMmsi = str(rec.nearest_ais_mmsi) ?? str(v("nearest_ais_mmsi")) ?? str(vg("mmsi", nrow));
+    const provSets = d.part.prov_sets as Record<string, Record<string, string>> | undefined;
+    const baseProv = provSets ? (provSets[provSetName(v("view"), v("research_only"), v("confidence"))] || d.part.prov || {}) : (d.part.prov || {});
+    const prov = { ...baseProv, ...((rec.prov as Record<string, string>) || {}) };
+    // Vessel keys come from the referenced vessel row (research: <source>:<vessel_id>), else from the MMSI (open: mmsi:<mmsi>).
+    const vesselKey = str(vg("vessel_key", vrow));
+    const nearestKey = str(vg("vessel_key", nrow));
     const leadIds = [...new Set([...(((rec.lead_ids as string[]) || [])), ...(this.leadIndexByPrimary().get("contact:" + det_id) || [])])];
     const chips = this.chipsPart();
     const c: Contact = {
@@ -200,9 +268,9 @@ export class EmbeddedAdapter implements DataAdapter {
       caveat: str(v("caveat")) ?? this.caveat(),
       view: (v("view") as Contact["view"]) ?? "regional",
       dark_lead: bool(v("dark_lead")),
-      vessel_key: mmsi && (v("ais_status") === "matched") ? "mmsi:" + mmsi : null,
-      nearest_vessel_key: nearestMmsi ? "mmsi:" + nearestMmsi : null,
-      nearest_vessel_name: str(vg("name", nrow)),
+      vessel_key: v("ais_status") === "matched" ? (vesselKey ?? (mmsi ? "mmsi:" + mmsi : null)) : null,
+      nearest_vessel_key: nearestKey && str(vg("mmsi", nrow)) === nearestMmsi ? nearestKey : nearestMmsi ? "mmsi:" + nearestMmsi : null,
+      nearest_vessel_name: str(rec.nearest_ais_name) ?? (str(vg("mmsi", nrow)) === nearestMmsi ? str(vg("name", nrow)) : null),
       scene_id: str(v("scene_id")),
       pass_id: str(v("pass_id")),
       pass_dir: str(v("pass_dir")),
@@ -239,6 +307,16 @@ export class EmbeddedAdapter implements DataAdapter {
       prov,
       extra: (rec.extra as Record<string, unknown>) || undefined,
     };
+    // Fields that are not bulk columns, and identity strings that differ from the vessel row (contract behaviour rule 6),
+    // are in the record: the record wins.
+    for (const [k, val] of Object.entries(rec)) if (!RECORD_META_KEYS.has(k) && val !== undefined) (c as Record<string, unknown>)[k] = val;
+    // A research vessel key is `<source>:<vessel_id>`; its id is the D1 field `<source>_vessel_id` (absent in the open build).
+    if (vesselKey && !vesselKey.startsWith("mmsi:") && c.ais_status === "matched") {
+      const [pfx, ...rest] = vesselKey.split(":");
+      const f = `${pfx}_vessel_id`;
+      if (c[f] === undefined) (c as Record<string, unknown>)[f] = rest.join(":");
+    }
+    c.object_context = contextOf(d, i, rec, this.cache, "ctx:contacts");
     return c;
   }
 
@@ -342,7 +420,7 @@ export class EmbeddedAdapter implements DataAdapter {
       research_only: bool(v("research_only")) ?? false,
       caveat: str(v("caveat")) ?? this.caveat(),
       src: str(v("src")) ?? "aisstream",
-      prov: { ...(d.part.prov || {}), ...((rec.prov as Record<string, string>) || {}) },
+      prov: { ...(d.part.prov || {}), ...((d.part.prov_by_src as Record<string, Record<string, string>> | undefined)?.[str(v("src")) ?? "aisstream"] || {}), ...((rec.prov as Record<string, string>) || {}) },
     };
   }
 
@@ -457,6 +535,7 @@ export class EmbeddedAdapter implements DataAdapter {
       caveat: str(v("caveat")) ?? this.caveat(),
       src: str(v("src")) ?? "viirs_dnb",
       prov: { ...(d.part.prov || {}), ...((rec.prov as Record<string, string>) || {}) },
+      object_context: contextOf(d, i, rec, this.cache, "ctx:lights"),
     };
   }
 
@@ -538,7 +617,9 @@ export class EmbeddedAdapter implements DataAdapter {
     const lead_id = `${lead_type}-${primary_id}`;
     const rec = d.records[lead_id] || {};
     const factorsSpec = (d.part.factors as { factor: string; column: string; max_points: number; source: string }[]) || [];
-    const factors: LeadFactor[] = factorsSpec.map((f) => ({
+    // A record's full factor list (with each factor's value text) wins over the per-factor point columns (reading 6).
+    const recFactors = Array.isArray(rec.factors) ? (rec.factors as LeadFactor[]).filter((f) => f && typeof f.factor === "string") : null;
+    const factors: LeadFactor[] = recFactors && recFactors.length ? recFactors.map((f) => ({ ...f, value: f.value ?? null, points: num(f.points) ?? 0, max_points: num(f.max_points) ?? 0, source: String(f.source ?? "app") })) : factorsSpec.map((f) => ({
       factor: f.factor, value: null, points: num(v(f.column)) ?? 0, max_points: f.max_points, source: f.source,
     }));
     const priority = num(v("priority")) ?? factors.reduce((s, f) => s + f.points, 0);
@@ -546,7 +627,9 @@ export class EmbeddedAdapter implements DataAdapter {
     const history = [...(((rec.history as Decision[]) || [])), ...(over?.history || [])];
     const state = (over?.state ?? (v("state") as LeadState)) || "new";
     const reason = over ? over.reason : str(v("reason"));
-    const lawfulByType = (d.part.lawful_explanations as Record<string, string[]>) || {};
+    const lawfulByType = listsByType(d.part.lawful_explanations);
+    const changeByType = listsByType(d.part.change_indicators);
+    const provByType = (d.part.prov_by_type as Record<string, Record<string, string>> | undefined)?.[lead_type] || {};
     const lon = num(v("lon")) ?? 0;
     const lat = num(v("lat")) ?? 0;
     const ptype = (primaryType.replace(/s$/, "") as Lead["primary_type"]);
@@ -568,17 +651,18 @@ export class EmbeddedAdapter implements DataAdapter {
       region_box: box,
       next_look_utc: str(v("next_look_utc")),
       lawful_explanations: (rec.lawful_explanations as string[]) || lawfulByType[lead_type] || LEAD_LAWFUL[lead_type] || [],
-      change_indicators: (rec.change_indicators as string[]) || ["an AIS match on the late re-check", "the next Sentinel-1 look at this spot", "an optical view"],
+      change_indicators: (rec.change_indicators as string[]) || changeByType[lead_type] || ["late_ais_match", "next_radar_look", "optical_view"],
       history,
       synthetic: bool(v("synthetic")),
       ais_status: primary?.ais_status ?? null,
       cnn_score: primary?.cnn_score ?? null,
       length_est_m: primary?.length_est_m ?? null,
       pass_id: primary?.pass_id ?? null,
+      stale_reason: primary ? staleLeadReason({ lead_type, primary_type: ptype }, primary) : null,
       research_only: bool(v("research_only")) ?? false,
       caveat: str(v("caveat")) ?? this.caveat(),
       src: str(v("src")) ?? "app",
-      prov: { priority: "app", factors: "app", ...((rec.prov as Record<string, string>) || {}) },
+      prov: { priority: "app", factors: "app", ...provByType, ...((rec.prov as Record<string, string>) || {}) },
       extra: rec.synthetic_note ? { synthetic_note: rec.synthetic_note, weather: rec.weather } : undefined,
     };
   }
@@ -591,6 +675,9 @@ export class EmbeddedAdapter implements DataAdapter {
     for (let i = 0; i < d.n; i++) {
       const L = this.leadFromRow(i);
       if (!L) continue;
+      // A lead that no longer stands against its primary contact (built before a rematch) is never listed as a lead;
+      // its own page (lead()) still opens and says why.
+      if (L.stale_reason) continue;
       if (states && !states.includes(L.state)) continue;
       if (q.lead_type && L.lead_type !== q.lead_type) continue;
       if (q.region_box && L.region_box !== q.region_box) continue;
@@ -659,7 +746,8 @@ export class EmbeddedAdapter implements DataAdapter {
   private passList(): Pass[] {
     const key = "passes:list";
     if (this.cache.has(key)) return this.cache.get(key) as Pass[];
-    const raw = readPartJson<{ features?: { geometry: unknown; properties: Record<string, unknown> }[] }>("passes");
+    const raw = readPartJson<{ features?: { geometry: unknown; properties: Record<string, unknown> }[]; caveat?: string; notes?: Record<string, string> }>("passes");
+    const partCaveat = raw?.caveat;
     const list: Pass[] = (raw?.features || []).map((f) => {
       const p = f.properties || {};
       return {
@@ -670,8 +758,14 @@ export class EmbeddedAdapter implements DataAdapter {
         scenes: (p.scenes as string[]) || [], processed: Boolean(p.processed), n_contacts: (p.n_contacts as Record<string, number>) ?? null,
         ais_aoi_positions: num(p.ais_aoi_positions), ais_aoi_mmsi: num(p.ais_aoi_mmsi), ais_footprint_positions: num(p.ais_footprint_positions),
         ais_footprint_mmsi: num(p.ais_footprint_mmsi), ais_near_footprint_mmsi: num(p.ais_near_footprint_mmsi), ais_heard_share: num(p.ais_heard_share),
-        scene_counts: (p.scene_counts as Record<string, unknown>[]) || undefined, note: str(p.note), fixture_note: str(p.fixture_note),
-        research_only: false, caveat: str(p.caveat) ?? this.caveat(), src: str(p.src) ?? "esa_acq_plan", prov: (p.prov as Record<string, string>) || {},
+        scene_counts: (p.scene_counts as Record<string, unknown>[]) || ((p.extra as Record<string, unknown> | undefined)?.scene_counts as Record<string, unknown>[]) || undefined,
+        note: str(p.note), fixture_note: str(p.fixture_note), contacts_in_bundle: bool(p.contacts_in_bundle),
+        research_only: bool(p.research_only) ?? false, caveat: str(p.caveat) ?? partCaveat ?? this.caveat(), src: str(p.src) ?? "esa_acq_plan", prov: (p.prov as Record<string, string>) || {},
+        extra: (p.extra as Record<string, unknown>) || undefined,
+        n_ais_only: num(p.n_ais_only) ?? (Array.isArray(p.ais_only) ? p.ais_only.length : null),
+        ais_only: Array.isArray(p.ais_only) ? (p.ais_only as Pass["ais_only"]) : null,
+        azimuth_check: (p.azimuth_check as Pass["azimuth_check"]) ?? null,
+        identity_label: str(p.identity_label),
       };
     });
     this.cache.set(key, list);
@@ -840,7 +934,12 @@ export class EmbeddedAdapter implements DataAdapter {
     return chips && chips[det_id] ? chips[det_id] : null;
   }
 
-  /** Cell context from a `cells` part when the bundle carries one (columnar, keyed by `cell_id` or `row` and `col`). */
+  /**
+   * Cell context from the `cells` part (README reading 11): columnar static fields keyed by `cell_id` (or `row` and
+   * `col`); a `nightly` block (columns parallel to the cells, plus `valid` values that hold for every cell); an
+   * `eez_attrs` block (Marine Regions attributes as published, returned under `eez`); an `expected_activity` block
+   * (counts per target) and, per cell, `records[cell_id].expected_activity` with the board D5.4 rows when embedded.
+   */
   async cell(cell_id: string): Promise<CellRecord | null> {
     const d = this.part("cells");
     if (!d) return null;
@@ -850,14 +949,87 @@ export class EmbeddedAdapter implements DataAdapter {
       if (m) for (let k = 0; k < d.n; k++) if (Number(d.get.row(k)) === Number(m[1]) && Number(d.get.col(k)) === Number(m[2])) { i = k; break; }
     }
     if (i === undefined) return null;
+    const row = i;
     const rec: Record<string, unknown> = {};
-    for (const [k, g] of Object.entries(d.get)) rec[k] = g(i as number);
+    for (const [k, g] of Object.entries(d.get)) rec[k] = g(row);
     const extra = d.records[cell_id] || {};
     const partProv = (d.part as unknown as { prov?: Record<string, string> }).prov || {};
-    return {
+    const block = (name: string) => {
+      const b = d.part[name] as { n?: number; columns?: ColumnarPart["columns"] } | undefined;
+      if (!b || !b.columns) return null;
+      const key = "cells:" + name;
+      if (!this.cache.has(key)) this.cache.set(key, decodePart({ type: name, n: b.n ?? d.n, columns: b.columns }));
+      return this.cache.get(key) as { get: Record<string, Getter> };
+    };
+    // nightly fields of the newest night
+    let nightly: Record<string, unknown> | null = (extra.nightly as Record<string, unknown>) ?? null;
+    const nb = d.part.nightly as { night?: string; valid?: Record<string, unknown> } | undefined;
+    const nd = block("nightly");
+    if (!nightly && nb && nd) {
+      const vals: Record<string, unknown> = { night: nb.night ?? null, ...(nb.valid || {}) };
+      let any = false;
+      for (const [k, g] of Object.entries(nd.get)) {
+        const val = g(row);
+        vals[k] = val;
+        if (val !== null && val !== undefined) any = true;
+      }
+      nightly = any ? vals : null;
+    }
+    // Marine Regions attributes, only ever under `eez` (contract 3.7)
+    let eez: Record<string, unknown> | null = (extra.eez as Record<string, unknown>) ?? null;
+    const eb = d.part.eez_attrs as { heading?: string; statement?: string } | undefined;
+    const ed = block("eez_attrs");
+    if (!eez && eb && ed) {
+      const vals: Record<string, unknown> = { heading: eb.heading ?? null, statement: eb.statement ?? null };
+      let any = false;
+      for (const [k, g] of Object.entries(ed.get)) {
+        const val = g(row);
+        vals[k] = val;
+        if (val !== null && val !== undefined) any = true;
+      }
+      eez = any ? vals : null;
+    }
+    // expected activity: the record's rows, else the part's counts
+    const xb = d.part.expected_activity as { targets?: Record<string, { [c: string]: ColumnarPart["columns"][string] }>; caveat?: string; model_id?: string; note?: string; n?: number } | undefined;
+    let expected = normalizeExpected(extra.expected_activity, xb?.caveat);
+    if (!expected && xb?.targets) {
+      const targets: Record<string, Record<string, unknown>> = {};
+      for (const [t, cols] of Object.entries(xb.targets)) {
+        const key = "cells:xa:" + t;
+        if (!this.cache.has(key)) this.cache.set(key, decodePart({ type: "expected_activity", n: xb.n ?? d.n, columns: cols }));
+        const g = (this.cache.get(key) as { get: Record<string, Getter> }).get;
+        const counts: Record<string, unknown> = {};
+        for (const [c, f] of Object.entries(g)) counts[c] = f(row);
+        if (Object.values(counts).some((x) => x !== null && x !== undefined)) targets[t] = counts;
+      }
+      expected = Object.keys(targets).length ? normalizeExpected({ model_id: xb.model_id ?? null, caveat: xb.caveat, note: xb.note, targets }, xb.caveat) : null;
+    }
+    const out: CellRecord = {
       ...rec, ...extra, cell_id, row: num(rec.row) ?? 0, col: num(rec.col) ?? 0, lon: num(rec.lon) ?? 0, lat: num(rec.lat) ?? 0,
       region_box: str(rec.region_box ?? rec.region), src: str(rec.src) || "app", prov: { ...partProv, ...((extra.prov as Record<string, string>) || {}) },
-      caveat: PRODUCT_CAVEAT, research_only: false, eez: (extra.eez as Record<string, unknown>) ?? null,
+      caveat: str(rec.caveat) ?? PRODUCT_CAVEAT, research_only: bool(rec.research_only) ?? false,
+      nightly, eez, expected_activity: expected,
     } as CellRecord;
+    return out;
+  }
+
+  // ------------------------------------------------------------------ rasters (README reading 14)
+  private rasterList(): RasterEntry[] {
+    if (!this.cache.has("rasters")) {
+      const raw = readPartJson<{ layers?: RasterEntry[]; caveat?: string } | RasterEntry[]>("rasters");
+      const layers = Array.isArray(raw) ? raw : raw?.layers || [];
+      this.cache.set("rasters", layers.filter((l) => l && l.name && l.bounds));
+    }
+    return this.cache.get("rasters") as RasterEntry[];
+  }
+
+  async rasters(): Promise<RasterEntry[]> {
+    return this.rasterList().map((l) => ({ ...l, default_on: false }));
+  }
+
+  async rasterImage(name: string, theme: "dark" | "light"): Promise<string | null> {
+    const l = this.rasterList().find((x) => x.name === name) as (RasterEntry & { image_light?: string | null }) | undefined;
+    if (!l) return null;
+    return (theme === "light" ? l.image_light : null) || l.image || null;
   }
 }

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, HTMLSelect, NonIdealState, Tag } from "@blueprintjs/core";
 import { Cell, Column, RenderMode, Regions, SelectionModes, Table2 } from "@blueprintjs/table";
 import { useHotkeys, type HotkeyConfig } from "@blueprintjs/core";
-import type { Lead, LeadState } from "../adapters/types";
+import type { Lead, LeadState, Pass } from "../adapters/types";
 import { useApp } from "../app/state";
 import { LEAD_TYPE_NAME, STATE_LABEL } from "../app/text";
 import { fmtNum, fmtTime, priorityBand } from "../app/format";
@@ -18,23 +18,70 @@ export interface QueueFilters {
   band: string;
   region_box: string;
   pass_id: string;
+  run: string;
   ais_status: string;
   cnn_accepted: boolean;
 }
 
-export const DEFAULT_FILTERS: QueueFilters = { states: ["new", "reviewing"], lead_type: "", band: "", region_box: "", pass_id: "", ais_status: "", cnn_accepted: false };
+export const DEFAULT_FILTERS: QueueFilters = { states: ["new", "reviewing"], lead_type: "", band: "", region_box: "", pass_id: "", run: "", ais_status: "", cnn_accepted: false };
 
-export function useLeads(filters: QueueFilters): { leads: Lead[]; all: Lead[]; loading: boolean; reload: () => void } {
+/** The pass of a lead: its own `pass_id`, the API's extra, or a pass in its evidence. */
+export function leadPass(L: Lead): string | null {
+  return L.pass_id || (L.extra?.pass_id as string | undefined) || L.evidence.find((e) => e.type === "pass")?.id || null;
+}
+
+export const RUN_LABEL: Record<string, string> = { live: "live passes (aisstream AIS)", regional: "September regional run", viirs: "VIIRS lights (L7 coverage leads)" };
+/** Which run a lead comes from: a live pass, the September regional run, or the VIIRS lights (L7). */
+export function leadRun(L: Lead): string {
+  const p = leadPass(L);
+  if (p && p.startsWith("live_")) return "live";
+  if (L.lead_type === "L7") return "viirs";
+  return "regional";
+}
+
+/** Newest processed live pass (by start time), for the queue's quick filter. */
+export function useNewestLivePass(): Pass | null {
+  const { adapter } = useApp();
+  const [p, setP] = useState<Pass | null>(null);
+  useEffect(() => {
+    let alive = true;
+    adapter.passes().then(({ items }) => {
+      const live = items.filter((x) => x.pass_id.startsWith("live_") && x.processed).sort((a, b) => Date.parse(b.start_utc) - Date.parse(a.start_utc));
+      if (alive) setP(live[0] || null);
+    }, () => undefined);
+    return () => { alive = false; };
+  }, [adapter]);
+  return p;
+}
+
+export const QUEUE_LOAD_MAX = 10000;
+
+export function useLeads(filters: QueueFilters): { leads: Lead[]; all: Lead[]; total: number; loading: boolean; reload: () => void } {
   const { adapter, decisionsVersion } = useApp();
   const [all, setAll] = useState<Lead[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
+  // A pass filter asks the adapter (the API filters by the lead table's pass column, which summaries may not carry).
+  const [inPass, setInPass] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (!filters.pass_id) {
+      setInPass(null);
+      return;
+    }
+    let alive = true;
+    adapter.leads({ state: "all", pass_id: filters.pass_id, limit: 10000 }).then(({ items }) => {
+      if (alive) setInPass(new Set(items.map((l) => l.lead_id)));
+    }, () => alive && setInPass(new Set()));
+    return () => { alive = false; };
+  }, [adapter, filters.pass_id, decisionsVersion]);
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    adapter.leads({ state: "all", limit: 10000, sort: "-priority" }).then(({ items }) => {
+    adapter.leads({ state: "all", limit: QUEUE_LOAD_MAX, sort: "-priority" }).then(({ items, total: n }) => {
       if (!alive) return;
       setAll(items);
+      setTotal(Math.max(n, items.length));
       setLoading(false);
     });
     return () => {
@@ -46,17 +93,26 @@ export function useLeads(filters: QueueFilters): { leads: Lead[]; all: Lead[]; l
     (!filters.lead_type || L.lead_type === filters.lead_type) &&
     (!filters.band || priorityBand(L.priority) === filters.band) &&
     (!filters.region_box || L.region_box === filters.region_box) &&
-    (!filters.pass_id || L.pass_id === filters.pass_id) &&
+    (!filters.pass_id || leadPass(L) === filters.pass_id || (inPass !== null && inPass.has(L.lead_id))) &&
+    (!filters.run || leadRun(L) === filters.run) &&
     (!filters.ais_status || L.ais_status === filters.ais_status) &&
     (!filters.cnn_accepted || (L.cnn_score ?? 0) >= 0.631783),
-  ).sort((a, b) => b.priority - a.priority), [all, filters]);
-  return { leads, all, loading, reload: () => setTick((t) => t + 1) };
+  ).sort((a, b) => b.priority - a.priority), [all, filters, inPass]);
+  return { leads, all, total, loading, reload: () => setTick((t) => t + 1) };
 }
 
 export function QueueFilterRail({ filters, setFilters, all }: { filters: QueueFilters; setFilters: (f: QueueFilters) => void; all: Lead[] }) {
+  const { adapter } = useApp();
   const types = [...new Set(all.map((l) => l.lead_type))].sort();
   const boxes = [...new Set(all.map((l) => l.region_box || "other"))].sort();
-  const passes = [...new Set(all.map((l) => l.pass_id).filter(Boolean) as string[])].sort();
+  const [livePasses, setLivePasses] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    adapter.passes().then(({ items }) => { if (alive) setLivePasses(items.filter((p) => p.processed && p.pass_id.startsWith("live_")).sort((a, b) => Date.parse(b.start_utc) - Date.parse(a.start_utc)).map((p) => p.pass_id)); }, () => undefined);
+    return () => { alive = false; };
+  }, [adapter]);
+  const passes = [...new Set([...livePasses, ...(all.map(leadPass).filter(Boolean) as string[])])];
+  const runs = [...new Set(all.map(leadRun))].sort();
   const toggleState = (s: LeadState) => setFilters({ ...filters, states: filters.states.includes(s) ? filters.states.filter((x) => x !== s) : [...filters.states, s] });
   return (
     <div className="scs-rail-section" data-rail="filters">
@@ -70,8 +126,10 @@ export function QueueFilterRail({ filters, setFilters, all }: { filters: QueueFi
       <HTMLSelect fill value={filters.band} onChange={(e) => setFilters({ ...filters, band: e.currentTarget.value })} options={[{ value: "", label: "any band" }, { value: "high", label: "high (67 to 100)" }, { value: "medium", label: "medium (34 to 66)" }, { value: "low", label: "low (0 to 33)" }]} />
       <h6>Reporting box</h6>
       <HTMLSelect fill value={filters.region_box} onChange={(e) => setFilters({ ...filters, region_box: e.currentTarget.value })} options={[{ value: "", label: "any box" }, ...boxes.map((b) => ({ value: b, label: b }))]} />
+      <h6>Run</h6>
+      <HTMLSelect fill value={filters.run} onChange={(e) => setFilters({ ...filters, run: e.currentTarget.value })} options={[{ value: "", label: "any run" }, ...[...new Set([...runs, "live"])].map((r) => ({ value: r, label: RUN_LABEL[r] || r }))]} aria-label="Run" data-filter="run" />
       <h6>Pass</h6>
-      <HTMLSelect fill value={filters.pass_id} onChange={(e) => setFilters({ ...filters, pass_id: e.currentTarget.value })} options={[{ value: "", label: "any pass" }, ...passes.map((p) => ({ value: p, label: p }))]} />
+      <HTMLSelect fill value={filters.pass_id} onChange={(e) => setFilters({ ...filters, pass_id: e.currentTarget.value })} options={[{ value: "", label: "any pass" }, ...passes.map((p) => ({ value: p, label: p.startsWith("live_") ? `${p} (live)` : p }))]} aria-label="Pass" data-filter="pass" />
       <h6>AIS status</h6>
       <HTMLSelect fill value={filters.ais_status} onChange={(e) => setFilters({ ...filters, ais_status: e.currentTarget.value })} options={[{ value: "", label: "any" }, { value: "unmatched", label: "no AIS match" }, { value: "no_coverage", label: "no AIS coverage" }, { value: "matched", label: "matched" }, { value: "not_checked", label: "not checked" }]} />
       <Checkbox style={{ marginTop: 8 }} checked={filters.cnn_accepted} label="CNN accepted only (score at least 0.6318)" onChange={() => setFilters({ ...filters, cnn_accepted: !filters.cnn_accepted })} />
@@ -80,9 +138,14 @@ export function QueueFilterRail({ filters, setFilters, all }: { filters: QueueFi
   );
 }
 
+const PHONE_PAGE = 50;
+
 export function LeadsQueue({ leads, loading, selectedId, onSelect }: { leads: Lead[]; loading: boolean; selectedId: string | null; onSelect: (l: Lead | null) => void }) {
   const { tz, phone, adapter, bumpDecisions } = useApp();
   const [dlg, setDlg] = useState<{ lead: Lead; kind: DecisionKind } | null>(null);
+  // Phone cards: 50 at a time (a research queue holds about 10,000 leads; rendering all at once takes seconds).
+  const [shown, setShown] = useState(PHONE_PAGE);
+  useEffect(() => setShown(PHONE_PAGE), [leads]);
   const selIndex = leads.findIndex((l) => l.lead_id === selectedId);
   const selected = selIndex >= 0 ? leads[selIndex] : null;
 
@@ -126,7 +189,7 @@ export function LeadsQueue({ leads, loading, selectedId, onSelect }: { leads: Le
   if (phone) {
     return (
       <div className="scs-cards" data-queue="cards">
-        {leads.map((l) => (
+        {leads.slice(0, Math.max(shown, selIndex + 1)).map((l) => (
           <div key={l.lead_id} className={"scs-card" + (l.lead_id === selectedId ? " selected" : "")} onClick={() => onSelect(l)} role="button" tabIndex={0} aria-pressed={l.lead_id === selectedId}
             onKeyDown={(e) => { if (e.key === "Enter") navigate("lead", l.lead_id); }}>
             <div className="title">{l.lead_type}: {l.title}</div>
@@ -136,6 +199,9 @@ export function LeadsQueue({ leads, loading, selectedId, onSelect }: { leads: Le
             <div className="row" style={{ marginTop: 6 }}><Button small text="Open lead" onClick={(e) => { e.stopPropagation(); navigate("lead", l.lead_id); }} /></div>
           </div>
         ))}
+        {leads.length > shown && (
+          <Button fill small text={`Show ${Math.min(PHONE_PAGE, leads.length - shown)} more of ${fmtNum(leads.length - shown)}`} onClick={() => setShown(shown + PHONE_PAGE)} data-more-leads="1" />
+        )}
         {dlg && <DecisionDialog lead={dlg.lead} kind={dlg.kind} onClose={() => setDlg(null)} onDone={() => undefined} />}
       </div>
     );

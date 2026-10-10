@@ -66,12 +66,20 @@ a { color: var(--link); }
 .scs-map-hover { position: absolute; z-index: 900; background: var(--bg-elevated); color: var(--text); font-size: 12px; padding: 4px 8px; border: 1px solid var(--border);
   border-radius: 4px; pointer-events: none; max-width: 260px; }
 .scs-map-hover .muted { color: var(--text-muted); }
-.scs-map-legend { position: absolute; right: 8px; top: 8px; z-index: 800; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 11px; max-width: 220px; }
+.scs-map-side { position: absolute; right: 8px; top: 8px; z-index: 800; display: flex; flex-direction: column; gap: 6px; align-items: stretch; max-width: 240px; max-height: calc(100% - 40px); overflow-y: auto; }
+.scs-map-legend { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 11px; }
 .scs-map-legend .row { display: flex; align-items: center; gap: 6px; line-height: 18px; }
 .scs-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--map-sea); flex: none; }
 .scs-swatch.ring { background: transparent !important; border: 2px solid currentColor; }
 .scs-swatch.square { border-radius: 1px; }
 .scs-eez-notice { position: absolute; left: 8px; top: 8px; right: 240px; z-index: 800; font-size: 11px; }
+.scs-overlay-legend { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 11px; width: 240px; max-width: 100%; box-sizing: border-box; }
+.scs-ocean-caveat { color: var(--caveat-text); background: var(--caveat-bg); padding: 2px 6px; border-radius: 3px; margin-bottom: 4px; }
+.scs-overlay-row { padding: 3px 0; border-top: 1px solid var(--border); }
+.scs-overlay-title { display: flex; align-items: center; gap: 4px; font-weight: 600; }
+.scs-overlay-ramp { height: 8px; border-radius: 2px; margin: 2px 0; }
+.scs-overlay-scale { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+.scs-overlay-group { margin: 8px 0 2px; font-weight: 600; font-size: 12px; }
 
 /* Timeline */
 .scs-timeline { height: 160px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; flex-direction: column; flex: none; }
@@ -115,6 +123,13 @@ a { color: var(--link); }
 .scs-status.not_checked .scs-swatch { background: transparent; border: 1.5px solid currentColor; }
 .scs-status .label { color: var(--text); }
 .scs-cards { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+/* Wide tables scroll inside their own box, never the page (spec section 12, no horizontal page scroll). */
+.scs-table-scroll { max-width: 100%; overflow-x: auto; }
+.scs-pass-table td, .scs-pass-table th { white-space: nowrap; font-size: 12px; }
+.scs-context-table { width: 100%; font-size: 12px; }
+.scs-context-table td { vertical-align: top; }
+.scs-sparkline { display: block; max-width: 320px; margin: 4px 0 2px; }
+.scs-status-tabs .bp6-button { margin: 0 4px 4px 0; }
 .scs-card { background: var(--bg-elevated); border-radius: 4px; padding: 10px 12px; border: 1px solid var(--border); }
 .scs-card.selected { outline: 2px solid var(--focus); }
 .scs-card .title { font-weight: 600; }
@@ -218,7 +233,8 @@ a { color: var(--link); }
   .scs-tabbar button[aria-selected="true"] { color: var(--link); box-shadow: inset 0 3px 0 var(--link); }
   .scs-queue-table { min-height: 0; }
   .scs-eez-notice { right: 8px; top: 48px; }
-  .scs-map-legend { max-width: 150px; }
+  .scs-map-side { max-width: 180px; }
+  .scs-overlay-legend { width: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
