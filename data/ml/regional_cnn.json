@@ -1,5 +1,5 @@
 {
- "created_utc": "2026-10-09T05:55:24Z",
+ "created_utc": "2026-10-10T00:44:59Z",
  "script": "scripts/32_cnn_regional.py",
  "model_id": "verifier_v0_356af0ca",
  "threshold": 0.631782591342926,
@@ -77,9 +77,9 @@
     "low"
    ],
    "objects": 823285,
-   "scored": 35745,
+   "scored": 491235,
    "scenes": 119,
-   "scenes_done": 3,
+   "scenes_done": 58,
    "complete": false,
    "in_outputs": false
   }
