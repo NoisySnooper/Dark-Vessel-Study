@@ -4,7 +4,7 @@ recorder (scripts/26_ais_record.py), the live-pass watcher (scripts/30_live_pass
 
 Purpose: a Sentinel-1 pass can be identified against live AIS only if AIS was recorded while the satellite looked and
 the watcher picks the scene up from the mirror. The recorder died once (2026-10-08 15:20 UTC, the container went down)
-and nothing restarted it for 7 hours; the container went down again six times on 2026-10-09. This watchdog checks
+and nothing restarted it for 7 hours; the container went down again seven times on 2026-10-09. This watchdog checks
 every 60 s and restarts what is dead, without ever running two copies of anything.
 
 Method, recorder: each check (1) lists recorder processes from /proc (command line ends in 26_ais_record.py, not
@@ -33,6 +33,17 @@ and `nice -n 19 python scripts/32_cnn_regional.py --detach --if-incomplete --pha
 script 32 decides whether a scene is left, and its answer "nothing to start" marks the run complete for the life of
 this watchdog. Resumes are at least 30 min apart; after a resume
 whose run ended without a new scene checkpoint the gap doubles (60, 120, at most 240 min).
+Proxy: every process started here inherits the watchdog's environment, outbound proxy included. On 2026-10-10 at
+13:14:40 UTC the session's proxy moved to another port without a container restart: the recorder and the watcher
+stayed alive but reached nothing, and the restarts reused the dead proxy (HTTPS_PROXY of the watchdog). Now (1)
+`--ensure` replaces a running watchdog whose proxy (host:port of HTTPS_PROXY, https_proxy, ALL_PROXY or HTTP_PROXY)
+differs from the caller's when the caller's answers (the new watchdog stops the old one and takes the lock); (2) each
+check opens a TCP connection to the watchdog's own proxy, and logs once when it does not answer; (3) a recorder,
+watcher or CNN run whose proxy differs from the watchdog's and does not answer (or that has none while the watchdog
+has one) is restarted at once, without the backoff; the watcher only between cycles (the watchdog takes
+data/cache/live/cycle.lock before it stops it), or after 30 min of waiting for its cycle to end. A process on another
+proxy that still answers is left alone. Only the proxy variables are read from /proc/<pid>/environ, and only host:port
+is logged.
 An exclusive flock on watchdog.lock keeps a second watchdog out. A container restart kills the watchdog too: run
 `--ensure` at session start (idempotent; scripts/session_start.sh does).
 
@@ -42,12 +53,13 @@ Output:  data/cache/ais/aisstream/watchdog.pid, watchdog.lock, watchdog.log, wat
          streaks, last decisions, history; sections watcher and cnn), cnn_resume.out (answer of the last CNN resume);
          recorder.pid, watch.pid and run.pid when it starts or adopts a process
 Usage:
-  python scripts/29_ais_watchdog.py --ensure     # start detached unless a watchdog holds the lock (session start)
+  python scripts/29_ais_watchdog.py --ensure     # start detached unless a watchdog with this shell's proxy runs
   nohup setsid python scripts/29_ais_watchdog.py --run >> data/cache/ais/aisstream/watchdog.log 2>&1 &
   python scripts/29_ais_watchdog.py --status     # watchdog, recorder, live watcher and CNN run
   python scripts/29_ais_watchdog.py --stop       # stop the watchdog only; what it supervises keeps running
   python scripts/29_ais_watchdog.py --once       # one check in the foreground, then exit
-Options: --interval 60, --stale-minutes 5, --refresh-passes-hours 6 (0 = never), --no-live-watcher, --no-cnn-resume.
+Options: --interval 60, --stale-minutes 5, --refresh-passes-hours 6 (0 = never), --no-live-watcher, --no-cnn-resume,
+         --no-proxy-check.
 
 The recorder hears what aisstream.io shore receivers hear. "Dark" never means illegal (darkvessel.config.DARK_CAVEAT).
 """
@@ -60,11 +72,13 @@ import json
 import os
 import re
 import signal
+import socket
 import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pandas as pd
 
@@ -95,6 +109,10 @@ TERM_WAIT_S = 20
 REFRESH_RETRY_S = 3600
 CNN_GAP_S = (1800, 14400)  # CNN resumes at least 30 min apart, doubled per resume without progress, at most 4 h
 CNN_LAUNCH_TIMEOUT_S = 600  # the resume command takes about 10 s; one still running after 10 min is killed
+PROXY_KEYS = ("HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy", "HTTP_PROXY", "http_proxy")  # in order of use
+PROXY_PROBE_TIMEOUT_S = 3.0
+WATCHER_CYCLE_WAIT_S = 1800  # a watcher on a dead proxy is stopped between cycles, or after 30 min regardless
+REPLACE_WAIT_S = 60  # a replacing watchdog waits this long for the old one to release watchdog.lock
 
 
 def now_utc() -> pd.Timestamp:
@@ -219,6 +237,65 @@ def parse_cnn_resume(text: str) -> tuple[str, int | None]:
     return "error", None
 
 
+def proxy_env(env) -> dict[str, str]:
+    """The proxy variables of an environment mapping; nothing else is read or kept."""
+    return {k: env[k] for k in PROXY_KEYS if env and env.get(k)}
+
+
+def proxy_endpoint(env) -> tuple[str, int] | None:
+    """(host, port) of the proxy that HTTPS traffic of a process with environment `env` uses, or None."""
+    for k in PROXY_KEYS:
+        v = (env or {}).get(k)
+        if not v:
+            continue
+        u = urlsplit(v if "://" in v else f"http://{v}")
+        try:
+            port = u.port
+        except ValueError:
+            return None
+        return (u.hostname, port or (443 if u.scheme == "https" else 80)) if u.hostname else None
+    return None
+
+
+def endpoint_label(ep: tuple[str, int] | None) -> str:
+    """host:port only (a proxy URL can carry a user and password; they are never shown)."""
+    return f"{ep[0]}:{ep[1]}" if ep else "none"
+
+
+def proxy_answers(ep: tuple[str, int], timeout: float = PROXY_PROBE_TIMEOUT_S) -> bool:
+    """Does the proxy accept a TCP connection? Nothing is sent."""
+    try:
+        with socket.create_connection(ep, timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def stale_proxy(child_env: dict | None, own_env, answers=proxy_answers) -> str | None:
+    """Why a supervised process must be restarted for its proxy, or None. Only when its proxy endpoint differs from
+    the watchdog's and does not answer, or it has none while the watchdog has one. An unreadable environment (None)
+    and a different proxy that still answers are left alone."""
+    if child_env is None:
+        return None
+    mine, theirs = proxy_endpoint(own_env), proxy_endpoint(child_env)
+    if theirs == mine:
+        return None
+    if theirs is None:
+        return f"no proxy in its environment; the watchdog's is {endpoint_label(mine)}"
+    if answers(theirs):
+        return None
+    return f"its proxy {endpoint_label(theirs)} does not answer; the watchdog's is {endpoint_label(mine)}"
+
+
+def replace_reason(old_env: dict | None, my_env, answers=proxy_answers) -> str | None:
+    """Why `--ensure` should replace the running watchdog: its proxy endpoint differs from the caller's and the
+    caller's answers. A caller without a proxy, or whose proxy is dead, never replaces one."""
+    mine = proxy_endpoint(my_env)
+    if old_env is None or mine is None or proxy_endpoint(old_env) == mine or not answers(mine):
+        return None
+    return f"it uses proxy {endpoint_label(proxy_endpoint(old_env))}; this shell uses {endpoint_label(mine)}, which answers"
+
+
 @dataclass
 class State:
     pid: int = field(default_factory=os.getpid)
@@ -242,17 +319,20 @@ class State:
     supervise: dict = field(default_factory=dict)
     watcher: dict = field(default_factory=dict)
     cnn: dict = field(default_factory=dict)
+    proxy: dict = field(default_factory=dict)
     history: list[dict] = field(default_factory=list)
 
 
 class Ops:
     """Process effects of one supervised program: procs() -> live pids, start(cmd) -> pid (or a launch handle for
     the CNN resume), stop(pid); for the CNN run also resumes() -> [(pid, age_s)] of resume commands in progress that
-    this watchdog did not start. Tests pass fakes."""
+    this watchdog did not start; for the watcher also stop_idle(pid) -> bool, which stops it only between cycles
+    (default: stop at once). Tests pass fakes."""
 
-    def __init__(self, procs, start, stop, resumes=None):
+    def __init__(self, procs, start, stop, resumes=None, stop_idle=None):
         self.procs, self.start, self.stop = procs, start, stop
         self.resumes = resumes or (lambda: [])
+        self.stop_idle = stop_idle or (lambda pid: (stop(pid), True)[1])
 
 
 class Launch:
@@ -294,7 +374,8 @@ class Watchdog:
                  refresh_hours: float = 0, refresh_fn=None, passes_json: Path = PASSES_JSON,
                  watcher: bool = False, watcher_ops: Ops | None = None, live_dir: Path = LIVE_DIR,
                  cnn: bool = False, cnn_ops: Ops | None = None, cnn_dir: Path = CNN_DIR, cnn_gap_s=CNN_GAP_S,
-                 cnn_confirm_checks: int = 2, scripts_dir: Path = REPO_ROOT / "scripts"):
+                 cnn_confirm_checks: int = 2, scripts_dir: Path = REPO_ROOT / "scripts", proxy_check: bool = False,
+                 own_env=None, environ_fn=None, answers_fn=None):
         self.root = Path(root)
         self.stale_s, self.grace_s, self.streak_reset_s, self.backoff_s = stale_s, grace_s, streak_reset_s, backoff_s
         self.log = log
@@ -310,9 +391,16 @@ class Watchdog:
         self.watcher, self.cnn = bool(watcher), bool(cnn)
         self.live_dir, self.cnn_dir, self.scripts_dir = Path(live_dir), Path(cnn_dir), Path(scripts_dir)
         self.cnn_gap_s, self.cnn_confirm_checks = cnn_gap_s, max(1, int(cnn_confirm_checks))
+        self.proxy_check = bool(proxy_check)
+        self.own_env = proxy_env(os.environ if own_env is None else own_env)
+        self.environ_fn = environ_fn or read_proxy_environ
+        self.answers_fn = answers_fn or proxy_answers
+        self._own_proxy_ok = True
+        watcher_alive = lambda p: pid_matches(p, is_watcher_args)  # noqa: E731
         self.watcher_ops = watcher_ops or Ops(
             lambda: find_processes(is_watcher_args), self._start_watcher,
-            lambda pid: stop_process(pid, alive=lambda p: pid_matches(p, is_watcher_args)))
+            lambda pid: stop_process(pid, alive=watcher_alive), None,
+            lambda pid: stop_when_idle(pid, self.live_dir / "cycle.lock", alive=watcher_alive))
         self.cnn_ops = cnn_ops or Ops(lambda: find_processes(is_cnn_run_args),
                                       lambda cmd: Launch(cmd, self.root / "cnn_resume.out"),
                                       lambda pid: stop_process(pid, alive=lambda p: pid_matches(p, is_cnn_run_args)),
@@ -321,7 +409,8 @@ class Watchdog:
         self.refresh_proc: subprocess.Popen | None = None
         self.cnn_launch = None
         self.state = State()
-        self.state.supervise = {"recorder": True, "live_watcher": self.watcher, "cnn_run": self.cnn}
+        self.state.supervise = {"recorder": True, "live_watcher": self.watcher, "cnn_run": self.cnn,
+                                "proxy_check": self.proxy_check}
         self.pid_path = self.root / "recorder.pid"
         self.status_path = self.root / "status.json"
         self.wd_status_path = self.root / "watchdog_status.json"
@@ -382,6 +471,7 @@ class Watchdog:
         st = self.state
         st.checks += 1
         st.last_check_utc = _iso(now)
+        self._own_proxy_ok = self._check_own_proxy(now) if self.proxy_check else True
         try:
             return self._check_recorder(now)
         finally:
@@ -422,6 +512,9 @@ class Watchdog:
         started_here = _ts(st.started_here_utc) if st.started_here_pid == current else None
         alive = current is not None and self.alive_fn(current)
         h = assess(current, alive, status, now, stale_s=self.stale_s, grace_s=self.grace_s, started_here_utc=started_here)
+        proxy_why = self._proxy_reason(current) if alive else None
+        if proxy_why:  # alive, maybe not yet stale, but it reaches nothing: restart now, the cause is known
+            h = Health(False, f"proxy: {proxy_why}", current)
         if h.healthy:
             if st.healthy_since_utc is None:
                 st.healthy_since_utc = _iso(now)
@@ -433,7 +526,7 @@ class Watchdog:
             self._maybe_refresh(now)
             return decision
         st.healthy_since_utc = None
-        wait = restart_wait_s(now, _ts(st.last_restart_utc), st.streak, self.backoff_s)
+        wait = 0.0 if proxy_why else restart_wait_s(now, _ts(st.last_restart_utc), st.streak, self.backoff_s)
         if wait > 0:
             msg = f"recorder unhealthy ({h.reason}); restart {st.streak + 1} of this streak allowed in {wait:.0f} s"
             if st.last_decision != "waiting":
@@ -478,6 +571,26 @@ class Watchdog:
             self.watcher_ops.stop(extra)
             ws["extra_killed"] = int(ws.get("extra_killed") or 0) + 1
             self._event("watcher_killed_extra", pid=extra, kept=current)
+        proxy_why = self._proxy_reason(current) if current is not None else None
+        if proxy_why:
+            since = _ts(ws.get("proxy_stale_since_utc")) or now
+            ws["proxy_stale_since_utc"] = _iso(since)
+            waited = (now - since).total_seconds()
+            if waited >= WATCHER_CYCLE_WAIT_S:
+                self.watcher_ops.stop(current)
+                how = f"stopped after waiting {waited / 60:.0f} min for its cycle to end"
+            elif self.watcher_ops.stop_idle(current):
+                how = "stopped between cycles"
+            else:
+                if not str(ws.get("last_decision") or "").startswith("proxy wait"):
+                    self.log(f"live watcher: pid {current}: {proxy_why}; restarted when its current cycle ends")
+                ws["last_decision"] = f"proxy wait: {proxy_why}; restarted when its current cycle ends"
+                return "proxy_wait"
+            self.log(f"live watcher: pid {current} {how}: {proxy_why}")
+            ws["proxy_stale_since_utc"] = None
+            ws["proxy_restarts"] = int(ws.get("proxy_restarts") or 0) + 1
+            return self._start_watcher_now(now, f"proxy: {proxy_why}", current, wait_backoff=False)
+        ws["proxy_stale_since_utc"] = None
         if current is not None:
             if current != pid_file:
                 _atomic_write(self.watch_pid_path, str(current))
@@ -492,10 +605,14 @@ class Watchdog:
                 ws["streak"] = 0
             ws["last_decision"] = f"ok: pid {current} alive"
             return "ok"
-        ws["alive_since_utc"] = None
         why = "no live watcher process" + (f" (watch.pid {pid_file} is not a live watcher)" if pid_file else "")
+        return self._start_watcher_now(now, why, pid_file)
+
+    def _start_watcher_now(self, now: pd.Timestamp, why: str, old_pid: int | None, wait_backoff: bool = True) -> str:
+        ws = self.state.watcher
+        ws["alive_since_utc"] = None
         streak = int(ws.get("streak") or 0)
-        wait = restart_wait_s(now, _ts(ws.get("last_restart_utc")), streak, self.backoff_s)
+        wait = restart_wait_s(now, _ts(ws.get("last_restart_utc")), streak, self.backoff_s) if wait_backoff else 0.0
         if wait > 0:
             if not str(ws.get("last_decision") or "").startswith("waiting"):
                 self.log(f"live watcher: {why}; restart {streak + 1} of this streak allowed in {wait:.0f} s")
@@ -508,7 +625,7 @@ class Watchdog:
         nxt = self.backoff_s[min(streak, len(self.backoff_s) - 1)]
         self.log(f"live watcher: restart {ws['restarts']} (streak {streak + 1}): {why}; new watcher pid {new}; "
                  f"next restart no sooner than {nxt // 60} min")
-        self._event("watcher_restarted", old_pid=pid_file, new_pid=new, reason=why, streak=streak + 1)
+        self._event("watcher_restarted", old_pid=old_pid, new_pid=new, reason=why, streak=streak + 1)
         return "restarted"
 
     # -- regional CNN run ---------------------------------------------------------------------------------------
@@ -538,6 +655,14 @@ class Watchdog:
             self._event("cnn_killed_extra", pid=extra, kept=current)
         n_ck = self._cnn_checkpoints()
         cs["checkpoints"] = n_ck
+        proxy_why = self._proxy_reason(current) if current is not None else None
+        if proxy_why:  # its remote reads would fail; the scene checkpoints keep its work
+            self.log(f"CNN run: stopping pid {current}: {proxy_why}; resumed with this watchdog's environment")
+            self.cnn_ops.stop(current)
+            cs.update(pid=None, proxy_resume=True, awaiting_outcome=False, missing_checks=0,
+                      last_decision=f"stopped for its proxy: {proxy_why}")
+            self._event("cnn_stopped_proxy", pid=current)
+            return "stopped_proxy"
         if current is not None:
             if current != pid_file:
                 _atomic_write(self.cnn_pid_path, str(current))
@@ -580,7 +705,8 @@ class Watchdog:
             cs["last_decision"] = "complete: every scene checkpointed"
             return "complete"
         no_progress = int(cs.get("no_progress") or 0)
-        wait = cnn_wait_s(now, _ts(cs.get("last_launch_utc")), no_progress, self.cnn_gap_s)
+        wait = 0.0 if cs.get("proxy_resume") else cnn_wait_s(now, _ts(cs.get("last_launch_utc")), no_progress,
+                                                              self.cnn_gap_s)
         if wait > 0:
             if not str(cs.get("last_decision") or "").startswith("waiting"):
                 self.log(f"CNN run: not running; next resume allowed in {wait / 60:.0f} min (resumes without "
@@ -588,7 +714,7 @@ class Watchdog:
             cs["last_decision"] = f"waiting: next resume after {_iso(now + pd.Timedelta(seconds=wait))}"
             return "waiting"
         cs.update(last_launch_utc=_iso(now), launch_checkpoints=n_ck, launches=int(cs.get("launches") or 0) + 1,
-                  last_decision="launching: resume command running")
+                  last_decision="launching: resume command running", proxy_resume=False)
         self.log(f"CNN run: not running; resume {cs['launches']}: python {' '.join(CNN_CMD[4:])} "
                  f"({n_ck} scene checkpoints)")
         self.cnn_launch = self.cnn_ops.start(list(CNN_CMD))
@@ -616,6 +742,29 @@ class Watchdog:
             cs["failures"] = int(cs.get("failures") or 0) + 1
             self.log(f"CNN run: resume command failed (exit {rc}): {last}")
             self._event("cnn_resume_failed", rc=rc)
+
+    # -- proxy --------------------------------------------------------------------------------------------------
+    def _check_own_proxy(self, now: pd.Timestamp) -> bool:
+        """Does the watchdog's own proxy answer? Logged when that changes. Without a proxy there is nothing to test."""
+        ps = self.state.proxy
+        ep = proxy_endpoint(self.own_env)
+        ok = ep is None or self.answers_fn(ep)
+        if not ok and ps.get("answers") is not False:
+            self.log(f"own proxy {endpoint_label(ep)} does not answer: what this watchdog restarts would not reach "
+                     "the network; replace it from a shell with the current environment: python "
+                     "scripts/29_ais_watchdog.py --ensure")
+            self._event("own_proxy_dead", endpoint=endpoint_label(ep))
+        elif ok and ps.get("answers") is False:
+            self.log(f"own proxy {endpoint_label(ep)} answers again")
+        ps.update(endpoint=endpoint_label(ep), answers=ok, checked_utc=_iso(now))
+        return ok
+
+    def _proxy_reason(self, pid: int | None) -> str | None:
+        """Why the supervised process `pid` must be restarted for its proxy (see stale_proxy), or None. Never while
+        the watchdog's own proxy is dead: a restart would inherit that."""
+        if not self.proxy_check or pid is None or not self._own_proxy_ok:
+            return None
+        return stale_proxy(self.environ_fn(pid), self.own_env, self.answers_fn)
 
     # -- processes ----------------------------------------------------------------------------------------------
     def _start_detached(self, label: str, cmd: list[str], log_path: Path) -> int:
@@ -678,6 +827,22 @@ def read_cmdline(pid: int) -> list[str] | None:
     except OSError:
         return None
     return [c.decode("utf-8", "replace") for c in raw.split(b"\0") if c] or None
+
+
+def read_proxy_environ(pid: int) -> dict[str, str] | None:
+    """The proxy variables (PROXY_KEYS) of process `pid` from /proc/<pid>/environ, None if unreadable. No other
+    variable is decoded or kept."""
+    try:
+        raw = Path(f"/proc/{pid}/environ").read_bytes()
+    except OSError:
+        return None
+    out = {}
+    for item in raw.split(b"\0"):
+        k, sep, v = item.partition(b"=")
+        name = k.decode("ascii", "replace")
+        if sep and name in PROXY_KEYS:
+            out[name] = v.decode("utf-8", "replace")
+    return out
 
 
 def read_pid(path: Path) -> int | None:
@@ -753,6 +918,19 @@ def stop_process(pid: int, term_wait_s: float = TERM_WAIT_S, alive=is_recorder_p
     _reap_any()
 
 
+def stop_when_idle(pid: int, lock_path: Path, alive) -> bool:
+    """Stop the live watcher only between cycles: take its cycle.lock without waiting (the watcher holds it for a
+    whole cycle) and stop it while holding the lock, so no cycle starts in between. False when a cycle is running."""
+    lock = acquire_lock(lock_path)
+    if lock is None:
+        return False
+    try:
+        stop_process(pid, alive=alive)
+    finally:
+        lock.close()
+    return True
+
+
 def _reap_any() -> None:
     try:
         while True:
@@ -810,12 +988,14 @@ def run(args) -> int:
         print(f"{now_utc():%Y-%m-%d %H:%M:%S}Z [watchdog] {msg}", flush=True)
 
     lock = acquire_lock(AIS_DIR / "watchdog.lock")
+    if lock is None and args.replace:
+        lock = take_over(log)
     if lock is None:
         log("another watchdog holds watchdog.lock; exiting")
         return 3
     _atomic_write(AIS_DIR / "watchdog.pid", str(os.getpid()))
     wd = Watchdog(AIS_DIR, stale_s=args.stale_minutes * 60, log=log, refresh_hours=args.refresh_passes_hours,
-                  watcher=not args.no_live_watcher, cnn=not args.no_cnn_resume)
+                  watcher=not args.no_live_watcher, cnn=not args.no_cnn_resume, proxy_check=not args.no_proxy_check)
     stopping = {"flag": False}
 
     def on_signal(sig, _frame):
@@ -827,7 +1007,9 @@ def run(args) -> int:
     log(f"started pid {os.getpid()}; check every {args.interval:.0f} s, stale after {args.stale_minutes:g} min, "
         f"restart backoff {', '.join(str(b // 60) for b in BACKOFF_S)} min, pass refresh every "
         f"{args.refresh_passes_hours:g} h; live watcher {'supervised' if wd.watcher else 'not supervised'}; "
-        f"CNN run {f'resumed while incomplete, at least {CNN_GAP_S[0] // 60} min apart' if wd.cnn else 'not supervised'}")
+        f"CNN run {f'resumed while incomplete, at least {CNN_GAP_S[0] // 60} min apart' if wd.cnn else 'not supervised'}; "
+        f"proxy {endpoint_label(proxy_endpoint(os.environ))}, "
+        f"{'checked' if wd.proxy_check else 'not checked'}")
     try:
         while not stopping["flag"]:
             try:
@@ -855,20 +1037,46 @@ def run(args) -> int:
     return 0
 
 
+def take_over(log):
+    """`--run --replace`: stop the watchdog that holds the lock when its proxy differs from ours and ours answers
+    (replace_reason), then wait for the lock. Returns the lock, or None."""
+    old = watchdog_pid()
+    why = replace_reason(read_proxy_environ(old), os.environ) if old else None
+    if not why:
+        return None
+    log(f"replacing watchdog pid {old}: {why}")
+    try:
+        os.kill(old, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    t_end = time.monotonic() + REPLACE_WAIT_S
+    while time.monotonic() < t_end:
+        lock = acquire_lock(AIS_DIR / "watchdog.lock")
+        if lock is not None:
+            return lock
+        time.sleep(0.5)
+    return None
+
+
 def ensure(args) -> int:
     pid = watchdog_pid()
-    if pid:
+    why = replace_reason(read_proxy_environ(pid), os.environ) if pid and not args.no_proxy_check else None
+    if pid and not why:
         print(f"watchdog already running, pid {pid}")
         return 0
+    if why:
+        print(f"watchdog pid {pid} is replaced: {why}")
     AIS_DIR.mkdir(parents=True, exist_ok=True)
     cmd = [sys.executable, str(Path(__file__).resolve()), "--run", "--interval", str(args.interval),
            "--stale-minutes", str(args.stale_minutes), "--refresh-passes-hours", str(args.refresh_passes_hours)]
     cmd += ["--no-live-watcher"] if args.no_live_watcher else []
     cmd += ["--no-cnn-resume"] if args.no_cnn_resume else []
+    cmd += ["--no-proxy-check"] if args.no_proxy_check else []
+    cmd += ["--replace"] if why else []
     with open(AIS_DIR / "watchdog.log", "ab") as out, open(os.devnull, "rb") as devnull:
         p = subprocess.Popen(cmd, cwd=REPO_ROOT, stdin=devnull, stdout=out, stderr=subprocess.STDOUT,
                              start_new_session=True, close_fds=True)
-    for _ in range(20):
+    for _ in range(70 if why else 20):  # a replacement waits for the old watchdog to finish its check and exit
         time.sleep(0.5)
         if watchdog_pid() == p.pid:
             print(f"watchdog started, pid {p.pid}; log {AIS_DIR / 'watchdog.log'}")
@@ -901,6 +1109,19 @@ def status() -> int:
             return "not supervised (the running watchdog predates this supervision; restart it)"
         return "supervised" if sup[key] else "not supervised (flag)"
 
+    mine = proxy_endpoint(os.environ)
+    wd_ep = proxy_endpoint(read_proxy_environ(pid)) if pid else None
+    wd_line = (f"watchdog {endpoint_label(wd_ep)} ({'answers' if wd_ep is None or proxy_answers(wd_ep) else 'DOES NOT ANSWER'})"
+               if pid else "no watchdog")
+    print(f"proxy: this shell {endpoint_label(mine)}; {wd_line}"
+          + ("; differs from this shell: --ensure replaces the watchdog" if pid and wd_ep != mine else ""))
+    for label, procs in (("recorder", recorder_processes()), ("live watcher", find_processes(is_watcher_args)),
+                         ("CNN run", find_processes(is_cnn_run_args))):
+        for q in procs:
+            ep = proxy_endpoint(read_proxy_environ(q))
+            if pid and ep != wd_ep:
+                print(f"  {label} pid {q}: proxy {endpoint_label(ep)}, not the watchdog's "
+                      f"({'answers' if ep and proxy_answers(ep) else 'dead: restarted at the next check'})")
     print(f"recorder processes: {recorder_processes() or 'none'}; recorder.pid {read_pid(AIS_DIR / 'recorder.pid')}")
     ws = s.get("watcher") or {}
     print(f"live watcher: {supervised('live_watcher')}; processes {find_processes(is_watcher_args) or 'none'}; "
@@ -950,6 +1171,9 @@ def main(argv=None) -> int:
     ap.add_argument("--refresh-passes-hours", type=float, default=6.0, help="0 = never refresh the pass plan")
     ap.add_argument("--no-live-watcher", action="store_true", help="do not supervise scripts/30_live_pass.py --watch")
     ap.add_argument("--no-cnn-resume", action="store_true", help="do not resume scripts/32_cnn_regional.py")
+    ap.add_argument("--no-proxy-check", action="store_true",
+                    help="do not compare proxies (no replacement by --ensure, no proxy restarts)")
+    ap.add_argument("--replace", action="store_true", help=argparse.SUPPRESS)  # set by --ensure
     args = ap.parse_args(argv)
     if args.status:
         return status()

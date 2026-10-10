@@ -1,5 +1,5 @@
 {
- "created_utc": "2026-10-10T00:44:59Z",
+ "created_utc": "2026-10-10T03:00:56Z",
  "script": "scripts/32_cnn_regional.py",
  "model_id": "verifier_v0_356af0ca",
  "threshold": 0.631782591342926,
@@ -77,11 +77,14 @@
     "low"
    ],
    "objects": 823285,
-   "scored": 491235,
+   "scored": 823285,
    "scenes": 119,
-   "scenes_done": 58,
-   "complete": false,
-   "in_outputs": false
+   "scenes_done": 119,
+   "complete": true,
+   "in_outputs": true,
+   "by_source": {
+    "scored": 823285
+   }
   }
  },
  "run_time": {
@@ -91,6 +94,13 @@
    "first_scene_done_utc": "2026-10-09 00:43:04+00:00",
    "last_scene_done_utc": "2026-10-09 05:39:46+00:00",
    "objects_per_second": 14.65
+  },
+  "low": {
+   "scene_seconds_sum": 20424.5,
+   "scene_seconds_median": 104.0,
+   "first_scene_done_utc": "2026-10-09 05:42:01+00:00",
+   "last_scene_done_utc": "2026-10-10 03:00:23+00:00",
+   "objects_per_second": 40.31
   }
  },
  "reuse_check": {
@@ -143,6 +153,24 @@
     "bg_vv_db_median": -20.66,
     "bg_vh_db_median": -27.98,
     "length_median_m": 73.2
+   },
+   {
+    "confidence": "low",
+    "n": 823285,
+    "accepted": 5178,
+    "accept_share": 0.006,
+    "accept_ci95": [
+     0.006,
+     0.006
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -22.83,
+    "bg_vh_db_median": -27.34,
+    "length_median_m": 24.1
    },
    {
     "confidence": "medium",
@@ -259,6 +287,25 @@
    },
    {
     "mission": "S1C",
+    "confidence": "low",
+    "n": 268521,
+    "accepted": 1074,
+    "accept_share": 0.004,
+    "accept_ci95": [
+     0.004,
+     0.004
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -24.19,
+    "bg_vh_db_median": -27.5,
+    "length_median_m": 24.1
+   },
+   {
+    "mission": "S1C",
     "confidence": "medium",
     "n": 8351,
     "accepted": 823,
@@ -313,6 +360,25 @@
     "bg_vv_db_median": -20.56,
     "bg_vh_db_median": -28.08,
     "length_median_m": 79.4
+   },
+   {
+    "mission": "S1D",
+    "confidence": "low",
+    "n": 554764,
+    "accepted": 4104,
+    "accept_share": 0.007,
+    "accept_ci95": [
+     0.007,
+     0.008
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -21.97,
+    "bg_vh_db_median": -27.28,
+    "length_median_m": 24.1
    },
    {
     "mission": "S1D",
@@ -467,6 +533,25 @@
    },
    {
     "length_bin": "0-25 m",
+    "confidence": "low",
+    "n": 478562,
+    "accepted": 530,
+    "accept_share": 0.001,
+    "accept_ci95": [
+     0.001,
+     0.001
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -22.36,
+    "bg_vh_db_median": -27.56,
+    "length_median_m": 20.0
+   },
+   {
+    "length_bin": "0-25 m",
     "confidence": "medium",
     "n": 27991,
     "accepted": 243,
@@ -521,6 +606,25 @@
     "bg_vv_db_median": -21.12,
     "bg_vh_db_median": -28.28,
     "length_median_m": 40.0
+   },
+   {
+    "length_bin": "25-50 m",
+    "confidence": "low",
+    "n": 161845,
+    "accepted": 630,
+    "accept_share": 0.004,
+    "accept_ci95": [
+     0.004,
+     0.004
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.002
+    ],
+    "bg_vv_db_median": -23.38,
+    "bg_vh_db_median": -27.3,
+    "length_median_m": 32.3
    },
    {
     "length_bin": "25-50 m",
@@ -581,6 +685,25 @@
    },
    {
     "length_bin": "50-100 m",
+    "confidence": "low",
+    "n": 132092,
+    "accepted": 1225,
+    "accept_share": 0.009,
+    "accept_ci95": [
+     0.009,
+     0.01
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.002
+    ],
+    "bg_vv_db_median": -23.69,
+    "bg_vh_db_median": -27.25,
+    "length_median_m": 63.0
+   },
+   {
+    "length_bin": "50-100 m",
     "confidence": "medium",
     "n": 6988,
     "accepted": 1644,
@@ -638,6 +761,25 @@
    },
    {
     "length_bin": "100-200 m",
+    "confidence": "low",
+    "n": 36560,
+    "accepted": 691,
+    "accept_share": 0.019,
+    "accept_ci95": [
+     0.018,
+     0.02
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.002
+    ],
+    "bg_vv_db_median": -23.73,
+    "bg_vh_db_median": -27.14,
+    "length_median_m": 126.2
+   },
+   {
+    "length_bin": "100-200 m",
     "confidence": "medium",
     "n": 2556,
     "accepted": 1205,
@@ -692,6 +834,25 @@
     "bg_vv_db_median": -19.77,
     "bg_vh_db_median": -27.59,
     "length_median_m": 267.2
+   },
+   {
+    "length_bin": "200 m and longer",
+    "confidence": "low",
+    "n": 14226,
+    "accepted": 2102,
+    "accept_share": 0.148,
+    "accept_ci95": [
+     0.142,
+     0.154
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.011
+    ],
+    "bg_vv_db_median": -21.02,
+    "bg_vh_db_median": -26.92,
+    "length_median_m": 317.9
    },
    {
     "length_bin": "200 m and longer",
@@ -882,6 +1043,25 @@
    },
    {
     "region": "Gulf of Tonkin",
+    "confidence": "low",
+    "n": 107931,
+    "accepted": 1387,
+    "accept_share": 0.013,
+    "accept_ci95": [
+     0.012,
+     0.014
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.002
+    ],
+    "bg_vv_db_median": -22.69,
+    "bg_vh_db_median": -27.09,
+    "length_median_m": 24.1
+   },
+   {
+    "region": "Gulf of Tonkin",
     "confidence": "medium",
     "n": 9485,
     "accepted": 1220,
@@ -936,6 +1116,25 @@
     "bg_vv_db_median": -19.78,
     "bg_vh_db_median": -28.31,
     "length_median_m": 89.0
+   },
+   {
+    "region": "North shelf",
+    "confidence": "low",
+    "n": 32544,
+    "accepted": 806,
+    "accept_share": 0.025,
+    "accept_ci95": [
+     0.023,
+     0.027
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.01
+    ],
+    "bg_vv_db_median": -19.52,
+    "bg_vh_db_median": -27.69,
+    "length_median_m": 24.1
    },
    {
     "region": "North shelf",
@@ -996,6 +1195,25 @@
    },
    {
     "region": "Gulf of Thailand",
+    "confidence": "low",
+    "n": 139227,
+    "accepted": 897,
+    "accept_share": 0.006,
+    "accept_ci95": [
+     0.006,
+     0.007
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -19.12,
+    "bg_vh_db_median": -26.62,
+    "length_median_m": 20.0
+   },
+   {
+    "region": "Gulf of Thailand",
     "confidence": "medium",
     "n": 12751,
     "accepted": 1103,
@@ -1050,6 +1268,25 @@
     "bg_vv_db_median": -20.44,
     "bg_vh_db_median": -27.62,
     "length_median_m": 76.9
+   },
+   {
+    "region": "South Vietnam shelf",
+    "confidence": "low",
+    "n": 88502,
+    "accepted": 643,
+    "accept_share": 0.007,
+    "accept_ci95": [
+     0.007,
+     0.008
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.002
+    ],
+    "bg_vv_db_median": -23.94,
+    "bg_vh_db_median": -27.31,
+    "length_median_m": 24.1
    },
    {
     "region": "South Vietnam shelf",
@@ -1110,6 +1347,25 @@
    },
    {
     "region": "Central sea",
+    "confidence": "low",
+    "n": 59069,
+    "accepted": 43,
+    "accept_share": 0.001,
+    "accept_ci95": [
+     0.001,
+     0.001
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.0,
+     0.001
+    ],
+    "bg_vv_db_median": -26.44,
+    "bg_vh_db_median": -29.61,
+    "length_median_m": 24.1
+   },
+   {
+    "region": "Central sea",
     "confidence": "medium",
     "n": 1108,
     "accepted": 30,
@@ -1167,6 +1423,25 @@
    },
    {
     "region": "Southern sea",
+    "confidence": "low",
+    "n": 58432,
+    "accepted": 746,
+    "accept_share": 0.013,
+    "accept_ci95": [
+     0.012,
+     0.014
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -22.23,
+    "bg_vh_db_median": -27.06,
+    "length_median_m": 20.0
+   },
+   {
+    "region": "Southern sea",
     "confidence": "medium",
     "n": 5795,
     "accepted": 702,
@@ -1221,6 +1496,25 @@
     "bg_vv_db_median": -21.2,
     "bg_vh_db_median": -27.77,
     "length_median_m": 75.5
+   },
+   {
+    "region": "other",
+    "confidence": "low",
+    "n": 337580,
+    "accepted": 656,
+    "accept_share": 0.002,
+    "accept_ci95": [
+     0.002,
+     0.002
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.0,
+     0.001
+    ],
+    "bg_vv_db_median": -24.19,
+    "bg_vh_db_median": -28.0,
+    "length_median_m": 24.1
    },
    {
     "region": "other",
@@ -1631,6 +1925,25 @@
    },
    {
     "mission": "S1C",
+    "confidence": "low",
+    "n": 268521,
+    "accepted": 1074,
+    "accept_share": 0.004,
+    "accept_ci95": [
+     0.004,
+     0.004
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -24.19,
+    "bg_vh_db_median": -27.5,
+    "length_median_m": 24.1
+   },
+   {
+    "mission": "S1C",
     "confidence": "medium",
     "n": 1645,
     "accepted": 145,
@@ -1685,6 +1998,25 @@
     "bg_vv_db_median": -20.42,
     "bg_vh_db_median": -28.27,
     "length_median_m": 80.3
+   },
+   {
+    "mission": "S1D",
+    "confidence": "low",
+    "n": 554764,
+    "accepted": 4104,
+    "accept_share": 0.007,
+    "accept_ci95": [
+     0.007,
+     0.008
+    ],
+    "score_q25_q50_q75": [
+     0.0,
+     0.001,
+     0.001
+    ],
+    "bg_vv_db_median": -21.97,
+    "bg_vh_db_median": -27.28,
+    "length_median_m": 24.1
    },
    {
     "mission": "S1D",

@@ -99,6 +99,7 @@ Lesson: in-process retries cover proxy drops and server disconnects; only a sepa
 7. Every 6 hours (age of `generated_utc` in `data/s1_next_passes.json`) it refreshes the pass plan in the background with `nice -n 10 python scripts/28_ais_reach.py --passes-only --fetch-plan`; a failed refresh is retried after 1 hour.
 
 8. Since 2026-10-09 it also supervises the live-pass watcher (`scripts/30_live_pass.py --watch`) and the regional CNN run (`scripts/32_cnn_regional.py`) while that run is incomplete; section 4.5 gives the rules. `--no-live-watcher` and `--no-cnn-resume` turn either off.
+9. Since 2026-10-10 it also checks the outbound proxy: what it starts inherits its environment, so a watchdog started before a proxy move restarts everything onto the dead proxy. `--ensure` replaces such a watchdog, and a supervised process on a dead proxy is restarted at once (section 4.5, When the proxy moves without a container restart). `--no-proxy-check` turns this off.
 
 `watchdog_status.json` holds checks, cumulative restarts, the current streak, the last restart and its reason, the last decision and a short history, with a `watcher` and a `cnn` section for the other two processes and `supervise` for the flags; the counts carry over when the watchdog itself is restarted.
 
@@ -115,8 +116,8 @@ and the new recorder logged `connected and subscribed` at 23:35:48 and resumed f
 ### 4.4 Commands
 
 ```
-python scripts/29_ais_watchdog.py --ensure     # start detached unless one holds the lock (run at every session start)
-python scripts/29_ais_watchdog.py --status     # watchdog, recorder, live watcher and CNN run
+python scripts/29_ais_watchdog.py --ensure     # start detached unless one runs; replaces one on another, answering proxy
+python scripts/29_ais_watchdog.py --status     # watchdog, recorder, live watcher, CNN run and their proxies
 python scripts/29_ais_watchdog.py --stop       # stop the watchdog only; what it supervises keeps running
 python scripts/26_ais_record.py --status       # what has been recorded, per hour
 python scripts/26_ais_record.py --stop         # stop the recorder (the watchdog restarts it within about a minute)
@@ -133,16 +134,16 @@ To stop everything: `--stop` the watchdog first, then the recorder, the live wat
 
 | Process | Started by | Kept alive by | Counts as healthy | Restart rule | Files |
 |---|---|---|---|---|---|
-| aisstream recorder, `scripts/26_ais_record.py --hours 0` | the watchdog | the watchdog | alive, and its own `status.json` has a message less than 5 min old | at once; then 1, 2, 5, 10 min after the previous restart; 15 min healthy resets the streak | `data/cache/ais/aisstream/recorder.pid`, `status.json`, `record.log` |
-| live-pass watcher, `scripts/30_live_pass.py --watch` (nice 10) | the session hook, or the watchdog | the watchdog | alive (liveness only: one cycle on a pass can take an hour, so a quiet watcher is never restarted) | as the recorder | `data/cache/live/watch.pid`, `watch.log`, `cycle.lock` |
+| aisstream recorder, `scripts/26_ais_record.py --hours 0` | the watchdog | the watchdog | alive, its own `status.json` has a message less than 5 min old, and its proxy is the watchdog's or still answers | at once; then 1, 2, 5, 10 min after the previous restart; 15 min healthy resets the streak; on a dead proxy at once, without the backoff | `data/cache/ais/aisstream/recorder.pid`, `status.json`, `record.log` |
+| live-pass watcher, `scripts/30_live_pass.py --watch` (nice 10) | the session hook, or the watchdog | the watchdog | alive (liveness only: one cycle on a pass can take an hour, so a quiet watcher is never restarted), and its proxy is the watchdog's or still answers | as the recorder; on a dead proxy only between cycles (the watchdog holds `cycle.lock` while it stops it), or after 30 min of waiting for the cycle to end | `data/cache/live/watch.pid`, `watch.log`, `cycle.lock` |
 | regional CNN run, `scripts/32_cnn_regional.py` (nice 19) | the session hook (in the background), or the watchdog, through `--detach --if-incomplete --phases main,low` | the watchdog, until every scene has a checkpoint | alive; the watchdog acts only when no run is seen in two checks in a row, because the run re-executes itself in place to shed memory, and waits while a resume command it did not start (the hook's) is still running, up to 10 min | resumes at least 30 min apart; the gap doubles (60, 120, at most 240 min) after each resume whose run ended without a new scene checkpoint; script 32's answer "nothing to start" ends the supervision | `data/cache/regional_cnn/run.pid`, `run.log`, `main/`, `low/` |
-| watchdog, `scripts/29_ais_watchdog.py --run` | the session hook (`--ensure`) | nothing inside the container; the session hook of the next session | `watchdog.pid` names a live watchdog; `watchdog.lock` held | `--ensure` starts one unless one holds the lock | `data/cache/ais/aisstream/watchdog.pid`, `watchdog.lock`, `watchdog.log`, `watchdog_status.json`, `cnn_resume.out` |
+| watchdog, `scripts/29_ais_watchdog.py --run` | the session hook (`--ensure`) | nothing inside the container; the session hook of the next session | `watchdog.pid` names a live watchdog; `watchdog.lock` held | `--ensure` starts one unless one runs; it replaces a running one whose proxy differs from the caller's when the caller's answers | `data/cache/ais/aisstream/watchdog.pid`, `watchdog.lock`, `watchdog.log`, `watchdog_status.json`, `cnn_resume.out` |
 
 Rules for all three supervised processes:
 
 1. A process counts only if `/proc` shows it alive (not a zombie) with the script's path as one argument of its command line (plus `--watch` for the watcher; for the CNN run none of `--status`, `--stop`, `--build`, `--detach`; a CNN command line with `--detach` is a resume command still deciding, which the watchdog waits for and never signals). A pid file is a hint, never proof: after a container restart pids start again from low numbers (the watchdog came back as pid 163 to 171, once 441), so `watch.pid` or `run.pid` can name a live process that is something else. The watchdog then starts a new watcher (it never signals the stranger) and deletes the stale `run.pid`, because script 32 itself checks only that the pid exists and would refuse to resume.
 2. One copy of each. A second recorder, watcher or CNN run is SIGTERMed; the one in the pid file is kept, and a wrong pid file is corrected.
-3. A healthy process is never stopped. Swapping in new watchdog code (`--stop`, then `--ensure`) does not touch the recorder, the watcher or the CNN run. Done on 2026-10-09 at 15:26:10 to 15:26:12 UTC: recorder pid 165 before and after, `connects` 3 in `status.json` before and after (last connect 15:05:54, before the swap), flushes in `record.log` at 15:25:43, 15:26:43 and every minute after, and no gap over 4.2 s between positions from 15:20 to 15:30 UTC. A second swap at 15:34:41 to 15:34:43, to load the final code, left the recorder (pid 165, 3 connects) and its minute flushes (15:33:44, 15:34:44) unchanged in the same way; the largest gap between positions from 15:30 to 15:40 UTC was 4.8 s. Two more swaps on 2026-10-10, at 00:25:16 to 00:25:17 and 00:29:03 to 00:29:05, to load the wait for a resume command started elsewhere, left the recorder (pid 178, 1 connect, last connect 00:19:14, before both) and its minute flushes (00:24:14, 00:25:14, 00:26:14, 00:27:14, 00:28:15, 00:29:15 and on) unchanged; the largest gap between positions from 00:20 to 00:30 UTC was 5.2 s.
+3. A healthy process is never stopped. A process whose proxy is not the watchdog's counts as unhealthy only when that proxy no longer accepts a connection; the CNN run is then stopped (its scene checkpoints keep its work) and resumed at once with the watchdog's environment. Swapping in new watchdog code (`--stop`, then `--ensure`) does not touch the recorder, the watcher or the CNN run. Done on 2026-10-09 at 15:26:10 to 15:26:12 UTC: recorder pid 165 before and after, `connects` 3 in `status.json` before and after (last connect 15:05:54, before the swap), flushes in `record.log` at 15:25:43, 15:26:43 and every minute after, and no gap over 4.2 s between positions from 15:20 to 15:30 UTC. A second swap at 15:34:41 to 15:34:43, to load the final code, left the recorder (pid 165, 3 connects) and its minute flushes (15:33:44, 15:34:44) unchanged in the same way; the largest gap between positions from 15:30 to 15:40 UTC was 4.8 s. Two more swaps on 2026-10-10, at 00:25:16 to 00:25:17 and 00:29:03 to 00:29:05, to load the wait for a resume command started elsewhere, left the recorder (pid 178, 1 connect, last connect 00:19:14, before both) and its minute flushes (00:24:14, 00:25:14, 00:26:14, 00:27:14, 00:28:15, 00:29:15 and on) unchanged; the largest gap between positions from 00:20 to 00:30 UTC was 5.2 s.
 
 The CNN supervision exists because the regional CNN low-class run was killed by the container restart of 07:42 UTC on 2026-10-09 (last log line 07:42:24) and nothing resumed it for 7.5 hours. It was resumed by hand at 15:10:30 UTC; its log shows it skipped the 118 checkpointed main scenes and the 27 checkpointed low scenes (`phase low: 119 scenes, 27 checkpointed, 92 to do (553919 objects)`). The outage from 16:18 UTC on 2026-10-09 killed it again (last log line 16:15:25, low scene 29 of the 92). This time the supervision brought it back without anyone: the container booted at 00:17:50 UTC on 2026-10-10, the watchdog's first check (00:19:07) saw no run, its second (00:20:07) ran the resume command (the session hook had already deleted the stale `run.pid`, whose pid 10608 no longer existed, but its own resume had been cut off by its 30 s limit; see below), which answered `started pid 803` at 00:20:58; the run logged `phase main: 118 scenes, 118 checkpointed, 0 to do (0 objects)` at 00:21:22 and `phase low: 119 scenes, 56 checkpointed, 63 to do (404359 objects)` at 00:22:38. The hook's own path was then tested the same night: the run was stopped (`python scripts/32_cnn_regional.py --stop`) at 00:44:21, the second after it checkpointed low scene 58, and `bash scripts/session_start.sh` run at once. The hook took 0.54 s, removed the stale `run.pid` (803), and its background resume answered `started pid 7314`; the new run logged `phase main: 118 scenes, 118 checkpointed, 0 to do` at 00:44:35 and `phase low: 119 scenes, 58 checkpointed, 61 to do (332050 objects)` at 00:45:33, and the watchdog logged `CNN run: watching pid 7314` at 00:45:06. Each resume first rebuilds the main-phase outputs (about 30 s), because the run builds after every phase.
 
@@ -164,7 +165,7 @@ CNN run: supervised; processes [803]; run.pid 803; scene checkpoints main 118, l
   next resume allowed: 2026-10-10T00:50:07Z
 ```
 
-`make ais-status` runs the same command.
+`make ais-status` runs the same command. Since 14:00 UTC on 2026-10-10 it also prints a `proxy:` line (When the proxy moves without a container restart, below).
 
 The watchdog log (`data/cache/ais/aisstream/watchdog.log`) prefixes the other two with `live watcher:` and `CNN run:`. Test on 2026-10-09: the watcher (pid 1852) was killed with SIGKILL at 15:26:33 UTC; the watchdog logged at 15:27:12
 
@@ -186,13 +187,13 @@ It kills every process in the container: the recorder, the watcher, the CNN run 
 
 1. unless `pgrep` finds any `32_cnn_regional.py` process (a run, or a resume command already deciding), deletes `data/cache/regional_cnn/run.pid` if its pid is not a `32_cnn_regional.py` process, then starts `nohup setsid timeout 600 nice -n 19 python scripts/32_cnn_regional.py --detach --if-incomplete --phases main,low` in the background (a no-op when every scene is checkpointed);
 2. starts `nohup setsid nice -n 10 python scripts/30_live_pass.py --watch` unless `pgrep` finds one;
-3. runs `python scripts/29_ais_watchdog.py --ensure` (capped at 45 s with `timeout`); the new watchdog's first check starts the recorder and adopts the watcher, and waits for the hook's CNN resume command before it would start its own.
+3. runs `python scripts/29_ais_watchdog.py --ensure` (capped at 45 s with `timeout`); the new watchdog's first check starts the recorder and adopts the watcher, and waits for the hook's CNN resume command before it would start its own. When a watchdog is still running (no container restart) but on another proxy than the hook's, `--ensure` replaces it (below).
 
 The hook starts the watchdog last so that its first check finds what steps 1 and 2 started and starts nothing twice. The recorder therefore comes back a few seconds after the hook begins.
 
 Until 2026-10-10 step 1 ran in the foreground with a 30 s limit. After the boot of 00:17:50 UTC on 2026-10-10 the cold disk made script 32's scene listing slower than that: the hook began at 00:18:21, the resume command reached its 30 s limit at 00:18:51 and was killed (it printed nothing and started no run), the watcher started at 00:18:51, the watchdog at 00:19:07, so the hook took about 46 s of its 60 s. The watchdog's own resume of 00:20:07 needed 51 s to answer (`started pid 803` at 00:20:58). Step 1 now runs in the background, so the hook does not wait for it, and the watchdog waits for it instead of starting a second resume next to it.
 
-Recording gaps so far, measured from the position partitions in `data/cache/ais/aisstream/positions/` (last message before, first message after; `timestamp` is `MetaData.time_utc`, stamped by aisstream on reception). These are all gaps over 60 s from the start of recording (2026-10-08 14:31:47 UTC) to 00:30 UTC on 2026-10-10:
+Recording gaps so far, measured from the position partitions in `data/cache/ais/aisstream/positions/` (last message before, first message after; `timestamp` is `MetaData.time_utc`, stamped by aisstream on reception). These are all gaps over 60 s from the start of recording (2026-10-08 14:31:47 UTC) to 14:00 UTC on 2026-10-10 (deliberate test gaps are in section 7):
 
 | From (UTC) | To (UTC) | Length | Cause | Sentinel-1 pass inside |
 |---|---|---|---|---|
@@ -204,15 +205,71 @@ Recording gaps so far, measured from the position partitions in `data/cache/ais/
 | 2026-10-09 08:10:48 | 2026-10-09 08:17:13 | 6.4 min | container restart (pid 166 at 08:17:12) | none |
 | 2026-10-09 08:21:12 | 2026-10-09 13:33:27 | 5 h 12 min | container down until the next session (pid 163 at 13:33:18; `uptime` at 15:10 put the boot at about 13:32) | S1D 11:22:31 to 11:35:34 (Gulf of Thailand and South China Sea, 241,335 km2 of AOI): no AIS recorded |
 | 2026-10-09 16:17:47 | 2026-10-10 00:19:12 | 8 h 01 min | container down until the next session (boot 00:17:50 by `/proc/uptime`; hook 00:18:21; new watchdog pid 176 started a new recorder, pid 178, at 00:19:07); the watchdog then running (pid 12798) died with the container | S1D 22:04:56 to 22:09:32 (South China Sea, 51,648 km2 of AOI) and S1C 22:50:45 to 22:53:03 (Gulf of Thailand and Gulf of Tonkin, 11,264 km2): no AIS recorded |
+| 2026-10-10 13:14:38 | 2026-10-10 13:50:52 | 36 min | not a container restart: a new session moved the outbound proxy to another port, and the recorder, the watcher and the watchdog kept the dead one until they were restarted by hand at 13:50 (When the proxy moves without a container restart, below) | none |
 
-Before every one of these, `record.log` shows the local proxy going first (`ConnectionClosedError: no close frame received or sent`, then for some `ConnectionRefusedError` on 127.0.0.1) and then nothing until a new recorder starts. Together the gaps are 23 h 30 min of the 33 h 58 min from 14:31:47 on 2026-10-08 to 00:30 on 2026-10-10: the feed was recorded for about 31 % of that time, and three of the four Sentinel-1 passes over the AOI in that time (S1D 2026-10-09 11:22, S1D 22:04, S1C 22:50; 304,247 km2 of AOI in all) fell in a gap; only the S1D pass of 2026-10-08 22:58 (149,207 km2) has AIS. A watchdog cannot close these gaps; only a host that survives the container (for example the owner's own machine or a small cloud server running the same recorder) can.
+Before every one of these, `record.log` shows the local proxy going first (`ConnectionClosedError: no close frame received or sent`, then for some `ConnectionRefusedError` on 127.0.0.1) and then nothing until a new recorder starts. Together the gaps are 24 h 06 min of the 47 h 28 min from 14:31:47 on 2026-10-08 to 14:00 on 2026-10-10: the feed was recorded for about 49 % of that time. Three of the six Sentinel-1 passes over the AOI in that time (S1D 2026-10-09 11:22, S1D 22:04, S1C 22:50; 304,247 km2 of AOI in all) fell in a gap; the S1D pass of 2026-10-08 22:58 (149,207 km2) and the S1D pass of 10:32 (39,274 km2) and S1C pass of 11:19 (29,868 km2) on 2026-10-10 have AIS. A watchdog cannot close the outage gaps; only a host that survives the container (for example the owner's own machine or a small cloud server running the same recorder) can. The proxy gap of 13:14 is the one the watchdog now closes by itself (below).
+
+#### When the proxy moves without a container restart
+
+On 2026-10-10 at 13:14:40 UTC the container stayed up (boot 00:17:50 by `/proc/uptime`), but a new session moved the container's outbound proxy on 127.0.0.1 from port 42067 to port 46243. Every process the watchdog had started inherited `HTTPS_PROXY` from the shell that started the watchdog at 00:29, so the recorder, the live watcher and the watchdog itself all still pointed at the dead port:
+
+- `record.log`: `ConnectionClosedError` at 13:14:40, then `ConnectionRefusedError` on ('127.0.0.1', 42067) on every attempt. The last recorded position is 13:14:38.
+- The session hook ran at 13:15:19 and 13:19:57, found a live watchdog, and started nothing.
+- The watchdog called the recorder stale at 13:20:33 and restarted it five times from 13:20:34 to 13:48:37 (backoff 1, 2, 5, 10 min). Each new recorder inherited the dead proxy and never connected (`0 connects`).
+- The live watcher's mirror listings failed with `ProxyError` from 13:19:46 (`listing 2026-10-10 failed 5 times ... using cached records`), so it would not have seen a new scene.
+
+Recovery by hand, 13:50:46 to 13:51:04, from a shell with the current environment: `--stop` the watchdog, `26_ais_record.py --stop`, `30_live_pass.py --stop`, then a new recorder, watcher and watchdog. The recorder logged `connected and subscribed` at 13:50:58 (first position stamped 13:50:52), and the watcher's first listing at 13:51:07 found the two new scenes of the S1D pass of 10:32 UTC. The gap is 36 min; no Sentinel-1 pass fell inside it.
+
+What `scripts/29_ais_watchdog.py` does since then:
+
+1. `--ensure` compares the proxy of the running watchdog with its own: host and port of the first of `HTTPS_PROXY`, `https_proxy`, `ALL_PROXY`, `all_proxy`, `HTTP_PROXY`, `http_proxy`, read from `/proc/<pid>/environ` (no other variable is read). When they differ and its own proxy accepts a TCP connection, it starts a new watchdog with `--replace`, which SIGTERMs the old one, takes `watchdog.lock` and carries on. A caller with no proxy, or with a dead one, never replaces a watchdog. The session hook runs `--ensure` at every session start, so the session that moves the proxy also replaces the watchdog.
+2. Each check opens a TCP connection to the watchdog's own proxy (nothing is sent). When it does not answer, the watchdog logs that once, with the command that fixes it, and makes no proxy restarts, because they would inherit the dead proxy.
+3. A recorder, watcher or CNN run whose proxy differs from the watchdog's and does not answer (or that has none while the watchdog has one) is restarted at once, without the backoff: the cause is known and the restart removes it. The watcher is stopped only between cycles: the watchdog takes `data/cache/live/cycle.lock` without waiting, stops the watcher while it holds the lock, releases it and starts the new watcher; while a cycle runs it waits, at most 30 minutes. A process on another proxy that still answers is left alone, so replacing the watchdog does not interrupt a working recorder.
+4. `--status` prints a `proxy:` line (this shell's proxy, the watchdog's, and whether the watchdog's answers) and one line for each supervised process on a proxy other than the watchdog's.
+
+Only host and port are printed or logged: a proxy URL can carry a user name and password, and they are never shown.
+
+Tests on the live system, 2026-10-10:
+
+- Replacement. At 13:57:35 the watchdog was stopped and started again with `HTTPS_PROXY=http://127.0.0.1:1` (nothing listens there). It logged `own proxy 127.0.0.1:1 does not answer: ...` at 13:57:37 and left the recorder and the watcher alone. `--status` printed:
+
+  ```
+  proxy: this shell 127.0.0.1:46243; watchdog 127.0.0.1:1 (DOES NOT ANSWER); differs from this shell: --ensure replaces the watchdog
+    recorder pid 25101: proxy 127.0.0.1:46243, not the watchdog's (answers)
+    live watcher pid 25119: proxy 127.0.0.1:46243, not the watchdog's (answers)
+  ```
+
+  `python scripts/29_ais_watchdog.py --ensure` from the session shell at 13:57:45 printed `watchdog pid 25891 is replaced: it uses proxy 127.0.0.1:1; this shell uses 127.0.0.1:46243, which answers` and returned in 2.1 s. The new watchdog logged `replacing watchdog pid 25891` at 13:57:46 and `started pid 25918 ... proxy 127.0.0.1:46243, checked` at 13:57:47. The recorder (pid 25101, 1 connect) and the watcher (pid 25119, in the middle of the 10:32 pass) were not touched; the largest gap between positions from 13:52 to 14:01:40 was 3.3 s. The session hook, run right after, took 0.59 s and printed `watchdog already running, pid 25918`.
+- Recorder on a dead proxy. Right after the watchdog's check of 14:01:47 the recorder was stopped by hand and replaced by one started with `HTTPS_PROXY=http://127.0.0.1:1`, which failed to connect from 14:01:49. The streak of the morning's failed restarts (5) asked for a 10 min backoff; the next check ignored it:
+
+  ```
+  2026-10-10 14:02:47Z [watchdog] stopping unhealthy recorder pid 26454: proxy: its proxy 127.0.0.1:1 does not answer; the watchdog's is 127.0.0.1:46243
+  2026-10-10 14:02:47Z [watchdog] restart 14 (streak 6): proxy: its proxy 127.0.0.1:1 does not answer; the watchdog's is 127.0.0.1:46243; new recorder pid 26544; next restart no sooner than 10 min
+  ```
+
+  and the new recorder logged `connected and subscribed` at 14:02:49. Recording gap: 64 s (section 7).
+- Watcher on a dead proxy. At 14:05:48, right after a check and between two cycles, the watcher was stopped and replaced by one started with `HTTPS_PROXY=http://127.0.0.1:1`. Its first cycle began at once and spent 8 minutes failing to list the mirror (`ProxyError`, five tries per day, then `using cached records`). The watchdog let the cycle run; at 14:06:47 it logged, once:
+
+  ```
+  2026-10-10 14:06:47Z [watchdog] live watcher: pid 28000: its proxy 127.0.0.1:1 does not answer; the watchdog's is 127.0.0.1:46243; restarted when its current cycle ends
+  ```
+
+  The cycle ended at 14:13:57. At the next check the watchdog took `cycle.lock`, stopped the watcher and started a new one:
+
+  ```
+  2026-10-10 14:14:48Z [watchdog] live watcher: pid 28000 stopped between cycles: its proxy 127.0.0.1:1 does not answer; the watchdog's is 127.0.0.1:46243
+  2026-10-10 14:14:48Z [watchdog] live watcher: restart 4 (streak 1): proxy: its proxy 127.0.0.1:1 does not answer; the watchdog's is 127.0.0.1:46243; new watcher pid 29447; next restart no sooner than 1 min
+  ```
+
+  The new watcher's first listing at 14:14:52 reached the mirror (`24 AOI scenes since 10-08 14:30, 0 new`).
 
 #### What the session hook needs
 
 - `.claude/settings.json`: the SessionStart hook `bash "$CLAUDE_PROJECT_DIR"/scripts/session_start.sh 2>/dev/null || true` with `timeout` 60 (seconds).
 - The project environment at `/home/user/.mamba/envs/darkvessel/bin/python` and the git-ignored `.env` with `AISSTREAM_API_KEY` at the repo root; without either the hook exits at once and starts nothing.
 - Outbound network through the container proxy: the recorder to aisstream.io, the watcher and the CNN run to the AWS mirror `sentinel-s1-l1c`.
-- Time: 0.65 s measured when everything is already running (2026-10-10 00:28:30 UTC; it started nothing and printed `watchdog already running`). After a container restart: the CNN resume runs in the background (it took 51 s on the cold disk of 2026-10-10 and is bounded at 600 s), so the hook waits only for `--ensure`, which took 16 s cold on 2026-10-10 (00:18:51 to 00:19:07) and is capped at 45 s. Under 60 s in every case; about 46 s was measured with the old foreground resume, which is why it moved to the background.
+- The session's current environment, outbound proxy included: `--ensure` compares the hook's proxy with the running watchdog's and replaces the watchdog when they differ and the hook's answers (When the proxy moves without a container restart, above).
+- Time: 0.65 s measured when everything is already running (2026-10-10 00:28:30 UTC; it started nothing and printed `watchdog already running`), 0.59 s at 13:57:58 the same day. After a container restart: the CNN resume runs in the background (it took 51 s on the cold disk of 2026-10-10 and is bounded at 600 s), so the hook waits only for `--ensure`, which took 16 s cold on 2026-10-10 (00:18:51 to 00:19:07) and is capped at 45 s. Under 60 s in every case; about 46 s was measured with the old foreground resume, which is why it moved to the background.
 - Output: one `[session_start]` line per run, followed by what the three commands print, in `data/cache/ais/aisstream/watchdog.log`.
 
 ## 5. Reach maps
@@ -282,13 +339,14 @@ What this means:
 
 ## 7. Recording gaps
 
-Every gap over 60 s so far is listed with its cause in section 4.5 (What a container restart does): eight container outages between 2026-10-08 15:19 and 2026-10-10 00:19 UTC, 23 h 30 min in all. One shorter, deliberate gap is not in that table:
+Every gap over 60 s so far is listed with its cause in section 4.5 (What a container restart does): eight container outages between 2026-10-08 15:19 and 2026-10-10 00:19 UTC and one dead proxy from 13:14 to 13:50 UTC on 2026-10-10, 24 h 06 min in all up to 14:00 UTC on 2026-10-10. Two short, deliberate gaps are not in that table:
 
 | From (UTC) | To (UTC) | Length | Cause |
 |---|---|---|---|
 | 2026-10-08 23:35:11 | 2026-10-08 23:35:48 | 37 s | deliberate restart to load the fixed recorder code: stopped by hand, restarted by the watchdog (the acceptance test of section 4.2), 30 min after the 22:58 to 23:05 pass |
+| 2026-10-10 14:01:44 | 2026-10-10 14:02:48 | 64 s | deliberate test: the recorder replaced by one on a dead proxy, which the watchdog restarted at its next check (section 4.5, When the proxy moves without a container restart) |
 
-Recording started at 14:31:48 UTC on 2026-10-08. Gaps over 10 minutes are listed in `recording_gaps_over_10_min` of the summary and in the `about` layer, and they do not count as recorded hours in the reach share. No Sentinel-1 pass over the AOI fell inside the gap of 2026-10-08: the passes of that day were at 09:58 and 10:48 UTC (before recording started) and 22:58 UTC (recorded). The S1D pass of 2026-10-09 11:22 to 11:35 UTC fell inside the outage of 08:21 to 13:33 UTC, and the S1D pass of 22:04 to 22:09 and the S1C pass of 22:50 to 22:53 inside the outage of 16:17 on 2026-10-09 to 00:19 on 2026-10-10: no AIS was recorded for any of them, so the live-pass pipeline cannot identify their contacts. The watcher marks such scenes `skipped_no_ais` in its checkpoints (`data/cache/live/scenes/`; all 11 scenes of the 11:22 pass on 2026-10-10 at 00:19:48) and never retries them; a skipped scene does not rebuild `data/live/`, so the product files still hold only the pass of 2026-10-08 22:58. The aisstream service itself drops messages without notice and has no replay, so short silences inside a recorded hour are possible and invisible here.
+Recording started at 14:31:48 UTC on 2026-10-08. Gaps over 10 minutes are listed in `recording_gaps_over_10_min` of the summary and in the `about` layer, and they do not count as recorded hours in the reach share. No Sentinel-1 pass over the AOI fell inside the gap of 2026-10-08: the passes of that day were at 09:58 and 10:48 UTC (before recording started) and 22:58 UTC (recorded). The S1D pass of 2026-10-09 11:22 to 11:35 UTC fell inside the outage of 08:21 to 13:33 UTC, and the S1D pass of 22:04 to 22:09 and the S1C pass of 22:50 to 22:53 inside the outage of 16:17 on 2026-10-09 to 00:19 on 2026-10-10: no AIS was recorded for any of them, so the live-pass pipeline cannot identify their contacts. The watcher marks such scenes `skipped_no_ais` in its checkpoints (`data/cache/live/scenes/`; all 11 scenes of the 11:22 pass on 2026-10-10 at 00:19:48) and never retries them; a skipped scene does not rebuild `data/live/`. At 14:03 UTC on 2026-10-10 the product files in `data/live/` hold the three passes with AIS: S1D 2026-10-08 22:58 (5 scenes, 3,081 contacts, all no_coverage), S1D 2026-10-10 10:32 (2 scenes, 4,712 contacts: 35 matched, 1,945 unmatched, 2,732 no_coverage; 276 AIS-only vessels) and S1C 2026-10-10 11:19 (2 scenes, 780 contacts, all no_coverage); 8,573 contacts in all, in both CRS layers, with the caveat on every row. The aisstream service itself drops messages without notice and has no replay, so short silences inside a recorded hour are possible and invisible here.
 
 ## 8. Sentinel-1 pass windows
 

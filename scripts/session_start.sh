@@ -8,10 +8,15 @@
 #    not wait for it; `timeout 600` bounds it, and the watchdog waits for it instead of racing it.
 # 2. The live-pass watcher (detects, verifies and AIS-matches new Sentinel-1 scenes over the AOI).
 # 3. The watchdog: it restarts the aisstream recorder, refreshes the Sentinel-1 pass plan and from then on keeps 1 and
-#    2 alive. It starts last and adopts what 1 and 2 started, so nothing runs twice.
-# Safe to run any number of times: each process is started only if it is not already running. Under 20 s on a cold
-# container, about 1 s otherwise; the hook timeout is 60 s. Needs AISSTREAM_API_KEY in the git-ignored .env;
-# does nothing without the project environment. Output goes to data/cache/ais/aisstream/watchdog.log.
+#    2 alive. It starts last and adopts what 1 and 2 started, so nothing runs twice. A new session can move the
+#    outbound proxy without a container restart (2026-10-10 13:14:40 UTC): --ensure then replaces a running watchdog
+#    whose proxy differs from this hook's (when this hook's answers), and the new watchdog restarts a recorder or
+#    watcher whose old proxy no longer answers, so they all run with the current proxy.
+# Safe to run any number of times: each process is started only if it is not already running. Measured 0.5 s on a
+# running container (2026-10-10 13:19:57). Cold container: an estimate from the measured parts, not yet measured end
+# to end after a reboot: --ensure took 16 s cold and is capped at 45 s, the CNN resume runs in the background; the
+# hook timeout is 60 s. Needs AISSTREAM_API_KEY in the git-ignored .env; does nothing without the project
+# environment. Output goes to data/cache/ais/aisstream/watchdog.log.
 cd "$(dirname "$0")/.." || exit 0
 PY=/home/user/.mamba/envs/darkvessel/bin/python
 [ -x "$PY" ] && [ -f .env ] || exit 0

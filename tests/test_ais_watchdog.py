@@ -2,8 +2,10 @@
 single-recorder rule, adoption, lock. Live watcher and CNN run: command-line matching, pid reuse, adoption, second
 copies, restart backoff and streak reset, the CNN resume gap (30 min, doubled without progress), completion, a resume
 started elsewhere (the session hook) is waited for, the on/off flags; static checks of scripts/session_start.sh.
-Fake status files, fake pids and fake process tables; no network; no real recorder, watcher or CNN run is started or
-killed (two tests start and stop a sleeping child).
+Proxy: endpoint parsing (user and password never shown), the stale-proxy and replacement rules, a recorder, watcher or
+CNN run on a dead proxy restarted at once (the watcher only between cycles), the watchdog's own dead proxy.
+Fake status files, fake pids, fake environments and fake process tables; no network (one test opens a local socket);
+no real recorder, watcher or CNN run is started or killed (some tests start and stop a sleeping child).
 """
 
 from __future__ import annotations
@@ -425,7 +427,7 @@ def test_flags_off_leave_watcher_and_cnn_alone(tmp_path):
     assert wd.check() == "ok"
     assert not any("check failed" in m for m in logs)
     s = json.loads((tmp_path / "watchdog_status.json").read_text())
-    assert s["supervise"] == {"recorder": True, "live_watcher": False, "cnn_run": False}
+    assert s["supervise"] == {"recorder": True, "live_watcher": False, "cnn_run": False, "proxy_check": False}
     # only the watcher on: the CNN fakes are never touched
     table = FakeTable()
     wd, logs = _dog(w, tmp_path, watcher=table)
@@ -778,3 +780,249 @@ def test_session_hook_resumes_the_cnn_run_and_is_safe_to_repeat():
     assert 'pgrep -f "scripts/30_live_pass.py --watch"' in body
     assert lines[-2].startswith("timeout 45") and "29_ais_watchdog.py --ensure" in lines[-2] and lines[-1] == "exit 0"
     assert "AISSTREAM_API_KEY" not in body and "GFW_API_TOKEN" not in body  # the key stays in .env
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Proxy: a proxy that moves without a container restart (2026-10-10 13:14:40 UTC)
+# ---------------------------------------------------------------------------------------------------------------
+
+OLD = {"HTTPS_PROXY": "http://127.0.0.1:42067", "https_proxy": "http://127.0.0.1:42067"}
+NEW = {"HTTPS_PROXY": "http://127.0.0.1:46243", "https_proxy": "http://127.0.0.1:46243"}
+
+
+def test_proxy_endpoint_and_label():
+    assert wdmod.proxy_endpoint(NEW) == ("127.0.0.1", 46243)
+    assert wdmod.endpoint_label(wdmod.proxy_endpoint(NEW)) == "127.0.0.1:46243"
+    assert wdmod.proxy_endpoint({"https_proxy": "10.0.0.1:8080"}) == ("10.0.0.1", 8080)  # no scheme
+    assert wdmod.proxy_endpoint({"HTTP_PROXY": "http://a:1", "HTTPS_PROXY": "http://b:2"}) == ("b", 2)
+    secret = {"HTTPS_PROXY": "http://user:s3cret@proxy.example:3128"}
+    label = wdmod.endpoint_label(wdmod.proxy_endpoint(secret))
+    assert label == "proxy.example:3128" and "s3cret" not in label and "user" not in label
+    assert wdmod.proxy_endpoint({}) is None and wdmod.proxy_endpoint(None) is None
+    assert wdmod.proxy_endpoint({"HTTPS_PROXY": "http://h:notaport"}) is None
+    assert wdmod.endpoint_label(None) == "none"
+    assert wdmod.proxy_env({"HTTPS_PROXY": "http://x:1", "AISSTREAM_API_KEY": "k", "PATH": "/bin"}) == {
+        "HTTPS_PROXY": "http://x:1"}
+
+
+def test_stale_proxy_rules():
+    dead = lambda ep: False  # noqa: E731
+    live = lambda ep: True  # noqa: E731
+    assert wdmod.stale_proxy(dict(NEW), NEW, dead) is None  # same proxy: never judged
+    why = wdmod.stale_proxy(dict(OLD), NEW, dead)
+    assert "127.0.0.1:42067 does not answer" in why and "127.0.0.1:46243" in why
+    assert wdmod.stale_proxy(dict(OLD), NEW, live) is None  # another proxy that still works is left alone
+    assert "no proxy" in wdmod.stale_proxy({}, NEW, live)
+    assert wdmod.stale_proxy(None, NEW, dead) is None  # unreadable environment: no judgement
+    assert wdmod.stale_proxy({}, {}, dead) is None
+
+
+def test_replace_reason():
+    assert "this shell uses 127.0.0.1:46243" in wdmod.replace_reason(OLD, NEW, lambda ep: True)
+    assert wdmod.replace_reason(OLD, NEW, lambda ep: False) is None  # the caller's proxy is dead: keep the old one
+    assert wdmod.replace_reason(OLD, {}, lambda ep: True) is None  # a caller without a proxy never replaces
+    assert wdmod.replace_reason(NEW, dict(NEW), lambda ep: True) is None
+    assert wdmod.replace_reason(None, NEW, lambda ep: True) is None
+
+
+def test_read_proxy_environ_of_a_real_child():
+    import subprocess
+
+    import time as _t
+
+    marker = "dv_watchdog_environ_test"
+    env = {"PATH": "/usr/bin:/bin", "HTTPS_PROXY": "http://127.0.0.1:9", "SOME_SECRET_KEY": "not-read"}
+    p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)", marker], env=env)
+    try:
+        for _ in range(100):  # until the child has exec'd: before that /proc shows the parent's environment
+            if marker in (wdmod.read_cmdline(p.pid) or []):
+                break
+            _t.sleep(0.02)
+        assert wdmod.read_proxy_environ(p.pid) == {"HTTPS_PROXY": "http://127.0.0.1:9"}
+    finally:
+        p.kill()
+        p.wait()
+    assert wdmod.read_proxy_environ(2 ** 22 + 7) is None
+
+
+def test_proxy_answers_with_a_local_socket():
+    import socket
+
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    ep = srv.getsockname()
+    try:
+        assert wdmod.proxy_answers(ep, timeout=2)
+    finally:
+        srv.close()
+    assert not wdmod.proxy_answers(ep, timeout=2)  # closed port: connection refused
+
+
+class FakeNet:
+    """Environments by pid (unknown pids inherit the watchdog's, as started children do) and the proxies that answer."""
+
+    def __init__(self, envs=None, live_ports=(46243,)):
+        self.envs, self.live_ports, self.probes = dict(envs or {}), set(live_ports), []
+
+    def environ(self, pid):
+        return self.envs.get(pid, dict(NEW))
+
+    def answers(self, ep):
+        self.probes.append(ep)
+        return ep[1] in self.live_ports
+
+    def kw(self):
+        return dict(proxy_check=True, own_env=dict(NEW), environ_fn=self.environ, answers_fn=self.answers)
+
+
+def test_recorder_on_a_dead_proxy_is_restarted_at_once_despite_the_backoff(tmp_path):
+    w = FakeWorld(tmp_path, pids=[178])
+    (tmp_path / "recorder.pid").write_text("178")
+    w.write_status(178, T0 - pd.Timedelta(seconds=30))  # not stale yet: the proxy died seconds ago
+    net = FakeNet({178: dict(OLD)})
+    wd, logs = w.watchdog(**net.kw())
+    wd.state.streak, wd.state.last_restart_utc = 5, wdmod._iso(T0 - pd.Timedelta(minutes=1))  # backoff: 10 min
+    assert wd.check() == "restarted"
+    assert w.stopped == [178] and len(w.started) == 1
+    assert wd.state.last_restart_reason.startswith("proxy: its proxy 127.0.0.1:42067 does not answer")
+    # the new recorder inherits the watchdog's proxy: healthy once it writes status.json, never restarted again
+    new = w.started[0][0]
+    w.now += pd.Timedelta(seconds=60)
+    w.write_status(new, w.now - pd.Timedelta(seconds=5))
+    assert wd.check() == "ok" and len(w.started) == 1
+
+
+def test_recorder_on_another_proxy_that_answers_is_left_alone(tmp_path):
+    w = FakeWorld(tmp_path, pids=[178])
+    (tmp_path / "recorder.pid").write_text("178")
+    w.write_status(178, T0 - pd.Timedelta(seconds=30))
+    net = FakeNet({178: dict(OLD)}, live_ports=(46243, 42067))
+    wd, logs = w.watchdog(**net.kw())
+    assert wd.check() == "ok" and w.stopped == [] and w.started == []
+
+
+def test_own_dead_proxy_blocks_proxy_restarts_and_is_logged_once(tmp_path):
+    w = FakeWorld(tmp_path, pids=[178])
+    (tmp_path / "recorder.pid").write_text("178")
+    w.write_status(178, T0 - pd.Timedelta(seconds=30))
+    net = FakeNet({178: dict(OLD)}, live_ports=())  # neither the old nor the watchdog's proxy answers
+    wd, logs = w.watchdog(**net.kw())
+    for _ in range(3):
+        assert wd.check() == "ok"  # restarting would only inherit the dead proxy
+        w.now += pd.Timedelta(seconds=60)
+        w.write_status(178, w.now - pd.Timedelta(seconds=30))
+    assert w.started == [] and sum("own proxy 127.0.0.1:46243 does not answer" in m for m in logs) == 1
+    assert json.loads((tmp_path / "watchdog_status.json").read_text())["proxy"]["answers"] is False
+    net.live_ports.add(46243)
+    assert wd.check() == "restarted"  # the own proxy is back: now the recorder on the dead one is replaced
+    assert any("own proxy 127.0.0.1:46243 answers again" in m for m in logs)
+
+
+def test_proxy_check_off_by_flag(tmp_path):
+    w = FakeWorld(tmp_path, pids=[178])
+    (tmp_path / "recorder.pid").write_text("178")
+    w.write_status(178, T0 - pd.Timedelta(seconds=30))
+    net = FakeNet({178: dict(OLD)})
+    kw = net.kw()
+    kw["proxy_check"] = False
+    wd, logs = w.watchdog(**kw)
+    assert wd.check() == "ok" and w.started == [] and net.probes == []
+
+
+def test_watcher_on_a_dead_proxy_is_restarted_between_cycles(tmp_path):
+    w = _world(tmp_path)
+    table = FakeTable(pids=[11773])
+    (tmp_path / "live" / "watch.pid").write_text("11773")
+    busy = {"cycle": True}
+    stopped_idle = []
+
+    def stop_idle(pid):
+        if busy["cycle"]:
+            return False
+        stopped_idle.append(pid)
+        table.stop(pid)
+        return True
+
+    net = FakeNet({11773: dict(OLD), 515: dict(NEW)})
+    ops = wdmod.Ops(table.procs, table.start, table.stop, None, stop_idle)
+    wd, logs = w.watchdog(watcher=True, watcher_ops=ops, live_dir=tmp_path / "live", **net.kw())
+    wd.state.watcher.update(streak=4, last_restart_utc=wdmod._iso(T0 - pd.Timedelta(minutes=1)))
+    for _ in range(3):  # a cycle is running: it is not interrupted
+        wd.check()
+        assert wd.state.watcher["last_decision"].startswith("proxy wait") and table.started == []
+        w.now += pd.Timedelta(seconds=60)
+        _keep_recorder_fresh(w)
+    assert sum("restarted when its current cycle ends" in m for m in logs) == 1
+    busy["cycle"] = False  # the cycle ended: stopped while the lock is held, restarted at once despite the backoff
+    wd.check()
+    assert stopped_idle == [11773] and len(table.started) == 1
+    assert (tmp_path / "live" / "watch.pid").read_text() == str(table.started[0][0])
+    assert wd.state.watcher["last_restart_reason"].startswith("proxy: its proxy 127.0.0.1:42067")
+    assert wd.state.watcher["proxy_restarts"] == 1 and wd.state.watcher["proxy_stale_since_utc"] is None
+    w.now += pd.Timedelta(seconds=60)
+    _keep_recorder_fresh(w)
+    wd.check()  # the new watcher has the watchdog's proxy
+    assert len(table.started) == 1 and wd.state.watcher["last_decision"].startswith("ok")
+
+
+def test_watcher_on_a_dead_proxy_in_a_long_cycle_is_stopped_after_30_min(tmp_path):
+    w = _world(tmp_path)
+    table = FakeTable(pids=[11773])
+    (tmp_path / "live" / "watch.pid").write_text("11773")
+    net = FakeNet({11773: dict(OLD), 515: dict(NEW)})
+    ops = wdmod.Ops(table.procs, table.start, table.stop, None, lambda pid: False)  # always mid-cycle
+    wd, logs = w.watchdog(watcher=True, watcher_ops=ops, live_dir=tmp_path / "live", **net.kw())
+    for i in range(31):
+        w.now = T0 + pd.Timedelta(minutes=i)
+        _keep_recorder_fresh(w)
+        wd.check()
+        if table.started:
+            break
+    assert (w.now - T0) == pd.Timedelta(minutes=30) and table.stopped == [11773] and len(table.started) == 1
+    assert any("stopped after waiting 30 min" in m for m in logs)
+
+
+def test_cnn_run_on_a_dead_proxy_is_stopped_and_resumed_without_the_gap(tmp_path):
+    w = _world(tmp_path)
+    table = FakeTable(pids=[7314])
+    (tmp_path / "cnn" / "run.pid").write_text("7314")
+    _checkpoint(tmp_path, "low", 2)
+    launch = FakeLaunch(table, lambda _l: "started pid {pid}")
+    net = FakeNet({7314: dict(OLD), 515: dict(NEW)})
+    wd, logs = w.watchdog(cnn=True, cnn_ops=launch.ops(), cnn_dir=tmp_path / "cnn", cnn_confirm_checks=2, **net.kw())
+    wd.state.cnn.update(last_launch_utc=wdmod._iso(T0 - pd.Timedelta(minutes=5)), no_progress=2)  # gap: 2 h
+    assert wd._check_cnn(w.now) == "stopped_proxy" and table.stopped == [7314]
+    assert wd._check_cnn(w.now) == "unconfirmed"
+    w.now += pd.Timedelta(seconds=60)
+    assert wd._check_cnn(w.now) == "launching" and len(launch.launches) == 1
+    assert wd.state.cnn["no_progress"] == 2 and not wd.state.cnn["proxy_resume"]  # the stop was not a failure
+
+
+def test_stop_when_idle_waits_for_the_cycle_lock(tmp_path):
+    """A real sleeping child stands in for the watcher; the test holds cycle.lock as a running cycle would."""
+    import subprocess
+    import time as _t
+
+    marker = f"dv_watchdog_idle_{tmp_path.name}"
+    match = lambda args: marker in args  # noqa: E731
+    lock_path = tmp_path / "cycle.lock"
+    p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", marker])
+    try:
+        for _ in range(50):
+            if wdmod.pid_matches(p.pid, match):
+                break
+            _t.sleep(0.05)
+        held = wdmod.acquire_lock(lock_path)
+        assert held is not None
+        assert not wdmod.stop_when_idle(p.pid, lock_path, alive=lambda q: wdmod.pid_matches(q, match))
+        assert p.poll() is None  # mid-cycle: untouched
+        held.close()
+        assert wdmod.stop_when_idle(p.pid, lock_path, alive=lambda q: wdmod.pid_matches(q, match))
+        p.wait(timeout=5)
+        reacquired = wdmod.acquire_lock(lock_path)  # the watchdog released the lock again
+        assert reacquired is not None
+        reacquired.close()
+    finally:
+        if p.poll() is None:
+            p.kill()

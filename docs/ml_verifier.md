@@ -287,13 +287,9 @@ satellites imaged had a score (`scripts/14_cnn_shared_cells.py`).
 `data/detections_regional.gpkg`; the fixed objects are those of `data/structures_regional.gpkg`.
 Every one of the 103,839 has a score. Phase "low": the 823,285 low-class objects (weak VV only
 759,790, clutter zone 52,820, near fixed 5,727, oversized 4,948) on 119 scenes, run after the
-main phase at the lowest CPU priority. The low phase was still running when this section was
-written (9 October 2026, 05:55 UTC): 3 of 119 scenes done, 35,745 objects, 805 s, so about
-44 objects per second and 4.9 h for the remaining 787,540 objects on the CPU share it gets.
-On those 3 Sentinel-1C scenes the model accepts 549 of 35,745 low objects, 0.015 [0.014,
-0.017]; a preliminary figure from one satellite and one day, not a regional result. The
-outputs below hold the main phase only; the run rebuilds them with the low class when the
-phase is complete (`scored.low.complete` in the JSON).
+main phase at the lowest CPU priority. Every one of the 823,285 has a score
+(`scored.low.complete` is true in `data/ml/regional_cnn.json`), and the outputs below hold both
+phases: 927,124 scored objects.
 
 **Method** (`scripts/32_cnn_regional.py`, `src/darkvessel/ml/regional_verify.py`):
 - Chips exactly as in training and in `scripts/14_cnn_shared_cells.py`: 64 x 64 px (640 m) VV
@@ -334,8 +330,8 @@ python scripts/32_cnn_regional.py --stop
 - `data/ml/regional_cnn.parquet`: one row per scored object (det_id, scene_id, mission,
   confidence, cnn_score, cnn_vessel, cnn_threshold, cnn_model_id, cnn_score_source,
   cnn_chip_valid_frac, chip_valid_frac_full, bg_vv_db, bg_vh_db, caveat); model id, threshold,
-  training data, transfer caveat and the dark caveat in the file metadata. 1.2 MB with the main
-  phase; about 11 MB expected with the low class.
+  training data, transfer caveat and the dark caveat in the file metadata. 927,124 rows (both
+  phases), 7.6 MB.
 - `data/detections_regional_verified.gpkg` (18.5 MB): the 78,615 contacts with every column of
   `data/detections_regional.gpkg` except lat and lon (the geometry), acq_utc (the scene start
   time; in det_id and in the `scenes` table by scene_idx), ais_status (`not_checked` on every
@@ -364,6 +360,14 @@ two kinds of stops: restarts to fix reads after the mirror returned errors (31 f
 attempts, all recovered by retry or rerun; no scene was lost) and a container stop from about
 02:20 to 05:00 UTC, after which the run resumed from the checkpoints.
 
+Low phase: 20,425 s summed over the 119 scenes (5.7 h; median 104 s per scene; 40.3 objects per
+second). Wall clock ran from 05:41 UTC on 9 October to 03:00 UTC on 10 October 2026. The run
+restarted itself from its checkpoints twice when its resident memory passed 3 GB (07:30 on
+9 October, 02:14 on 10 October) and was resumed from its checkpoints three times: at 15:10 on
+9 October and at 00:21 on 10 October after container outages (the second time by the watchdog,
+`docs/ais_live.md`), and at 00:45 on 10 October in a test of the session hook. No scene was
+lost; the final pass over the last 22 scenes had no failure.
+
 **Results, main phase.** Accepted = cnn_score >= 0.631783. Wilson 95 % intervals in brackets.
 
 | Group | n | Accepted | Share [95 % CI] | Score quartiles | Background VV / VH (dB) |
@@ -387,6 +391,39 @@ By satellite:
 | contact chip background VV / VH | -20.6 / -27.3 dB | -19.9 / -28.0 dB |
 
 The "cells both imaged" rows are, by construction, the result of `data/ml/shared_cells_cnn.json`.
+
+**Results, low phase.** The low class holds what the detector rules put there (`low_reason` in
+`data/detections_regional_all.gpkg`, rules in `docs/scs_regional.md`): weak VV only returns,
+objects longer than 450 m (oversized), and candidates the clutter-zone and near-fixed rules
+demoted. Accepted = cnn_score >= 0.631783; Wilson 95 % intervals in brackets, shares to four
+decimals because most are small.
+
+| low_reason | n | Accepted | Share [95 % CI] | Sentinel-1C | Sentinel-1D |
+|---|---|---|---|---|---|
+| weak VV only | 759,790 | 1,085 | 0.0014 [0.0013, 0.0015] | 137 / 256,968 = 0.0005 [0.0005, 0.0006] | 948 / 502,822 = 0.0019 [0.0018, 0.0020] |
+| clutter zone | 52,820 | 1,832 | 0.0347 [0.0332, 0.0363] | 536 / 9,696 = 0.0553 [0.0509, 0.0600] | 1,296 / 43,124 = 0.0301 [0.0285, 0.0317] |
+| near fixed | 5,727 | 362 | 0.0632 [0.0572, 0.0698] | 107 / 793 = 0.1349 [0.1129, 0.1605] | 255 / 4,934 = 0.0517 [0.0458, 0.0582] |
+| oversized | 4,948 | 1,899 | 0.3838 [0.3703, 0.3974] | 294 / 1,064 = 0.2763 [0.2503, 0.3040] | 1,605 / 3,884 = 0.4132 [0.3978, 0.4288] |
+| all low | 823,285 | 5,178 | 0.0063 [0.0061, 0.0065] | 1,074 / 268,521 = 0.0040 [0.0038, 0.0042] | 4,104 / 554,764 = 0.0074 [0.0072, 0.0076] |
+
+Score quartiles: weak VV only 0.0003 / 0.0005 / 0.0011, clutter zone 0.0003 / 0.0009 / 0.0091,
+near fixed 0.0054 / 0.0344 / 0.1580, oversized 0.0004 / 0.0295 / 0.9605 (a split population).
+Median radar length estimate: 24.1 m for weak VV only and for the low class as a whole, 32.4 m
+clutter zone, 40.0 m near fixed, 583.4 m oversized.
+
+What the low phase says: the model rejects almost all of the weak VV only objects (14 in
+10,000 accepted), which are 92 % of the low class, so on those it agrees with the detector's
+rule. The exception is the oversized group, of which 38 % are accepted: objects measured at
+more than 450 m (median 583 m) whose chip still looks like a vessel to the model. A vessel
+merged with its wake, sidelobes or a neighbour into one object would look like this
+(UNVERIFIED; no chip review has been done for this group).
+Near-fixed objects (6 %) and clutter-zone objects (3 %) sit in between. The same limits as for
+the main phase apply: acceptance is not precision, the model was not trained on 1C/1D and has
+almost no small-boat labels, so a rejected low object is not shown to be clutter, and the low
+class stays out of `data/detections_regional_verified.gpkg` (high and medium contacts only).
+The Sentinel-1C and 1D shares differ by reason in both directions (clutter zone and near fixed
+higher on 1C, weak VV only and oversized higher on 1D); the two satellites imaged different
+seas on different days, so this is not a sensor comparison.
 
 By radar length estimate (contacts, then the high class alone):
 
