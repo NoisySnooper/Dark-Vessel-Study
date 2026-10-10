@@ -9,7 +9,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 
-from ..config import PRODUCT_CAVEAT
+from ..config import AISSTREAM_LABEL, PRODUCT_CAVEAT
 from ..models import AIS_STATUS_VALUES, contact_spec
 from ..records import iso_series, to_utc_series
 from .common import cell_ids
@@ -33,12 +33,22 @@ _GFW_MATCH = ["ais_status", "ais_source", "match_method", "match_dist_m", "match
               "gfw_sar_n_rivals", "gfw_sar_ambiguous_cell", "gfw_neural_type", "pres_speed_kmh", "pres_n_cells",
               "pres_n_cand", "n_gear_10km", "ais_presence_h_day", "ais_presence_h_window"]
 _GFW_EVENTS = ["n_gfw_gaps_50km_24h", "nearest_gfw_gap_km", "n_gfw_encounters_10km_24h", "n_gfw_loitering_10km_24h"]
+# contract 1.3.0: live identification evidence. The pairing fields come from the AIS track at the contact's own azimuth
+# time; az_time_utc and az_shift_m from the scene annotation and the vessel's velocity; review_note from the hand check.
+LIVE_ID_FIELDS = ["az_time_utc", "match_dist_uncorr_m", "az_shift_m", "velocity_source", "match_ambiguous", "ambiguous_mmsi",
+                  "match_alt_dist_m", "review_note"]
+_LIVE_ID_PROV = {"az_time_utc": "det_live", "az_shift_m": "det_live", "match_dist_uncorr_m": "aisstream",
+                 "velocity_source": "aisstream", "match_ambiguous": "aisstream", "ambiguous_mmsi": "aisstream",
+                 "match_alt_dist_m": "aisstream", "review_note": "analyst", "review_grade": "analyst",
+                 "identity_label": "aisstream"}
+LIVE_WEATHER_COLS = ["wind_ms", "ctt_k", "deep_convection", "gfs_cycle_utc", "gfs_forecast_h", "himawari_key", "wind_source",
+                     "cloud_source"]
 _COMMON_PROV = {**{c: "cnn_v0" for c in CNN_COLS}, "wind_ms": "gfs_wind", "ctt_k": "himawari_ctt",
                 "deep_convection": "himawari_ctt", "optical_object": "s2_optical", "optical_kind": "s2_optical",
                 "s2_item": "s2_optical", "satlas_m": "satlas", "cell_id": "app", "view": "app", "lead_ids": "app",
-                "vessel_key": "app", "nearest_vessel_key": "app", "chip": "s1_grd"}
+                "vessel_key": "app", "nearest_vessel_key": "app", "chip": "s1_grd", "object_context": "ocean_context"}
 PROV = {
-    "live": {**_COMMON_PROV, **{c: "aisstream" for c in _LIVE_AIS}, "flag": "mid_itu", "mmsi_mid": "mid_itu"},
+    "live": {**_COMMON_PROV, **{c: "aisstream" for c in _LIVE_AIS}, **_LIVE_ID_PROV, "flag": "mid_itu", "mmsi_mid": "mid_itu"},
     "regional": {**_COMMON_PROV, "pass_id": "app", "ais_status": "app"},
     "research": {**_COMMON_PROV, **{c: "gfw_vessels" for c in _GFW_IDENTITY}, **{c: "gfw_4wings" for c in _GFW_MATCH},
                  **{c: "gfw_events" for c in _GFW_EVENTS}},
@@ -166,14 +176,108 @@ def _finish(df: pd.DataFrame, source: str, fields: set[str]) -> tuple[pd.DataFra
     df["view"] = VIEW[source]
     df["cell_id"] = cell_ids(df["lon"].to_numpy(), df["lat"].to_numpy())
     df["_source"] = source
-    extra = [c for c in df.columns if c not in fields and c not in INTERNAL]
+    extra = [c for c in df.columns if c not in fields and c not in INTERNAL and not str(c).startswith("_")]
     return df, extra
+
+
+REVIEW_GRADES = ("confirmed", "plausible", "doubtful")
+
+
+def review_grade(note: pd.Series) -> pd.Series:
+    """The grade of a hand-check note '<grade>: <reason>' (live file about.review_note), or None."""
+    g = note.astype("string").str.extract(r"^\s*([a-z]+)\s*:", expand=False).str.lower()
+    return g.astype(object).where(g.isin(REVIEW_GRADES).fillna(False), None)
+
+
+def _gfs_valid(cycle: pd.Series, step: pd.Series) -> pd.Series:
+    """GFS valid time (cycle plus forecast hour) as ISO 8601 UTC with Z."""
+    t = to_utc_series(cycle.astype("string").str.replace("Z", "+00:00", regex=False))
+    h = pd.to_numeric(step, errors="coerce")
+    return iso_series(t + pd.to_timedelta(h, unit="h"))
+
+
+def _himawari_start(key: pd.Series) -> pd.Series:
+    """Scan start of a Himawari AHI L2 file from its name (`_s<yyyymmddhhmmss><tenth>_`), ISO 8601 UTC with Z."""
+    m = key.astype("string").str.extract(r"_s(\d{14})\d?_", expand=False)
+    return iso_series(pd.to_datetime(m, format="%Y%m%d%H%M%S", utc=True, errors="coerce"))
+
+
+def himawari_start_text(s: pd.Series) -> pd.Series:
+    """`himawari_start` of data/weather_context.parquet as ISO 8601 UTC with Z (None where it does not parse).
+    scripts/16_weather_context.py writes the first 13 digits of the file name's `_s<yyyymmddhhmmss><tenth>` field:
+    yyyymmddHHMM and the tens digit of the seconds, so the scan start is known to 10 s (`2026092010402` is
+    10:40:20Z). 12 and 14 digit strings are read the same way; any other text is read as ISO 8601. One value per
+    scene, so only the distinct values are parsed."""
+    codes, uniq = pd.factorize(s, use_na_sentinel=True)
+    if len(uniq) < len(s):
+        parsed = himawari_start_text(pd.Series(uniq, dtype=object)).to_numpy() if len(uniq) else np.array([], dtype=object)
+        out = np.full(len(s), None, dtype=object)
+        ok = codes >= 0
+        out[ok] = parsed[codes[ok]]
+        return pd.Series(out, index=s.index, dtype=object)
+    t = s.astype("string").str.strip()
+    dig = t.str.fullmatch(r"\d{12,14}").fillna(False).astype(bool)
+    d = t.where(dig).str.pad(14, side="right", fillchar="0")
+    out = pd.to_datetime(d, format="%Y%m%d%H%M%S", utc=True, errors="coerce")
+    if (~dig & t.notna()).any():
+        out = out.where(dig, to_utc_series(t.where(~dig)))
+    return iso_series(out)
+
+
+def live_weather(cat) -> pd.DataFrame | None:
+    """The per-pass weather sidecars `data/live/<run_id>_weather.parquet`, keyed by det_id (`_index`), with the valid
+    times and the source text the field provenance shows (`_wind_time`, `_cloud_time`, `_wind_source`, `_cloud_source`)."""
+    frames = [cat.read_parquet("live_weather", ["det_id"] + LIVE_WEATHER_COLS, path=p) for p in cat.paths("live_weather")]
+    frames = [f for f in frames if f is not None and len(f)]
+    if not frames:
+        return None
+    w = pd.concat(frames, ignore_index=True)
+    out = pd.DataFrame({"det_id": w["det_id"].astype(str)})
+    for c in ("wind_ms", "ctt_k", "deep_convection"):
+        out[c] = (pd.to_numeric(w[c], errors="coerce").round(2) if c != "deep_convection" else w[c]) if c in w else None
+    out["_wind_time"] = _gfs_valid(w["gfs_cycle_utc"], w["gfs_forecast_h"]) if {"gfs_cycle_utc", "gfs_forecast_h"} <= set(w) else None
+    out["_cloud_time"] = _himawari_start(w["himawari_key"]) if "himawari_key" in w else None
+    out["_wind_source"] = w["wind_source"] if "wind_source" in w else None
+    out["_cloud_source"] = w["cloud_source"] if "cloud_source" in w else None
+    return _index(out)
+
+
+def review_times(cat) -> pd.DataFrame | None:
+    """`reviewed_utc` of each hand-checked contact from data/live/<run_id>_review_*.csv (R3-T7), keyed by det_id."""
+    frames = []
+    for p in cat.paths("live_review"):
+        try:
+            f = cat.read_csv("live_review", ["det_id", "reviewed_utc"], path=p)
+        except Exception:  # noqa: BLE001  (a table being rewritten is read again on the next reload)
+            f = None
+        if f is not None and len(f) and {"det_id", "reviewed_utc"} <= set(f):
+            f = f.dropna(subset=["reviewed_utc"]).copy()
+            f["_review_file"] = _data_rel(cat, p)
+            frames.append(f)
+    if not frames:
+        return None
+    from .context import time_text
+
+    r = pd.concat(frames, ignore_index=True).drop_duplicates("det_id", keep="last")
+    # as the table wrote it: a date stays a date, a date-time becomes ISO 8601 UTC with Z
+    return _index(pd.DataFrame({"det_id": r["det_id"].astype(str), "_review_time": [time_text(v) for v in r["reviewed_utc"]],
+                                "_review_file": r["_review_file"].to_numpy()}))
+
+
+def _data_rel(cat, p) -> str:
+    """A data file's path as the docs name it (data/live/...), whatever the data directory is."""
+    try:
+        return "data/" + p.resolve().relative_to(cat.data_dir.resolve()).as_posix()
+    except ValueError:
+        return p.name
 
 
 def load(cat, settings) -> ContactsData:
     fields = [f for f, _ in contact_spec(settings.build)]
     fset = set(fields)
     weather = _index(cat.read_parquet("weather", ["det_id"] + WEATHER_COLS))
+    if weather is not None and "himawari_start" in weather:  # the producer's compact scan start, as ISO 8601
+        weather["himawari_start"] = himawari_start_text(weather["himawari_start"]).to_numpy()
     optical = _index(cat.read_gpkg("optical", ["det_id"] + OPTICAL_COLS))
     scenes = cat.read_gpkg("regional_scenes")
     if scenes is not None and len(scenes):
@@ -183,7 +287,7 @@ def load(cat, settings) -> ContactsData:
     def add(df, source):
         if df is None or not len(df):
             return
-        df = _join(df, weather, WEATHER_COLS)
+        df = _join(df, weather, WEATHER_COLS)  # himawari_start (kept in extra) is the field provenance time of ctt_k
         df = _join(df, optical, OPTICAL_COLS)
         df, ex = _finish(df, source, fset)
         frames.append(df)
@@ -207,6 +311,21 @@ def load(cat, settings) -> ContactsData:
     if live is not None and len(live):
         live = live[live["confidence"].astype(str) != "low"].copy()  # contract 4.4: live low objects stay out
         live["pass_id"] = live["run_id"]
+        # weather sidecars first (the regional weather table holds no live det_id), then the hand-check times
+        live = _join(live, live_weather(cat), ["wind_ms", "ctt_k", "deep_convection", "_wind_time", "_cloud_time",
+                                               "_wind_source", "_cloud_source"])
+        live = _join(live, review_times(cat), ["_review_time", "_review_file"])
+        if "az_time_utc" in live:
+            live["az_time_utc"] = iso_series(live["az_time_utc"])
+        if "ambiguous_mmsi" in live:  # one MMSI or several joined by ';' as the producer wrote them
+            amb = live["ambiguous_mmsi"].astype("string").str.strip().str.replace(r"\.0$", "", regex=True)
+            live["ambiguous_mmsi"] = amb.astype(object).where(amb.notna() & (amb != ""), None)
+        if "review_note" in live:
+            live["review_grade"] = review_grade(live["review_note"])
+        has_id = live.get("mmsi", pd.Series(index=live.index, dtype=object)).notna() | \
+            live.get("nearest_ais_mmsi", pd.Series(index=live.index, dtype=object)).notna()
+        aiss = live.get("ais_source", pd.Series(index=live.index, dtype=object)).astype("string").eq("aisstream").fillna(False)
+        live["identity_label"] = np.where(has_id & aiss, AISSTREAM_LABEL, None)
         if about.get("cnn_model_id") is not None:
             live["cnn_model_id"] = about.get("cnn_model_id")
             live["cnn_threshold"] = pd.to_numeric(pd.Series([about.get("cnn_threshold")]), errors="coerce").iloc[0]

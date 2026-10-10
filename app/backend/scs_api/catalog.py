@@ -46,6 +46,9 @@ SPECS: list[FileSpec] = [
     FileSpec("live_scenes", "live/live_contacts.gpkg", "scenes_4326"),
     FileSpec("live_about", "live/live_contacts.gpkg", "about"),
     FileSpec("live_summary", "live/live_summary.json", kind="json"),
+    FileSpec("live_ais_only", "live/live_contacts.gpkg", "ais_only_4326"),
+    FileSpec("live_weather", "live", kind="glob", pattern="live_*_weather.parquet"),  # per-pass weather sidecars (R3-T1)
+    FileSpec("live_review", "live", kind="glob", pattern="live_*_review_*.csv"),  # hand-check tables (R3-T7)
     FileSpec("regional_contacts", "detections_regional.gpkg", "detections_regional_4326"),
     FileSpec("regional_scenes", "detections_regional.gpkg", "scenes_processed_4326"),
     FileSpec("regional_identity", "research/regional_identity.parquet", kind="parquet", builds=RESEARCH),
@@ -72,6 +75,8 @@ SPECS: list[FileSpec] = [
     FileSpec("lights", "viirs_lights.gpkg", "viirs_lights_4326"),
     FileSpec("sites", "viirs_lights.gpkg", "viirs_sites_4326"),
     FileSpec("viirs_nights", "viirs_lights.gpkg", "viirs_nights"),
+    # every light of the 27 nights; read only for the lights that lead evidence cites outside the lean file (L7)
+    FileSpec("lights_all", "viirs_lights_all.gpkg", "viirs_lights_4326"),
     # events (3.4)
     FileSpec("events_open", "events_open.gpkg", "events_4326", builds=OPEN),
     FileSpec("gfw_gaps", "research/gfw_events_gaps.parquet", kind="parquet", builds=RESEARCH),
@@ -80,6 +85,7 @@ SPECS: list[FileSpec] = [
     FileSpec("gfw_port_visits", "research", kind="glob", pattern="gfw_events_port_visits_part*of*.parquet", builds=RESEARCH),
     # leads (3.5)
     FileSpec("leads_open", "leads_open.gpkg", "leads_4326", builds=OPEN),
+    FileSpec("leads_open_detail", "leads_open_detail.gpkg", "lead_evidence", builds=OPEN),  # board D6.3 (R3-T8)
     FileSpec("leads_research", "research/leads_research.parquet", kind="parquet", builds=RESEARCH),
     FileSpec("leads_research_gpkg", "research/leads_research.gpkg", "leads_4326", builds=RESEARCH),
     FileSpec("decisions_open", "labels/lead_decisions.jsonl", kind="jsonl", builds=OPEN),
@@ -280,6 +286,19 @@ class Catalog:
         if not ps:
             return None
         return pd.concat([self.read_parquet(key, columns, path=p) for p in ps], ignore_index=True)
+
+    def read_csv(self, key: str, columns=None, path: Path | None = None) -> pd.DataFrame | None:
+        """A CSV file (or one file of a glob spec) through the guard; `columns` that the file lacks are skipped."""
+        if path is None:
+            if not self.exists(key):
+                return None
+            path = self.path(key)
+        path = self.guard(path)
+        self._note(path)
+        if columns is not None:
+            head = pd.read_csv(path, nrows=0).columns
+            columns = [c for c in columns if c in head]
+        return pd.read_csv(path, usecols=columns, dtype=str, keep_default_na=False, na_values=[""])
 
     def read_json(self, key: str):
         if not self.exists(key):

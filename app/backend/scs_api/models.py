@@ -9,7 +9,7 @@ record from these field lists); the models generate `/openapi.json` and the test
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Generic, Literal, Optional, TypeVar
+from typing import Any, Generic, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
@@ -27,6 +27,90 @@ Time = Optional[datetime]
 
 class Record(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+# ---------------------------------------------------------------- sub-records of contract 1.3.0
+class FieldProv(Record):
+    """Field-level provenance (spec 4.8): the field's source key, its acquisition or valid time (UTC) and the source's
+    own words where the producer wrote them."""
+    src: Optional[str] = None
+    time: Optional[str] = None
+    text: Optional[str] = None
+
+
+class ContextField(Record):
+    """One ocean field at an object (board D5.3)."""
+    value: Optional[Union[bool, float]] = None
+    unit: Optional[str] = None
+    time: Optional[str] = None
+    src: Optional[str] = None
+
+
+class ObjectContext(Record):
+    """`object_context` of a Contact or Light (board D5.3)."""
+    time_utc: Optional[datetime] = None
+    cell_id: Optional[str] = None
+    region: Optional[str] = None
+    fields: dict[str, ContextField]
+    caveat: str
+
+
+class ExpectedRow(Record):
+    """One tested row of data/expected_activity.parquet (board D5.4)."""
+    unit_id: str
+    night: str
+    time_start_utc: Optional[datetime] = None
+    time_end_utc: Optional[datetime] = None
+    tested: bool
+    observed: Optional[float] = None
+    expected: Optional[float] = None
+    z: Optional[float] = None
+    q_bh: Optional[float] = None
+    flag: Optional[str] = None
+    flag_robust: Optional[str] = None
+    calm: Optional[bool] = None
+    exposure_km2: Optional[float] = None
+
+
+class ExpectedActivity(Record):
+    """`expected_activity` of a Cell (board D5.4): tested rows per target, newest first."""
+    model_id: Optional[str] = None
+    caveat: str
+    targets: dict[str, list[ExpectedRow]]
+
+
+class AisOnlyVessel(Record):
+    """One AIS vessel of a live pass that no contact matched (live file layer ais_only_4326)."""
+    mmsi: Optional[str] = None
+    vessel_key: Optional[str] = None
+    vessel_name: Optional[str] = None
+    call_sign: Optional[str] = None
+    imo: Optional[str] = None
+    flag: Optional[str] = None
+    ship_type: Optional[str] = None
+    ais_class: Optional[str] = None
+    length_ais_m: Optional[float] = None
+    sog_kn: Optional[float] = None
+    lon: Optional[float] = None
+    lat: Optional[float] = None
+    scene_id: Optional[str] = None
+    pred_method: Optional[str] = None
+    pred_dt_s: Optional[float] = None
+    n_reports: Optional[int] = None
+    on_tested_sea: Optional[bool] = None
+    dist_coast_km: Optional[float] = None
+    nearest_object_m: Optional[float] = None
+    nearest_object_class: Optional[str] = None
+    ambiguous_det_id: Optional[str] = None
+    oversized_det_id: Optional[str] = None
+    identity_source: Optional[str] = None
+    identity_label: Optional[str] = None
+
+
+class AzimuthCheck(Record):
+    """The pass's azimuth-shift check from data/live/live_summary.json (per scene, independent of the assignment)."""
+    by_scene: list[dict[str, Any]]
+    note: Optional[str] = None
 
 
 # ---------------------------------------------------------------- Contact (3.1)
@@ -47,6 +131,10 @@ CONTACT_EXT_SPEC = [
     ("persist_dates_checked", Int), ("n_low_1km", Int), ("near_fixed_m", Num), ("match_gate_m", Num), ("ais_sog_kn", Num),
     ("length_ratio", Num), ("ais_class", Str), ("mmsi_mid", Int), ("ais_footprint_positions", Int), ("pred_method", Str),
     ("cnn_chip_valid_frac", Num), ("ais_recorded_hours", Int), ("row", Num), ("col", Num),
+    # contract 1.3.0: live identification evidence (darkvessel.live, R3-T1 and R3-T7); null outside live passes
+    ("az_time_utc", Time), ("match_dist_uncorr_m", Num), ("az_shift_m", Num), ("velocity_source", Str),
+    ("match_ambiguous", Bool), ("ambiguous_mmsi", Str), ("match_alt_dist_m", Num), ("review_note", Str),
+    ("review_grade", Optional[Literal["confirmed", "plausible", "doubtful"]]), ("identity_label", Str),
 ]
 # Research-only evidence columns (darkvessel.ais.gfw_identity.EVIDENCE_COLUMNS without pass_id, which is above).
 CONTACT_RESEARCH_SPEC = [
@@ -59,8 +147,9 @@ CONTACT_RESEARCH_SPEC = [
 CONTACT_TAIL_SPEC = [
     ("cnn_threshold", Num), ("cnn_model_id", Str), ("cnn_score_source", Str), ("bg_vv_db", Num), ("bg_vh_db", Num),
     ("wind_ms", Num), ("ctt_k", Num), ("deep_convection", Bool), ("optical_object", Bool), ("optical_kind", Str),
-    ("s2_item", Str), ("satlas_m", Num), ("cell_id", Str), ("lead_ids", list[str]), ("chip", Str),
-    ("src", str), ("prov", dict[str, str]), ("extra", dict[str, Any]),
+    ("s2_item", Str), ("satlas_m", Num), ("cell_id", Str), ("object_context", Optional[ObjectContext]),
+    ("lead_ids", list[str]), ("chip", Str), ("src", str), ("prov", dict[str, str]), ("field_prov", dict[str, FieldProv]),
+    ("extra", dict[str, Any]),
 ]
 SUMMARY_EXT = ["view", "pass_id", "lead_ids"]
 
@@ -139,10 +228,12 @@ VESSEL_SPEC = [
     ("last_lon", Num), ("last_lat", Num), ("sog_kn", Num), ("cog_deg", Num), ("heading", Num), ("nav_status_label", Str),
     ("in_aoi", Bool), ("ever_in_aoi", Bool), ("gear_beacon_like", Bool), ("registry_sources", Str), ("registry_records", Int),
     ("dataset_version", Str), ("stub", bool), ("contacts_matched", list[str]), ("identity_note", str),
+    ("identity_label", Str),  # contract 1.3.0: board D4.7 label of an aisstream identity, null for GFW identities
     ("research_only", bool), ("caveat", str), ("src", str), ("prov", dict[str, str]), ("extra", dict[str, Any]),
 ]
 VESSEL_SUMMARY = ["vessel_key", "mmsi", "flag", "name", "call_sign", "imo", "ais_class", "ship_type", "identity_kind",
-                  "length_m", "last_seen_utc", "last_lon", "last_lat", "in_aoi", "stub", "research_only", "caveat", "src"]
+                  "length_m", "last_seen_utc", "last_lon", "last_lat", "in_aoi", "stub", "identity_label", "research_only",
+                  "caveat", "src"]
 
 
 class TrackGap(Record):
@@ -159,8 +250,8 @@ LIGHT_SPEC = [
     ("lon", float), ("lat", float), ("radiance_nw", float), ("spike_nw", Num), ("isolation", Num),
     ("quality", Literal["clear", "under_cloud"]), ("class", str), ("nights_seen_500m", int), ("clear_nights_cell", int),
     ("moon_illum_pct", Num), ("satlas_infra_m", Num), ("s1_passes_90d", int), ("site_id", Str),
-    ("contacts_2km_same_night", list[str]), ("cell_id", Str), ("research_only", bool), ("caveat", str), ("src", str),
-    ("prov", dict[str, str]), ("extra", dict[str, Any]),
+    ("contacts_2km_same_night", list[str]), ("cell_id", Str), ("object_context", Optional[ObjectContext]),
+    ("research_only", bool), ("caveat", str), ("src", str), ("prov", dict[str, str]), ("extra", dict[str, Any]),
 ]
 LIGHT_SUMMARY = ["light_id", "satellite", "time_utc", "night", "lon", "lat", "radiance_nw", "quality", "class",
                  "nights_seen_500m", "s1_passes_90d", "site_id", "cell_id", "research_only", "caveat", "src"]
@@ -254,7 +345,11 @@ PASS_SPEC = [
     ("footprint", Optional[dict[str, Any]]), ("aoi_overlap_km2", Num), ("aoi_parts", Optional[list[str]]), ("scenes", list[str]),
     ("processed", bool), ("n_contacts", Optional[dict[str, int]]), ("ais_aoi_positions", Int), ("ais_aoi_mmsi", Int),
     ("ais_footprint_positions", Int), ("ais_footprint_mmsi", Int), ("ais_near_footprint_mmsi", Int), ("ais_heard_share", Num),
-    ("note", Str), ("research_only", bool), ("caveat", str), ("src", str), ("prov", dict[str, str]), ("extra", dict[str, Any]),
+    # contract 1.3.0: AIS-only vessels (the full list only on GET /passes/{pass_id}) and the azimuth-shift check
+    ("n_ais_only", Int), ("ais_only", Optional[list[AisOnlyVessel]]), ("azimuth_check", Optional[AzimuthCheck]),
+    ("identity_label", Str),
+    ("note", Str), ("research_only", bool), ("caveat", str), ("src", str), ("prov", dict[str, str]),
+    ("field_prov", dict[str, FieldProv]), ("extra", dict[str, Any]),
 ]
 
 
@@ -283,9 +378,10 @@ CELL_SPEC = (
     + [("shipping_note", Str), ("nightly", Optional[dict[str, Any]]), ("nights_available", list[str]),
        ("pass_context", Optional[dict[str, Any]]), ("ais_reach_share", Num), ("ais_reach_mmsi", Num),
        ("look_prob_1d", Num), ("look_prob_7d", Num), ("look_prob_30d", Num), ("passes_90d", Num),
-       ("object_context", Optional[dict[str, Any]]), ("expected_activity", Optional[dict[str, Any]]),
+       ("object_context", Optional[dict[str, Any]]), ("expected_activity", Optional[ExpectedActivity]),
        ("gfw_comparison", Optional[dict[str, Any]]), ("eez", Optional[EezAttrs]),
-       ("research_only", bool), ("caveat", str), ("src", str), ("prov", dict[str, str]), ("extra", dict[str, Any])]
+       ("research_only", bool), ("caveat", str), ("src", str), ("prov", dict[str, str]),
+       ("field_prov", dict[str, FieldProv]), ("extra", dict[str, Any])]
 )
 
 

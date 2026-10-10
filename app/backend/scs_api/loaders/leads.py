@@ -72,7 +72,22 @@ def load(cat, settings, fields: list[str]) -> LeadsData:
     df["priority"] = pd.to_numeric(df["priority"], errors="coerce").fillna(0).round().astype(int)
     df["state"] = df["state"].fillna("new").astype(str) if "state" in df else "new"
     evidence = [json_list(v) for v in df["evidence"]] if "evidence" in df else [[] for _ in range(len(df))]
-    extra = [c for c in df.columns if c not in set(fields) and c not in {"_t", "_source_caveat", "evidence"} and c != "geometry"]
+    df["_evidence_source"] = None
+    missing = [i for i, ev in enumerate(evidence) if not ev]
+    if missing and not settings.research and cat.exists("leads_open_detail"):
+        # board D6.3: the evidence table may move to data/leads_open_detail.gpkg; read it only for leads whose
+        # leads_4326 row carries no evidence
+        det = cat.read_gpkg("leads_open_detail", ["lead_id", "type", "id", "role"])
+        if det is not None and len(det):
+            by = {str(k): g[["type", "id", "role"]].to_dict("records") for k, g in det.groupby("lead_id", sort=False)}
+            ids = df["lead_id"].astype(str).to_numpy()
+            for i in missing:
+                ev = by.get(ids[i])
+                if ev:
+                    evidence[i] = [{k: (None if v is None else str(v)) for k, v in e.items()} for e in ev]
+                    df.at[i, "_evidence_source"] = "data/leads_open_detail.gpkg lead_evidence"
+    extra = [c for c in df.columns if c not in set(fields) and c not in {"_t", "_source_caveat", "evidence"} and c != "geometry"
+             and not str(c).startswith("_")]
     return LeadsData(df, evidence, extra, about, key)
 
 

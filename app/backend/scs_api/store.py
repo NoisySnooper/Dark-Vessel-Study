@@ -24,11 +24,13 @@ import pandas as pd
 
 from . import APP_VERSION, CONTRACT_VERSION
 from .catalog import Catalog
-from .config import (ATTRIBUTION, CAVEAT_SHORT, DATA_CREDIT, PRODUCT_CAVEAT, RESEARCH_LABEL, SHIPPING_LABEL, Settings)
+from .config import (AISSTREAM_LABEL, ATTRIBUTION, CAVEAT_SHORT, DATA_CREDIT, PRODUCT_CAVEAT, RESEARCH_LABEL, SHIPPING_LABEL,
+                     Settings)
 from .decisions import DecisionLog
 from .envelope import ApiError
 from .loaders import cells as L_cells
 from .loaders import contacts as L_contacts
+from .loaders import context as L_context
 from .loaders import events as L_events
 from .loaders import leads as L_leads
 from .loaders import lights as L_lights
@@ -39,26 +41,33 @@ from .loaders.geo import Geo
 from .loaders.rasters import Rasters
 from .models import (AIS_STATUS_VALUES, LEAD_STATES, LIGHT_SUMMARY, VESSEL_SUMMARY, build_models, container_defaults,
                      field_names, int_fields)
-from .records import build_record, clean, iso_z, json_list, json_map, utc_now
+from .records import build_record, clean, iso_z, json_list, json_map, prov_time, utc_now
 from .sources import registry
 
 DEPS = {
-    "contacts": {"live_contacts", "live_about", "regional_contacts", "regional_scenes", "regional_identity", "structures",
-                 "camau_contacts", "regional_cnn", "weather", "optical"},
-    "vessels": {"ais_vessels", "ais_summary", "gfw_vessels", "gfw_events_vessels"},
+    "contacts": {"live_contacts", "live_about", "live_weather", "live_review", "regional_contacts", "regional_scenes",
+                 "regional_identity", "structures", "camau_contacts", "regional_cnn", "weather", "optical"},
+    "vessels": {"ais_vessels", "ais_summary", "live_ais_only", "gfw_vessels", "gfw_events_vessels"},
     "tracks": {"ais_positions", "gfw_presence_passes"},
     "lights": {"lights", "sites", "viirs_nights"},
+    "lights_extra": {"lights_all"},
     "events": {"events_open", "gfw_gaps", "gfw_encounters", "gfw_loitering", "gfw_port_visits"},
-    "leads": {"leads_open", "leads_research", "leads_research_gpkg"},
-    "passes": {"pass_plan", "pass_plan_layer", "live_scenes", "live_summary", "regional_scenes"},
+    "leads": {"leads_open", "leads_open_detail", "leads_research", "leads_research_gpkg"},
+    "passes": {"pass_plan", "pass_plan_layer", "live_scenes", "live_summary", "live_ais_only", "regional_scenes"},
     "cells": {"cells_static", "cells_daily", "cells_pass", "radar_vs_gfw", "ocean_static_summary"},
+    "context": {"object_context", "expected_activity"},
     "rasters": {"rasters", "rasters_research"},
 }
-AFTER = {"contacts": {"vessels", "passes"}}  # loaders that read the contacts frame of the same State
-ORDER = ["contacts", "lights", "events", "leads", "cells", "rasters", "tracks", "vessels", "passes"]
+# loaders that read another loader's data of the same State: contacts feed vessels and passes; leads and lights feed the
+# evidence lights (the L7 lights the lean light file lacks)
+AFTER = {"contacts": {"vessels", "passes"}, "leads": {"lights_extra"}, "lights": {"lights_extra"}}
+ORDER = ["contacts", "lights", "events", "leads", "cells", "context", "rasters", "tracks", "vessels", "passes", "lights_extra"]
 SECOND = ("vessels", "passes")  # loaded after the first group, from the new contacts frame
-BACKGROUND = {"events"}  # loaded in a thread after the others (held until release_background when Settings.background_delay_s
-# is set); the first request that needs them releases the hold and waits (research: 610k rows)
+BACKGROUND = {"context", "lights_extra", "events"}  # loaded in a thread after the others, in BG_ORDER (held until
+# release_background when Settings.background_delay_s is set); the first request that needs them releases the hold and
+# waits: object context and expected activity (360k and 87k rows; Contact, Light and Cell records), the evidence lights
+# (the L7 lights outside the lean file, read from the leads and lights of the same State), research events (610k rows)
+BG_ORDER = ["context", "lights_extra", "events"]
 QUIET = {"tracks"}  # reloaded in the background, at most once per Settings.tracks_reload_s; requests never wait for them
 LINKED = {"contacts", "leads", "vessels"}  # a reload of any of these rebuilds the cross-object indexes
 
@@ -145,6 +154,9 @@ class PrefixIndex:
         return out
 
 
+# rules of the live file's `about` layer that /meta repeats (the Contact and Pass pages quote them)
+LIVE_RULES = ("dark_lead_rule", "no_coverage_rule", "match_quality_rule", "ais_status_rule", "distance_gate", "ais_window",
+              "azimuth_correction", "ambiguity", "review_note", "ais_only_layer", "weather")
 CONTACT_SORTS = {"acq_utc": "_t", "length_est_m": "length_est_m", "cnn_score": "cnn_score", "det_id": "det_id"}
 LEAD_SORTS = {"priority": "priority", "time_utc": "_t", "lead_id": "lead_id"}
 
@@ -274,6 +286,10 @@ class Store:
             return L_vessels.load_tracks(c, s, data.peek("tracks") if "tracks" in data else None, changed)
         if name == "lights":
             return L_lights.load(c, s, self.f["light"], self.f["site"])
+        if name == "lights_extra":
+            return L_lights.load_evidence(c, s, data.get("leads"), data.get("lights"), self.f["light"])
+        if name == "context":
+            return L_context.load(c, s)
         if name == "events":
             return L_events.load(c, s)
         if name == "leads":
@@ -294,7 +310,7 @@ class Store:
         data = new.data
         data.on_wait = self.release_background
         later = []
-        for n in sorted(names & BACKGROUND):  # a placeholder now; the load starts once the rest is in (less contention)
+        for n in [b for b in BG_ORDER if b in names]:  # a placeholder now; the load starts once the rest is in
             fut = Future()
             data.pending[n] = fut
             dict.pop(data, n, None)
@@ -482,6 +498,54 @@ class Store:
         return self.settings.caveat(*extra)
 
     # ------------------------------------------------------------ contacts
+    def object_contexts(self, kind: str, ids, sources=None) -> list[dict | None]:
+        """Board D5.3 `object_context` of contacts (`kind` contact, with each row's `_source`) or lights; None where the
+        context table has no row (live passes until the table is rebuilt after the pass) or is not loaded."""
+        ctx = self.data.get("context")
+        ids = [str(i) for i in ids]
+        if ctx is None or ctx.objects is None or not ids:
+            return [None] * len(ids)
+        if kind == "light":
+            return ctx.records(L_context.LIGHT_TYPES, ids)
+        out: list = [None] * len(ids)
+        groups: dict[tuple, list[int]] = {}
+        for i, src in enumerate(sources if sources is not None else ["regional"] * len(ids)):
+            groups.setdefault(L_context.CONTACT_TYPES.get(src, ("radar",)), []).append(i)
+        for types, idx in groups.items():
+            for i, rec in zip(idx, ctx.records(types, [ids[i] for i in idx])):
+                out[i] = rec
+        return out
+
+    @staticmethod
+    def contact_field_prov(r: dict) -> dict:
+        """Field-level provenance (spec 4.8) of the contract 1.3.0 contact fields: source key, valid time, source text."""
+        fp = {}
+
+        def put(f, src, time=None, text=None):
+            if clean(r.get(f)) is not None:
+                fp[f] = {"src": src, "time": prov_time(clean(time)), "text": clean(text)}
+
+        if r.get("_source") == "live":
+            t = clean(r.get("az_time_utc")) or clean(r.get("acq_utc"))
+            put("az_time_utc", "det_live", t, "azimuth time of the contact from the Sentinel-1 product annotation")
+            put("az_shift_m", "det_live", t, "SAR azimuth shift of the matched vessel's velocity at this contact (live file about.azimuth_correction)")
+            for f in ("match_dist_uncorr_m", "velocity_source", "match_ambiguous", "ambiguous_mmsi", "match_alt_dist_m"):
+                put(f, "aisstream", t, "AIS track placed at the contact's azimuth time")
+            rf = clean(r.get("_review_file"))
+            put("review_note", "analyst", r.get("_review_time"), f"hand check, {rf} (reviewed_utc)" if rf else
+                "hand check, review_note of data/live/live_contacts.gpkg (no row in a hand-check table, time unknown)")
+            put("review_grade", "analyst", r.get("_review_time"), "grade of review_note")
+            put("identity_label", "aisstream", None, "board D4.7")
+        live_w = r.get("_source") == "live"  # live: the pass's weather sidecar; else data/weather_context.parquet
+        put("wind_ms", "gfs_wind", r.get("_wind_time"), r.get("_wind_source") if live_w else
+            "data/weather_context.parquet (GFS 0.25 degree 10 m wind; the GFS hour is not stored)")
+        cloud_t = clean(r.get("_cloud_time")) if live_w else r.get("himawari_start")  # both ISO 8601 by now
+        cloud_x = r.get("_cloud_source") if live_w else \
+            "data/weather_context.parquet (Himawari-9 AHI L2 cloud tops; scan start from himawari_start, to 10 s)"
+        put("ctt_k", "himawari_ctt", cloud_t, cloud_x)
+        put("deep_convection", "himawari_ctt", cloud_t, cloud_x)
+        return fp
+
     def contact_rows(self, positions, full: bool = True) -> list[dict]:
         cd = self.data["contacts"]
         if len(positions) == 0:
@@ -493,12 +557,14 @@ class Store:
         out = []
         cav = self.cav()
         chips = self.chips if full else set()
-        for r in rows:
+        ctxs = self.object_contexts("contact", [r["det_id"] for r in rows], [r["_source"] for r in rows]) if full else None
+        for k, r in enumerate(rows):
             src = r["_source"]
             fixed = {"caveat": cav, "lead_ids": self.contact_leads.get(str(r["det_id"]), [])}
             if full:
                 fixed.update({"src": L_contacts.SRC[src], "prov": dict(L_contacts.PROV[src]),
-                              "chip": f"/api/v1/contacts/{r['det_id']}/chip.webp" if str(r["det_id"]) in chips else None})
+                              "chip": f"/api/v1/contacts/{r['det_id']}/chip.webp" if str(r["det_id"]) in chips else None,
+                              "object_context": ctxs[k], "field_prov": self.contact_field_prov(r)})
                 rec = build_record(fields, r, extra_cols=cd.extra_cols.get(src, []), extra=L_contacts.source_caveat_extra(r), defaults=dflt, ints=ints, **fixed)
             else:
                 rec = build_record(fields, r, defaults=dflt, ints=ints, **fixed)
@@ -558,8 +624,11 @@ class Store:
                 extra["aisstream_vessel_key"] = r["_aisstream_key"]
             prov = {"flag": "mid_itu", "mid": "mid_itu", "contacts_matched": "app"} if r["_src"] == "aisstream" else \
                 {"contacts_matched": "app", "mid": "app"}
+            if r["_src"] == "aisstream":
+                prov["identity_label"] = "aisstream"
             fixed = {"caveat": self.cav(), "src": r["_src"], "prov": prov, "identity_note": r["_note"],
-                     "contacts_matched": self.vessel_contacts.get(key, []), "stub": bool(r.get("stub"))}
+                     "contacts_matched": self.vessel_contacts.get(key, []), "stub": bool(r.get("stub")),
+                     "identity_label": AISSTREAM_LABEL if r["_src"] == "aisstream" else None}
             if full:
                 out.append(build_record(self.f["vessel"], r, extra_cols=vd.extra_cols["all"], extra=extra, defaults=self.d["vessel"], ints=self.i["vessel"], **fixed))
             else:
@@ -603,19 +672,25 @@ class Store:
         return L_vessels.track(self.data["tracks"], key, mmsi, t0, t1, max_points)
 
     # ------------------------------------------------------------ lights and sites
-    def light_rows(self, positions, full: bool = True) -> list[dict]:
-        ld = self.data["lights"]
+    def light_rows(self, positions, full: bool = True, evidence: bool = False) -> list[dict]:
+        """Light records of the lean light file, or (evidence=True) of the lights that leads cite outside it."""
+        ld = self.data["lights_extra"] if evidence else self.data["lights"]
         if len(positions) == 0:
             return []
         rows = ld.lights.iloc[np.asarray(positions)].to_dict("records")
+        extra_cols = ld.extra_cols if evidence else ld.extra_cols["light"]
         out = []
         cav = self.cav(L_lights.LIGHT_CAVEAT)
         cdf = self.data["contacts"].df
-        for r in rows:
+        ctxs = self.object_contexts("light", [r["light_id"] for r in rows]) if full else None
+        for k, r in enumerate(rows):
             extra = {}
             sc = r.get("_source_caveat")
             if isinstance(sc, str) and sc and sc != PRODUCT_CAVEAT:
                 extra["source_caveat"] = sc
+            if evidence:
+                extra["light_file"] = "data/viirs_lights_all.gpkg"
+                extra["light_file_note"] = L_lights.EXTRA_NOTE
             near = []
             if full and len(cdf):
                 hits = self.contact_tree().within(r["lon"], r["lat"], 2000.0)
@@ -623,18 +698,30 @@ class Store:
                     sub = cdf.iloc[hits]
                     near = sub.loc[sub["_night"].astype(str) == str(r["night"]), "det_id"].astype(str).tolist()
             fixed = {"caveat": cav, "src": "viirs_dnb", "contacts_2km_same_night": near, "research_only": False,
-                     "prov": {"satlas_infra_m": "satlas", "site_id": "app", "contacts_2km_same_night": "app", "cell_id": "app"}}
+                     "prov": {"satlas_infra_m": "satlas", "site_id": "app", "contacts_2km_same_night": "app", "cell_id": "app",
+                              "object_context": "ocean_context"}}
             if full:
-                out.append(build_record(self.f["light"], r, extra_cols=ld.extra_cols["light"], extra=extra, defaults=self.d["light"], ints=self.i["light"], **fixed))
+                fixed["object_context"] = ctxs[k]
+                out.append(build_record(self.f["light"], r, extra_cols=extra_cols, extra=extra, defaults=self.d["light"], ints=self.i["light"], **fixed))
             else:
                 out.append(build_record(LIGHT_SUMMARY, r, defaults=self.d["light_summary"], ints=self.i["light_summary"], **{k: v for k, v in fixed.items() if k in LIGHT_SUMMARY}))
         return out
 
-    def light(self, light_id: str) -> dict:
+    def light_where(self, light_id: str) -> tuple[int, bool] | None:
+        """(position, evidence) of a light: the lean file first, then the lights leads cite outside it."""
         ld = self.data["lights"]
-        if light_id not in ld.pos.index:
+        if light_id in ld.pos.index:
+            return int(ld.pos[light_id]), False
+        ev = self.data.get("lights_extra")
+        if ev is not None and light_id in ev.pos.index:
+            return int(ev.pos[light_id]), True
+        return None
+
+    def light(self, light_id: str) -> dict:
+        hit = self.light_where(light_id)
+        if hit is None:
             raise ApiError(404, "not_found", f"no light {light_id}")
-        return self.light_rows([int(ld.pos[light_id])])[0]
+        return self.light_rows([hit[0]], evidence=hit[1])[0]
 
     def site(self, site_id: str) -> dict:
         ld = self.data["lights"]
@@ -752,6 +839,8 @@ class Store:
                 extra["source_caveat"] = sc
             if "nights" in r:
                 extra["nights"] = json_list(r.get("nights"))
+            if r.get("_evidence_source"):
+                extra["evidence_source"] = r["_evidence_source"]
         ex_cols = [] if summary else [c for c in ld.extra_cols if c != "nights"]
         hist = [h for h in json_list(r.get("history")) if isinstance(h, dict)]
         return build_record(
@@ -836,7 +925,10 @@ class Store:
                 return {"label": v.get("name") or v.get("mmsi") or oid, "mmsi": v.get("mmsi"), "flag": v.get("flag"),
                         "ship_type": v.get("ship_type"), "stub": v.get("stub")}
             if typ == "light":
-                g = self.light_rows([int(self.data["lights"].pos[oid])], full=False)[0]
+                hit = self.light_where(oid)
+                if hit is None:
+                    return None
+                g = self.light_rows([hit[0]], full=False, evidence=hit[1])[0]
                 return {"label": f"VIIRS light, {g['quality']}", "lon": g["lon"], "lat": g["lat"], "time_utc": g["time_utc"],
                         "radiance_nw": g["radiance_nw"]}
             if typ == "event":
@@ -855,7 +947,7 @@ class Store:
                     s = cd.static.iloc[cd.key[rc]]
                     return {"label": f"cell {oid}", "lon": float(s["lon"]), "lat": float(s["lat"]),
                             "depth_mean_m": clean(s.get("depth_mean_m")), "region_box": s.get("region")}
-            if typ in ("site", "recurring_site"):
+            if typ in ("site", "light_site", "recurring_site"):  # the lead builder writes light_site
                 s = self.site(oid)
                 return {"label": s.get("likely"), "lon": s["lon"], "lat": s["lat"]}
         except (KeyError, ApiError, IndexError):
@@ -863,7 +955,9 @@ class Store:
         return None
 
     # ------------------------------------------------------------ passes
-    def pass_rows(self, positions, footprint: bool = True) -> list[dict]:
+    def pass_rows(self, positions, footprint: bool = True, ais_only: bool = False) -> list[dict]:
+        """Pass records. The AIS-only vessel list is filled only with ais_only=True (GET /passes/{pass_id}); lists carry
+        its length in n_ais_only."""
         df = self.data["passes"]
         if len(positions) == 0:
             return []
@@ -871,8 +965,25 @@ class Store:
         out = []
         for r in rows:
             fp = r.get("footprint") if footprint else None
-            out.append(build_record(self.f["pass"], r, extra=dict(r.get("_extra") or {}), defaults=self.d["pass"], ints=self.i["pass"], footprint=fp, caveat=self.cav(),
-                                    src=r["_src"], research_only=False, prov={"n_contacts": "app", "note": "app"}))
+            prov = {"n_contacts": "app", "note": "app"}
+            fprov = {}
+            live = clean(r.get("n_ais_only")) is not None or isinstance(r.get("azimuth_check"), dict)
+            if live:
+                prov.update({"n_ais_only": "aisstream", "ais_only": "aisstream", "azimuth_check": "det_live",
+                             "identity_label": "aisstream"})
+                if clean(r.get("n_ais_only")) is not None:
+                    fprov["ais_only"] = {"src": "aisstream", "time": prov_time(clean(r.get("_ais_only_time"))),
+                                         "text": "AIS vessels placed at the scene time inside the footprint that no contact "
+                                                 "matched (live file layer ais_only_4326)"}
+                if isinstance(r.get("azimuth_check"), dict):
+                    fprov["azimuth_check"] = {"src": "det_live", "time": prov_time(clean(r.get("_azimuth_time"))),
+                                              "text": "data/live/live_summary.json azimuth_check_by_scene"}
+            lst = r.get("_ais_only")
+            out.append(build_record(
+                self.f["pass"], r, extra=dict(r.get("_extra") or {}), defaults=self.d["pass"], ints=self.i["pass"],
+                footprint=fp, caveat=self.cav(), src=r["_src"], research_only=False, prov=prov, field_prov=fprov,
+                ais_only=(lst if isinstance(lst, list) else None) if ais_only else None,
+                azimuth_check=r.get("azimuth_check") if isinstance(r.get("azimuth_check"), dict) else None))
         return out
 
     def pass_(self, pass_id: str) -> dict:
@@ -880,7 +991,7 @@ class Store:
         hit = np.flatnonzero(df["pass_id"].astype(str).eq(pass_id).to_numpy()) if len(df) else []
         if not len(hit):
             raise ApiError(404, "not_found", f"no pass {pass_id}")
-        return self.pass_rows([int(hit[0])])[0]
+        return self.pass_rows([int(hit[0])], ais_only=True)[0]
 
     def passes_query(self, p: dict) -> tuple[np.ndarray, int]:
         df = self.data["passes"]
@@ -947,11 +1058,18 @@ class Store:
             prov["gfw_comparison"] = "gfw_4wings"
         known = set(self.f["cell"])
         extra_cols = [c for c in s if c not in known and not c.startswith("marineregions_") and c not in ("region",)]
+        ctx = self.data.get("context")
+        ea = ctx.expected_for(row, col) if ctx is not None and ctx.expected is not None else None
+        fprov = {}
+        if ea is not None:
+            prov["expected_activity"] = "expected_activity"
+            fprov["expected_activity"] = {"src": "expected_activity", "time": None,
+                                          "text": f"model {ea.get('model_id')}; each row carries its own time_start_utc and time_end_utc"}
         return build_record(
             self.f["cell"], s, extra_cols=extra_cols, defaults=self.d["cell"], ints=self.i["cell"], cell_id=cell_id, row=row, col=col, region_box=s.get("region"),
             shipping_note=SHIPPING_LABEL, nightly=nightly, nights_available=nights, pass_context=pass_ctx,
-            object_context=None, expected_activity=None, eez=L_cells.eez_block(s), **({"gfw_comparison": gfw} if self.settings.research else {}),
-            research_only=gfw is not None, caveat=self.cav(OCEAN_CAVEAT), src="app", prov=prov, **rv)
+            object_context=None, expected_activity=ea, eez=L_cells.eez_block(s), **({"gfw_comparison": gfw} if self.settings.research else {}),
+            research_only=gfw is not None, caveat=self.cav(OCEAN_CAVEAT), src="app", prov=prov, field_prov=fprov, **rv)
 
     def cell_at(self, lon: float, lat: float) -> dict:
         from .loaders.common import cell_rc
@@ -965,7 +1083,7 @@ class Store:
     def loading(self) -> list[str]:
         """Loaders still running in the background (their counts in /meta come from the catalog meanwhile)."""
         data = self.data
-        return sorted(k for k in data.pending if data.peek(k) is None)
+        return sorted(k for k in list(data.pending) if data.peek(k) is None)  # peek resolves done loads (pops)
 
     def counts(self) -> dict[str, int]:
         """Rows per object type. Never waits for a background load: a loader still loading is counted from the
@@ -982,13 +1100,22 @@ class Store:
         ev = data.peek("events")
         n_events = len(ev.df) if ev is not None else sum(self.cat.rows(k) or 0 for k in DEPS["events"] if k in self.cat.specs)
         tr = data["tracks"]
+        ev_lights = data.peek("lights_extra")  # never waits: a count is absent while its loader loads (/meta loading)
+        if ev_lights is not None:
+            c["lights_evidence"] = len(ev_lights.lights)
+        ctx = data.peek("context")
+        if ctx is not None:
+            c["context_objects"] = 0 if ctx.objects is None else len(ctx.objects)
+            c["expected_activity_rows"] = 0 if ctx.expected is None else len(ctx.expected)
         c.update({"vessels": len(data["vessels"].df), "lights": len(data["lights"].lights),
                   "sites": len(data["lights"].sites), "events": int(n_events),
                   "leads": len(data["leads"].df), "passes": len(data["passes"]),
                   "cells": len(data["cells"].key), "rasters": len(data["rasters"].paths),
                   "decisions": self.decisions.count(), "chips": len(self.chips),
+
                   "track_positions": 0 if tr.positions is None else len(tr.positions)})
         return c
+
 
     def meta(self) -> dict:
         vd, tr = self.data["vessels"], self.data["tracks"]
@@ -1005,8 +1132,7 @@ class Store:
                               "positions": s.get("positions"), "mmsi_count": s.get("mmsi_count"),
                               "hours_in_cache": len(tr.recorded_hours),
                               "note": "aisstream.io relays shore receivers; the free feed is terrestrial. Terms UNVERIFIED."} if s or tr.recorded_hours else None,
-            "live_rules": {k: clean(self.data["contacts"].about.get(k)) for k in
-                           ("dark_lead_rule", "no_coverage_rule", "match_quality_rule", "ais_status_rule", "distance_gate")}
+            "live_rules": {k: clean(self.data["contacts"].about.get(k)) for k in LIVE_RULES}
             if self.data["contacts"].about else None,
             "data_credit": DATA_CREDIT, "load_seconds": self.load_seconds, "loading": self.loading(),
             "reload_error": self.reload_error,

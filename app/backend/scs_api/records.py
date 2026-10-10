@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from datetime import date, datetime, timezone
 from typing import Any, Iterable
 
@@ -32,6 +33,23 @@ def iso_z(v) -> str | None:
         return None
     t = t.tz_localize("UTC") if t.tzinfo is None else t.tz_convert("UTC")
     return t.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+_ISO_Z = re.compile(r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}Z)?")
+
+
+def prov_time(v) -> str | None:
+    """A `field_prov` or `object_context` time (contract 2): ISO 8601 UTC with Z, or a YYYY-MM-DD date when the source
+    gives only a date; None for nulls and for any text that is neither (never a raw producer string)."""
+    if v is None or (isinstance(v, float) and math.isnan(v)) or v is pd.NaT or v is pd.NA:
+        return None
+    s = str(v).strip()
+    if _ISO_Z.fullmatch(s):
+        return s
+    if s in NULL_STRINGS or not re.match(r"\d{4}-\d{2}-\d{2}", s):  # not ISO-like: no guess at a compact format
+        return None
+    z = iso_z(s)
+    return z if z is not None and _ISO_Z.fullmatch(z) else None
 
 
 def to_utc_series(s: pd.Series) -> pd.Series:

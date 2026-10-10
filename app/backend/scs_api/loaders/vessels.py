@@ -82,6 +82,58 @@ def _ais_vessels(cat) -> tuple[pd.DataFrame | None, list[str]]:
     return v, []
 
 
+LIVE_STUB_NOTE = ("stub: this MMSI is referenced by a live pass (matched contact, nearest AIS vessel or AIS-only vessel) but "
+                  "is not in data/ais_live.gpkg vessels_latest_4326; identity strings as the live pass file states them")
+_LIVE_ID = {"vessel_name": "name", "call_sign": "call_sign", "imo": "imo", "ship_type": "ship_type", "ais_class": "ais_class",
+            "length_ais_m": "length_ais_m", "identity_source": "identity_source"}
+
+
+def _live_stubs(cat, contacts_df: pd.DataFrame | None, have: set) -> pd.DataFrame | None:
+    """aisstream vessel rows for the MMSIs that live passes reference and the vessel snapshot lacks (contract 1.3.0):
+    matched identities first, then AIS-only vessels, then nearest AIS vessels (MMSI only). A row carries `stub` true."""
+    from darkvessel.live.mid import flag_from_mmsi
+
+    parts = []
+    if contacts_df is not None and len(contacts_df) and "_source" in contacts_df:
+        live = contacts_df[contacts_df["_source"].eq("live")]
+        m = live[live["ais_status"].eq("matched") & live["mmsi"].notna()]
+        if len(m):
+            parts.append(m[["mmsi", *[c for c in _LIVE_ID if c in m]]].rename(columns=_LIVE_ID).assign(_why="matched"))
+    a = cat.read_gpkg("live_ais_only") if cat.exists("live_ais_only") else None
+    if a is not None and len(a):
+        a = a.copy()
+        a["mmsi"] = digit_series(a["mmsi"])
+        if "imo" in a:
+            a["imo"] = digit_series(a["imo"])
+        parts.append(a[["mmsi", *[c for c in _LIVE_ID if c in a]]].rename(columns=_LIVE_ID).assign(_why="ais_only"))
+    if contacts_df is not None and len(contacts_df) and "_source" in contacts_df:
+        n = contacts_df.loc[contacts_df["_source"].eq("live") & contacts_df["nearest_ais_mmsi"].notna(), ["nearest_ais_mmsi"]]
+        if len(n):
+            parts.append(n.rename(columns={"nearest_ais_mmsi": "mmsi"}).assign(_why="nearest_ais",
+                                                                               identity_source="MMSI only (nearest AIS vessel)"))
+    if not parts:
+        return None
+    df = pd.concat(parts, ignore_index=True, sort=False)
+    df["mmsi"] = df["mmsi"].astype(object)
+    df = df[df["mmsi"].notna() & ~df["mmsi"].astype(str).isin(have)].drop_duplicates("mmsi", keep="first")
+    if not len(df):
+        return None
+    df = df.reset_index(drop=True)
+    df["mmsi"] = df["mmsi"].astype(str)
+    df["vessel_key"] = "mmsi:" + df["mmsi"]
+    df["mid"] = _mid(df["mmsi"])
+    df["flag"] = df["mmsi"].map(flag_from_mmsi)
+    if "length_ais_m" in df:
+        df["length_m"] = df["length_ais_m"]
+    df["stub"] = True
+    df["research_only"] = False
+    df["_src"] = "aisstream"
+    df["_note"] = IDENTITY_NOTE
+    df["stub_note"] = LIVE_STUB_NOTE
+    df["stub_reason"] = df.pop("_why")
+    return df
+
+
 def _gfw_table(df: pd.DataFrame, mapping: dict, identity_source: str | None) -> pd.DataFrame:
     df = df.rename(columns={k: x for k, x in mapping.items() if k in df})
     df["mmsi"] = digit_series(df["mmsi"]) if "mmsi" in df else None
@@ -104,6 +156,9 @@ def load(cat, settings, contacts_df: pd.DataFrame | None, fields: list[str]) -> 
     ais, _ = _ais_vessels(cat)
     if ais is not None:
         frames.append(ais)
+    stubs = _live_stubs(cat, contacts_df, set(ais["mmsi"].dropna().astype(str)) if ais is not None else set())
+    if stubs is not None:
+        frames.append(stubs)
     if settings.research:
         g = cat.read_parquet("gfw_vessels")
         if g is not None and len(g):
@@ -134,7 +189,7 @@ def load(cat, settings, contacts_df: pd.DataFrame | None, fields: list[str]) -> 
             df["_t_" + c] = to_utc_series(df[c])
             df[c] = iso_series(df[c])
     if settings.research and ais is not None and len(df):
-        heard = set(ais["mmsi"].dropna())
+        heard = set(ais["mmsi"].dropna()) | (set(stubs["mmsi"]) if stubs is not None else set())
         g = df["vessel_key"].str.startswith("gfw:") & df["mmsi"].isin(heard)
         df["_aisstream_key"] = np.where(g, "mmsi:" + df["mmsi"].astype(str), None)
     internal = {"_src", "_note", "_source_caveat", "_aisstream_key", "vessel_id"} | {c for c in df if c.startswith("_t_")}

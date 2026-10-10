@@ -38,7 +38,10 @@ IDS = {
     "port": "prt0001.1", "lead_l1": "L1-S1D_20261008T230043_00002", "lead_l7": "L7-r62c24",
     "lead_r1": "L1-S1C_20260920T104816_00002", "cell": "r62c24", "plan_past": "S1D_R164_20261008T2300",
     "plan_up": "S1C_R120_20261011T2235", "chip": "S1D_20261008T230043_00001",
+    "light_all": "N20_20260920T183000_000007",  # cited by the L7 lead, in viirs_lights_all.gpkg only (contract 1.3.0)
+    "ais_only": ["412000002", "413000005"],
 }
+AISSTREAM_LABEL = "live AIS relayed by aisstream.io; terms UNVERIFIED"
 POS = {"live": (101.85, 12.62), "reg": (108.91, 17.88), "camau": (105.88, 9.25), "cell": (105.1, 8.6)}
 DARK_ROW_CAVEAT = DARK_CAVEAT
 
@@ -89,13 +92,18 @@ def live_contacts():
                   "low_reason": "", "persist_dates": 0, "persist_dates_checked": 2, "n_low_1km": 0, "near_fixed_m": 5000.0,
                   "ais_footprint_positions": 12, "pred_method": None, "cnn_chip_valid_frac": 1.0, "ais_recorded_hours": 10,
                   "row": 13672.3 + i, "col": 15189.4 + i})
+        r.update({"match_ambiguous": False, "az_time_utc": f"2026-10-08T23:00:4{5 + i}.250000Z"})
         if status == "matched":
             r.update({"match_method": "track_interp_hungarian", "match_dist_m": 120.0, "match_dt_s": 15.0, "match_quality": "high",
                       "mmsi": 574000001, "imo": 9123456, "vessel_name": "TEST VESSEL", "call_sign": "XVAB", "flag": "Viet Nam (Socialist Republic of)",
                       "ship_type": "cargo", "length_ais_m": 52.0, "identity_source": "aisstream static message",
-                      "match_gate_m": 1500.0, "ais_sog_kn": 8.0, "length_ratio": 0.8, "ais_class": "A", "mmsi_mid": 574})
+                      "match_gate_m": 1500.0, "ais_sog_kn": 8.0, "length_ratio": 0.8, "ais_class": "A", "mmsi_mid": 574,
+                      "match_dist_uncorr_m": 180.0, "az_shift_m": 95.5, "velocity_source": "sog_cog",
+                      "review_note": "confirmed: the AIS track passes the return 120 m from the expected position"})
+        if status == "unmatched":  # held back by the ambiguity rule: two AIS vessels compete for it
+            r.update({"match_ambiguous": True, "ambiguous_mmsi": "412000002;413000005", "match_alt_dist_m": 160.0})
         rows.append(r)
-    df = pd.DataFrame(rows)[D1_LIVE + EXTRA_COLUMNS + ["pred_method", "cnn_chip_valid_frac", "ais_recorded_hours", "row", "col"]]
+    df = pd.DataFrame(rows)[D1_LIVE + EXTRA_COLUMNS + ["pred_method", "cnn_chip_valid_frac", "ais_recorded_hours", "row", "col", "review_note"]]
     df = df.loc[:, ~df.columns.duplicated()]
     for c in ("mmsi", "imo"):
         df[c] = pd.to_numeric(df[c]).astype(float)
@@ -127,8 +135,41 @@ def write_all(d: Path) -> Path:
     _gpkg(sc, p, "scenes_4326")
     _gpkg(pd.DataFrame([{"product": "live", "cnn_model_id": "verifier_v0_356af0ca", "cnn_threshold": "0.631783",
                          "dark_lead_rule": "unmatched high or medium", "no_coverage_rule": "nothing heard within 20 km",
-                         "caveat": DARK_ROW_CAVEAT}]), p, "about")
-    (d / "live" / "live_summary.json").write_text(json.dumps({"generated_utc": "2026-10-09T07:37:06Z", "passes": {LIVE_PASS: {"scenes": 2}}}))
+                         "ais_window": "AIS positions from 30 min before to 30 min after the scene time",
+                         "ambiguity": "an ambiguous pair is not a match", "caveat": DARK_ROW_CAVEAT}]), p, "about")
+    lon, lat = POS["live"]
+    ais_only = _pts([{"mmsi": int(IDS["ais_only"][0]), "run_id": LIVE_PASS, "scene_id": LIVE_SCENES[0], "mission": "S1D",
+                      "acq_utc": "2026-10-08T23:00:43+00:00", "lon": lon + 0.02, "lat": lat + 0.02, "pred_method": "interp", "pred_dt_s": 60.0,
+                      "n_reports": 3, "sog_kn": 2.0, "ais_class": "B", "vessel_name": "SECOND", "call_sign": "BXYZ", "imo": None,
+                      "flag": "China (People's Republic of)", "ship_type": "fishing", "length_ais_m": 14.0,
+                      "identity_source": "aisstream static message", "on_tested_sea": True, "dist_coast_km": 30.0,
+                      "nearest_object_m": 160.0, "nearest_object_class": "medium", "ambiguous_det_id": IDS["live_unmatched"],
+                      "oversized_det_id": None, "ais_status": "ais_only", "research_only": False, "caveat": DARK_ROW_CAVEAT},
+                     {"mmsi": int(IDS["ais_only"][1]), "run_id": LIVE_PASS, "scene_id": LIVE_SCENES[0], "mission": "S1D",
+                      "acq_utc": "2026-10-08T23:00:43+00:00", "lon": lon - 0.3, "lat": lat, "pred_method": "extrap", "pred_dt_s": 300.0,
+                      "n_reports": 1, "sog_kn": 0.0, "ais_class": "A", "vessel_name": None, "call_sign": None, "imo": None,
+                      "flag": "China (People's Republic of)", "ship_type": None, "length_ais_m": None, "identity_source": "MMSI only",
+                      "on_tested_sea": False, "dist_coast_km": 0.4, "nearest_object_m": None, "nearest_object_class": None,
+                      "ambiguous_det_id": None, "oversized_det_id": None, "ais_status": "ais_only", "research_only": False,
+                      "caveat": DARK_ROW_CAVEAT}])
+    _gpkg(ais_only, p, "ais_only_4326")
+    (d / "live" / "live_summary.json").write_text(json.dumps({"generated_utc": "2026-10-09T07:37:06Z", "passes": {LIVE_PASS: {
+        "scenes": 2, "scene_ids": LIVE_SCENES,
+        "azimuth_check_by_scene": [{"min_shift_m": 150.0, "vessels": 5, "uncorrected_median_nearest_m": 528.6,
+                                    "corrected_median_nearest_m": 141.7, "sign_flipped_median_nearest_m": 668.2,
+                                    "vessels_compared": 4, "closest_corrected": 3},
+                                   {"min_shift_m": 150.0, "vessels": 0, "uncorrected_median_nearest_m": None,
+                                    "corrected_median_nearest_m": None, "sign_flipped_median_nearest_m": None,
+                                    "vessels_compared": 0, "closest_corrected": 0}],
+        "azimuth_check_note": "per scene: median distance to the nearest contact without the shift, with it, sign flipped"}}}))
+    _pq({"det_id": [IDS["live_matched"], IDS["live_unmatched"]], "run_id": LIVE_PASS, "scene_id": LIVE_SCENES[0],
+         "scene_time_utc": "2026-10-08T23:00:55.5+00:00", "wind_ms": [7.5, 13.2], "ctt_k": [None, 205.0],
+         "deep_convection": [False, True], "gfs_cycle_utc": "2026-10-08T18:00Z", "gfs_forecast_h": 5,
+         "himawari_key": "AHI-L2-FLDK-Clouds/2026/10/08/2250/AHI-CHGT_v1r1_h09_s202610082250207_e202610082259401_c202610082304101.nc",
+         "wind_source": "GFS 2026-10-08 18Z f005", "cloud_source": "Himawari-9 AHI-L2-FLDK-Clouds 2250",
+         "fetched_utc": "2026-10-09T03:18:00Z"}, d / "live" / f"{LIVE_PASS}_weather.parquet")
+    pd.DataFrame([{"det_id": IDS["live_matched"], "grade": "confirmed", "reason": "the AIS track passes the return",
+                   "reviewed_utc": "2026-10-10T15:10:00Z"}]).to_csv(d / "live" / f"{LIVE_PASS}_review_matched.csv", index=False)
 
     lon, lat = POS["reg"]
     reg = _pts([{"det_id": i, "scene_idx": 0 if k < 4 else 1, "mission": "S1C", "acq_utc": "2026-09-20T10:48:16+00:00" if k < 4 else "2026-09-20T10:48:45+00:00",
@@ -164,8 +205,10 @@ def write_all(d: Path) -> Path:
          "cnn_threshold": 0.631783, "cnn_model_id": "verifier_v0_356af0ca", "cnn_score_source": "regional",
          "cnn_chip_valid_frac": 1.0, "chip_valid_frac_full": 1.0, "bg_vv_db": -20.0, "bg_vh_db": -27.0, "caveat": DARK_CAVEAT},
         d / "ml" / "regional_cnn.parquet")
-    all_ids = cnn_ids + [live["det_id"].iloc[i] for i in range(4)] + IDS["camau"]
-    _pq({"det_id": all_ids, "wind_ms": 5.0, "ctt_k": 280.0, "himawari_start": "2026-09-20T10:40:00Z", "deep_convection": False},
+    # the regional weather table holds no live contact (live weather is in the sidecars); himawari_start as
+    # scripts/16_weather_context.py writes it: yyyymmddHHMM and the tens digit of the seconds (10:40:2x)
+    all_ids = cnn_ids + IDS["camau"]
+    _pq({"det_id": all_ids, "wind_ms": 5.0, "ctt_k": 280.0, "himawari_start": "2026092010402", "deep_convection": False},
         d / "weather_context.parquet")
     _gpkg(_pts([{"det_id": IDS["reg"][0], "group": "a", "confidence": "high", "acq_utc": "2026-09-20T10:48:16Z", "lat": 17.88,
                  "lon": 108.91, "length_est_m": 20.0, "optical_object": True, "optical_kind": "vessel", "s2_item": "S2A_x",
@@ -213,6 +256,11 @@ def write_all(d: Path) -> Path:
                     "class": "lit_vessel_candidate", "nights_seen_500m": 1, "clear_nights_cell": 5, "moon_illum_pct": 20.0,
                     "satlas_infra_m": 9000.0, "s1_passes_90d": 0, "caveat": DARK_CAVEAT_SHORT} for k in range(3)])
     _gpkg(lights, p, "viirs_lights_4326")
+    extra_light = {"light_id": IDS["light_all"], "satellite": "NOAA-20", "time_utc": "2026-09-20T18:30:00Z", "night": "2026-09-20",
+                   "lat": 8.62, "lon": 105.12, "radiance_nw": 70.0, "background_nw": 1.0, "spike_nw": 12.0, "snr": 9.0, "isolation": 4.0,
+                   "quality": "clear", "class": "lit_vessel_candidate", "nights_seen_500m": 1, "clear_nights_cell": 5,
+                   "moon_illum_pct": 60.0, "satlas_infra_m": 9000.0, "s1_passes_90d": 0, "granule": "N20_x", "caveat": DARK_CAVEAT_SHORT}
+    _gpkg(pd.concat([lights, _pts([extra_light])], ignore_index=True), d / "viirs_lights_all.gpkg", "viirs_lights_4326")
     _gpkg(_pts([{"site_id": IDS["site"], "lat": 8.6, "lon": 105.1001, "n_lights": 4, "nights": 3, "radiance_med_nw": 40.0,
                  "radiance_max_nw": 90.0, "satlas_infra_m": 600.0, "nights_seen_max": 3, "s1_passes_90d": 0,
                  "likely": "platform or turbine (Satlas point within 1 km)", "caveat": DARK_CAVEAT_SHORT}]), p, "viirs_sites_4326")
@@ -242,7 +290,8 @@ def write_all(d: Path) -> Path:
           "pts_ais_reach": 0, "pts_persistence": 15, "pts_area_weight": 0, "factors": "[]", "priority_model_id": "lead_priority_v0_20261009",
           "calibrated": False, "primary_type": "cell", "primary_id": IDS["cell"],
           "evidence": json.dumps([{"type": "cell", "id": IDS["cell"], "role": "primary"}, {"type": "light", "id": IDS["light"][0], "role": "light"},
-                                  {"type": "site", "id": IDS["site"], "role": "recurring_site"}]),
+                                  {"type": "light", "id": IDS["light_all"], "role": "light"},
+                                  {"type": "light_site", "id": IDS["site"], "role": "recurring_site"}]),
           "n_evidence": 3, "lon": 105.1, "lat": 8.6, "time_utc": "2026-09-11T17:55:00Z", "region_box": "South Vietnam shelf",
           "lawful_explanations": json.dumps(["lawful_fishing_lights"]), "change_indicators": json.dumps(["radar_acquisition"]),
           "history": "[]", "research_only": False, "caveat": caveat, "src": "app", "prov": "{}", "cell_id": IDS["cell"],
@@ -291,6 +340,7 @@ def write_all(d: Path) -> Path:
           "chl_log10_mean": -0.4, "chl_valid_share": 1.0, "ssh_m": 0.5, "ssh_anom_m": 0.0, "ssh_grad": 0.0, "current_speed_ms": 0.3,
           "mld_m": 22.0, "sst_source": "mur", "chl_dataset": "x", "rtofs_valid_utc": "x", "caveat": "ocean"}], d / "ocean_radar_pass_cells.parquet")
     (d / "ocean_static_summary.json").write_text(json.dumps({"eez_statement": "as published"}))
+    write_context(d)
 
     # ---------------------------------------------------------------- geo and rasters
     aoi = gpd.GeoDataFrame({"aoi_id": ["south_china_sea"], "label": ["AOI"]}, geometry=[box(99.2, -3.2, 122.2, 23.7)], crs="EPSG:4326")
@@ -389,3 +439,56 @@ def write_all(d: Path) -> Path:
          "n_pair": [1], "lon": [108.92], "lat": [17.9], "res_deg": [0.1], "use": ["r"], "licence": ["cc"]}, r / "radar_vs_gfw.parquet")
     _tif(r / "gfw_ais_presence_hours_4326.tif", np.ones((10, 10)), 108.0, 19.0, 0.1, tags={"units": "hours", "licence": "CC BY-NC 4.0"})
     return d
+
+
+CONTEXT_ROWS = {  # (object_type, object_id): position (lon, lat), time, missing fields
+    ("radar", IDS["reg"][0]): ((108.91, 17.88), "2026-09-20T10:48:16Z", ()),
+    ("radar", IDS["struct"][0]): ((108.81, 17.78), "2026-09-20T10:48:16Z", ("wave_hs_m", "sst_grad")),
+    ("radar_detail", IDS["camau"][1]): ((105.89, 9.25), "2026-09-29T11:10:23Z", ()),
+    ("viirs", IDS["light"][0]): ((105.1, 8.6), "2026-09-10T18:30:12Z", ()),
+    ("viirs", IDS["light_all"]): ((105.12, 8.62), "2026-09-20T18:30:00Z", ()),
+}
+
+
+def write_context(d: Path):
+    """data/ocean_context_objects.parquet (board D5.3) and data/expected_activity.parquet (board D5.4), a few rows."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from darkvessel.ocean.grid import OCEAN_CAVEAT
+
+    rows = []
+    for (otype, oid), ((lon, lat), t, missing) in CONTEXT_ROWS.items():
+        r = {"object_type": otype, "object_id": oid, "group": "high", "time_utc": pd.Timestamp(t), "lat": lat, "lon": lon,
+             "length_est_m": 30.0, "mission": "S1C", "day": t[:10], "cell_id": f"r{int((24 - lat) // 0.25)}c{int((lon - 99) // 0.25)}",
+             "region": "Gulf of Tonkin" if lat > 15 else "South Vietnam shelf", "depth_m": 60.3, "dist_coast_km": 51.88,
+             "dist_port_km": 73.4, "ship_presence_all": True, "ship_presence_commercial": True, "ship_presence_fishing": False,
+             "ship_presence_oilgas": False, "ship_presence_passenger": False, "ship_presence_leisure": False, "in_aoi_grid": True,
+             "sst_c": 28.475248, "sst_grad": 0.0112534, "dist_front_km": 11.913, "chl_log10": -0.75353, "current_speed_ms": 0.073018,
+             "mld_m": 1.86526, "wave_hs_m": 0.692088, "sst_time": t[:10] + "T09:00:00Z", "sst_source": "mur", "chl_time": t[:10],
+             "chl_dataset": "noaacwNPPN20S3ASCIDINEOF2kmDaily", "current_time": t[:10] + "T11:00:00+00:00",
+             "wave_time": t[:10] + "T11:00:00+00:00",
+             "caveat": OCEAN_CAVEAT + " The context fields describe the sea at an object's position and time, not what the object is or does."}
+        for f in missing:  # no wave layer that day: value and time null; sst_grad null on the day's SST layer (time kept),
+            r[f] = None     # as in 23,308 rows of the real table
+            r[{"wave_hs_m": "wave_time"}.get(f, f)] = None
+        rows.append(r)
+    _pq(rows, d / "ocean_context_objects.parquet")
+    ea = []
+    for target, night, unit, tested, flag, robust, obs, exp in (
+            ("viirs", "2026-09-10", "2026-09-10", True, "none", "none", 2.0, 1.5),
+            ("viirs", "2026-09-11", "2026-09-11", True, "high", "high", 9.0, 1.2),
+            ("viirs", "2026-09-12", "2026-09-12", False, "none", "none", 0.0, 0.2),
+            ("radar", "2026-09-20", REG_SCENES[0], True, "none", "none", 1.0, 0.8)):
+        ea.append({"target": target, "night": night, "unit_id": unit, "row": 62, "col": 24, "lon": 105.125, "lat": 8.375,
+                   "region": "South Vietnam shelf", "time_start_utc": f"{night} 18:30:00+00:00", "time_end_utc": f"{night} 19:10:00+00:00",
+                   "exposure_km2": 612.345, "wind_ms": 5.0, "cell_id": "r62c24", "tested": tested, "observed": obs, "expected_rate_all_per_1000km2": 2.0,
+                   "expected": exp, "expected_rate_per_1000km2": 2.1, "expected_climatology": 1.0, "z": (obs - exp) / max(exp, 0.1) ** 0.5,
+                   "p_high": 0.01, "p_low": 0.99, "p_two_sided": 0.02, "q_bh": 0.004 if flag == "high" else 0.6, "p_two_sided_nb": 0.03,
+                   "q_bh_nb": 0.008, "calm": True, "flag": flag, "flag_robust": robust, "caveat": "row caveat"})
+    ea.append({**ea[-1], "row": 24, "col": 39, "cell_id": "r24c39", "lon": 108.875, "lat": 17.875})  # radar only in r24c39
+    tb = pa.Table.from_pandas(pd.DataFrame(ea), preserve_index=False)
+    md = dict(tb.schema.metadata or {})
+    md.update({b"model_id": b"expected_activity_v1_fixture", b"caveat": (OCEAN_CAVEAT + " An activity anomaly is a difference "
+               "between a count of detections in a cell and a model's expectation. A lead for review only.").encode()})
+    pq.write_table(tb.replace_schema_metadata(md), d / "expected_activity.parquet")

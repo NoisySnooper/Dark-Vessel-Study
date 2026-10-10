@@ -40,7 +40,9 @@ def endpoints(build: str) -> list[str]:
            f"{a}/rasters", f"{a}/rasters/depth_m/value?lon=104.2&lat=9.9",
            *[f"{a}/geo/{n}.geojson" for n in ("land", "aoi", "reporting_boxes", "eez", "eez_boundaries", "depth_contours", "ports", "fronts", "footprints")],
            f"{a}/search?q=TEST", f"{a}/search?q={IDS['live_matched']}", f"{a}/search?q=10.25, 107.5", f"{a}/search?q=L7-r62",
-           f"{a}/timeline", f"{a}/timeline?bin=day", f"{a}/timeline?bin=hour"]
+           f"{a}/timeline", f"{a}/timeline?bin=day", f"{a}/timeline?bin=hour",
+           # contract 1.3.0: an L7 evidence light outside the lean file, cells with and without expected activity
+           f"{a}/lights/{IDS['light_all']}", f"{a}/cells/r24c39", f"{a}/cells/r45c11", f"{a}/contacts/{IDS['live_unmatched']}"]
     if build == "open":
         eps += [f"{a}/leads/{IDS['lead_l1']}"]
     else:

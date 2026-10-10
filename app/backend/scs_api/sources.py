@@ -14,9 +14,9 @@ _S1_LICENCE = "Copernicus Sentinel Data Legal Notice: free, full and open"
 _S1_NOTICE = "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice"
 
 
-def _e(key, name, method, script, licence, licence_url, url, credit=None, research_only=False):
+def _e(key, name, method, script, licence, licence_url, url, credit=None, research_only=False, access=ACCESS):
     return {"key": key, "name": name, "method": method, "script": script, "licence": licence, "licence_url": licence_url,
-            "url": url, "access_date": ACCESS, "credit": credit, "research_only": research_only}
+            "url": url, "access_date": access, "credit": credit, "research_only": research_only}
 
 
 REGISTRY = [
@@ -90,6 +90,14 @@ REGISTRY = [
        "scripts/23_daily_ocean.py", "NOAA open data", None, None),
     _e("gfs_wave", "NOAA GFS-Wave 0.25 degree significant wave height", "daily wave height", "scripts/23_daily_ocean.py",
        "NOAA open data", "https://registry.opendata.aws/noaa-gfs-bdp-pds/", None),
+    _e("ocean_context", "Ocean context at radar objects and VIIRS lights (data/ocean_context_objects.parquet)",
+       "static and daily sea fields sampled at each object's position and time; every field names its own source and "
+       "valid time", "scripts/25_object_context.py", "derived; each field carries the licence of its own source", None, None,
+       access="2026-10-10"),
+    _e("expected_activity", "Expected-activity model (data/expected_activity.parquet, data/expected_activity.json)",
+       "expected counts of lit and radar vessel candidates per cell and night or pass from sea and weather fields; "
+       "observed against expected, z, Benjamini-Hochberg q and flags are model output", "scripts/34_expected_activity.py",
+       "derived", None, None, access="2026-10-10"),
     _e("esa_acq_plan", "ESA Sentinel-1 acquisition plan KML files", "pass plan; repeat predictions are not ESA's plan",
        "darkvessel.ais.s1_passes", "ESA public plan", None,
        "https://sentinels.copernicus.eu/web/sentinel/copernicus/sentinel-1/acquisition-plans"),

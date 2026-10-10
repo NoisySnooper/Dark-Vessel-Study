@@ -23,7 +23,7 @@ def test_envelope_shape(shared_clients):
     for build, c in shared_clients.items():
         lst = c.get(f"{A}/contacts?limit=2").json()
         assert ENVELOPE <= set(lst) and {"items", "total", "limit", "offset"} <= set(lst)
-        assert lst["contract_version"] == "1.2.0" and lst["build"] == build
+        assert lst["contract_version"] == "1.3.0" and lst["build"] == build
         one = c.get(f"{A}/contacts/{IDS['live_matched']}").json()
         assert ENVELOPE <= set(one) and "item" in one and "items" not in one
         err = c.get(f"{A}/contacts/NOPE_1").json()
@@ -46,7 +46,9 @@ def test_records_validate_against_models(shared_clients):
                   (f"{A}/lights", "light_summary", True), (f"{A}/lights/{IDS['light'][0]}", "light", False),
                   (f"{A}/sites/{IDS['site']}", "site", False), (f"{A}/events", "event", True),
                   (f"{A}/leads?state=new,reviewing,closed_explained", "lead", True), (f"{A}/leads/{IDS['lead_l7']}", "lead", False),
-                  (f"{A}/passes", "pass", True), (f"{A}/passes/{LIVE_PASS}", "pass", False), (f"{A}/cells/{IDS['cell']}", "cell", False)]
+                  (f"{A}/passes", "pass", True), (f"{A}/passes/{LIVE_PASS}", "pass", False), (f"{A}/cells/{IDS['cell']}", "cell", False),
+                  (f"{A}/contacts/{IDS['reg'][0]}", "contact", False), (f"{A}/contacts/{IDS['live_unmatched']}", "contact", False),
+                  (f"{A}/lights/{IDS['light_all']}", "light", False), (f"{A}/cells/r24c39", "cell", False)]
         if build == "research":
             checks += [(f"{A}/contacts/{IDS['reg'][0]}", "contact", False), (f"{A}/events/{IDS['gap']}", "event", False),
                        (f"{A}/vessels/gfw:{IDS['gfw_stub']}", "vessel", False), (f"{A}/leads/{IDS['lead_r1']}", "lead", False)]
@@ -181,7 +183,9 @@ def test_missing_files_are_reported_not_errors(data_dir):
     leads = c.get(f"{A}/leads").json()
     assert leads["items"] == [] and leads["total"] == 0 and "missing" in leads["note"] and ENVELOPE <= set(leads)
     assert c.get(f"{A}/lights").json()["total"] == 0
-    assert c.get(f"{A}/vessels").json()["total"] == 0
+    # without the vessel snapshot only the stubs of the MMSIs the live pass references remain (contract 1.3.0)
+    vs = c.get(f"{A}/vessels?limit=100").json()["items"]
+    assert len(vs) == 3 and all(v["stub"] for v in vs)
     assert c.get(f"{A}/events").json()["note"].startswith("Open-build events")
     assert c.get(f"{A}/passes").status_code == 200
     assert c.get(f"{A}/cells/{IDS['cell']}").json()["item"]["nightly"] is None

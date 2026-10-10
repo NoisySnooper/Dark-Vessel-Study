@@ -192,7 +192,9 @@ def test_meta_counts_do_not_wait_for_background_events(data_dir, monkeypatch):
         c = _client(data_dir, build="research")
         m = c.get(f"{A}/meta").json()["item"]
         assert time.time() - t < 15
-        assert m["loading"] == ["events"] and m["counts"]["events"] == 4  # catalog rows of the four GFW event files
+        # catalog rows of the four GFW event files; the 1.3.0 background loads (context, evidence lights) may still run
+        assert "events" in m["loading"] and set(m["loading"]) <= {"context", "events", "lights_extra"}
+        assert m["counts"]["events"] == 4
     finally:
         release.set()
     store = c.app.state.store
@@ -213,7 +215,9 @@ def test_background_work_is_held_until_the_server_listens(data_dir, monkeypatch)
     store = c.app.state.store
     time.sleep(0.5)
     m = c.get(f"{A}/meta").json()["item"]
-    assert not calls and m["loading"] == ["events"] and m["counts"]["events"] == 4  # held, counted from the catalog
+    # held, counted from the catalog; the object context and the L7 evidence lights (contract 1.3.0) wait with them
+    assert not calls and m["loading"] == ["context", "events", "lights_extra"] and m["counts"]["events"] == 4
+    assert not {"lights_evidence", "context_objects"} & set(m["counts"])
     r = c.get(f"{A}/events?limit=1")  # needs the events: releases the hold and waits for the load
     assert r.status_code == 200 and r.json()["total"] == 4 and len(calls) == 1
     c2 = _client(data_dir, build="research", background_delay_s=0.2)

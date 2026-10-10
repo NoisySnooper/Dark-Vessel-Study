@@ -8,12 +8,63 @@ from __future__ import annotations
 import pandas as pd
 import shapely
 
+from ..config import AISSTREAM_LABEL
 from ..records import iso_z, to_utc_series
 from .common import geojson
 from .contacts import group_passes
 
 AIS_SUM = ["ais_aoi_positions", "ais_footprint_positions"]
 AIS_MAX = ["ais_aoi_mmsi", "ais_footprint_mmsi", "ais_near_footprint_mmsi"]
+# AIS-only vessel fields of a Pass record (contract 1.3.0; live layer ais_only_4326, darkvessel.live.schema)
+AIS_ONLY_FIELDS = ["mmsi", "vessel_key", "vessel_name", "call_sign", "imo", "flag", "ship_type", "ais_class", "length_ais_m",
+                   "sog_kn", "lon", "lat", "scene_id", "pred_method", "pred_dt_s", "n_reports", "on_tested_sea",
+                   "dist_coast_km", "nearest_object_m", "nearest_object_class", "ambiguous_det_id", "oversized_det_id",
+                   "identity_source", "identity_label"]
+
+
+def ais_only_by_pass(cat) -> dict[str, list[dict]]:
+    """AIS vessels placed inside a live pass's footprint that no contact matched, per run_id: vessels on tested sea
+    first, then by AIS length (longest first). Every row carries the board D4.7 aisstream label."""
+    from ..records import clean
+    from .contacts import bool_series, digit_series
+
+    a = cat.read_gpkg("live_ais_only")
+    if a is None or not len(a) or "run_id" not in a:
+        return {}
+    a = a.copy()
+    for c in ("mmsi", "imo"):
+        if c in a:
+            a[c] = digit_series(a[c])
+    a["vessel_key"] = ("mmsi:" + a["mmsi"].astype(str)).where(a["mmsi"].notna(), None) if "mmsi" in a else None
+    if "on_tested_sea" in a:
+        a["on_tested_sea"] = bool_series(a["on_tested_sea"])
+    a["identity_label"] = AISSTREAM_LABEL
+    a["_tested"] = a["on_tested_sea"].map(lambda v: v is True) if "on_tested_sea" in a else False
+    a["_len"] = pd.to_numeric(a.get("length_ais_m"), errors="coerce").fillna(-1.0)
+    a = a.sort_values(["run_id", "_tested", "_len", "mmsi"], ascending=[True, False, False, True], kind="stable")
+    keep = [c for c in AIS_ONLY_FIELDS if c in a]
+    out = {}
+    for rid, g in a.groupby("run_id", sort=False):
+        rows = g[keep].to_dict("records")
+        out[str(rid)] = [{c: clean(r.get(c)) for c in AIS_ONLY_FIELDS} for r in rows]
+    return out
+
+
+def azimuth_check(summary_pass: dict | None) -> dict | None:
+    """The pass's azimuth-shift check as data/live/live_summary.json states it, with the scene id per entry.
+
+    The producer (darkvessel.live.outputs) writes no scene id in an entry and leaves out scenes with no shifted vessel,
+    so an entry's scene is known only when the entry names it or when every scene of `scene_ids` has an entry (both
+    lists are in the producer's scene order). Otherwise `scene_id` is null (contract 3.6)."""
+    if not summary_pass or not summary_pass.get("azimuth_check_by_scene"):
+        return None
+    rows = [dict(r) for r in summary_pass["azimuth_check_by_scene"] if isinstance(r, dict)]
+    ids = summary_pass.get("scene_ids") or []
+    whole = isinstance(ids, list) and len(ids) == len(rows)
+    for k, r in enumerate(rows):
+        if r.get("scene_id") is None:
+            r["scene_id"] = ids[k] if whole else None
+    return {"by_scene": rows, "note": summary_pass.get("azimuth_check_note")}
 
 
 def _footprint(geoms) -> dict | None:
@@ -79,9 +130,11 @@ def load(cat, settings, contacts_df: pd.DataFrame | None) -> pd.DataFrame:
 
     sc = cat.read_gpkg("live_scenes", geometry=True)
     summary = cat.read_json("live_summary") or {}
+    ais_only = ais_only_by_pass(cat)
     if sc is not None and len(sc):
         for rid, s in sc.groupby("run_id"):
             n = counts.get(str(rid), {})
+            sp = (summary.get("passes") or {}).get(str(rid))
             row = {
                 "pass_id": str(rid), "mission": str(s["mission"].iloc[0]),
                 "relative_orbit": int(s["orbit_rel"].iloc[0]) if pd.notna(s["orbit_rel"].iloc[0]) else None,
@@ -90,8 +143,13 @@ def load(cat, settings, contacts_df: pd.DataFrame | None) -> pd.DataFrame:
                 "footprint": _footprint(s.geometry), "aoi_overlap_km2": float(pd.to_numeric(s["aoi_overlap_km2"], errors="coerce").sum()),
                 "aoi_parts": None, "scenes": [str(x) for x in s["product_id"]], "processed": True, "n_contacts": n,
                 "ais_heard_share": None, "note": coverage_note(n, s), "_src": "det_live",
+                "n_ais_only": len(ais_only.get(str(rid), [])) if cat.exists("live_ais_only") else None,
+                "_ais_only": ais_only.get(str(rid), []) if cat.exists("live_ais_only") else None,
+                "azimuth_check": azimuth_check(sp), "identity_label": AISSTREAM_LABEL,
+                "_ais_only_time": iso_z(to_utc_series(s["start_utc"]).min()),
+                "_azimuth_time": iso_z(summary.get("generated_utc")),
                 "_extra": {"scene_counts": s.drop(columns=["geometry", "caveat"], errors="ignore").to_dict("records"),
-                           "summary": (summary.get("passes") or {}).get(str(rid))},
+                           "summary": sp},
             }
             for k in AIS_SUM:
                 row[k] = int(pd.to_numeric(s[k], errors="coerce").fillna(0).sum()) if k in s else None
