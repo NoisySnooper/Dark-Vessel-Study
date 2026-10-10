@@ -275,11 +275,117 @@ def load_footprints(path: Path = FOOTPRINTS_PATH):
     return fp
 
 
+C_LIGHT_MS = 299_792_458.0
+GEOMETRY_COLUMNS = ["az_time_utc", "slant_range_m", "az_e", "az_n", "rg_e", "rg_n"]
+
+
+def _iso_seconds(text: str, ref: pd.Timestamp) -> float:
+    return (pd.Timestamp(text) - ref).total_seconds()
+
+
+def sar_geometry(annotation_xml: bytes | str, rows, cols, geocoder) -> tuple[pd.DataFrame, dict]:
+    """Imaging geometry of each object from the product annotation (the matcher's azimuth-shift correction needs it).
+
+    Per object: az_time_utc (zero-Doppler azimuth time of its line, ISO UTC), slant_range_m (c x two-way slant range
+    time / 2), az_e/az_n (unit vector on the ground, east and north components, of increasing azimuth time: the
+    direction the satellite moves) and rg_e/rg_n (unit vector of increasing slant range: away from the ground track).
+    Times and ranges are interpolated linearly in the regular line/pixel geolocation grid; directions are finite
+    differences of the same grid's lon/lat (`geocoder`). Returns (frame, info) with info = platform_heading_deg,
+    sat_speed_ms (median |velocity| of the annotation's Earth-fixed orbit state vectors), first_line_utc,
+    line_interval_s, pass.
+    """
+    import xml.etree.ElementTree as ET
+
+    from scipy.interpolate import RegularGridInterpolator
+
+    root = ET.fromstring(annotation_xml)
+    pts = root.findall(".//geolocationGridPoint")
+    ref = pd.Timestamp(pts[0].find("azimuthTime").text)
+    arr = np.array([[float(p.find("line").text), float(p.find("pixel").text), _iso_seconds(p.find("azimuthTime").text, ref),
+                     float(p.find("slantRangeTime").text)] for p in pts])
+    lines, pixels = np.unique(arr[:, 0]), np.unique(arr[:, 1])
+    if len(lines) * len(pixels) != len(arr):
+        raise ValueError("geolocation grid is not regular")
+    a = arr[np.lexsort((arr[:, 1], arr[:, 0]))]
+    shape = (len(lines), len(pixels))
+    az = RegularGridInterpolator((lines, pixels), a[:, 2].reshape(shape), bounds_error=False, fill_value=None)
+    srt = RegularGridInterpolator((lines, pixels), a[:, 3].reshape(shape), bounds_error=False, fill_value=None)
+    rows, cols = np.asarray(rows, float), np.asarray(cols, float)
+    p = np.column_stack([rows, cols])
+    az_s = az(p)
+    out = pd.DataFrame(index=range(len(rows)))
+    out["az_time_utc"] = [(ref + pd.Timedelta(seconds=float(s))).strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z" for s in az_s]
+    out["slant_range_m"] = np.round(srt(p) * C_LIGHT_MS / 2.0, 1)
+    step = 25.0
+    lon0, lat0 = geocoder.lonlat(rows, cols)
+
+    def unit(r2, c2, sign):
+        lon2, lat2 = geocoder.lonlat(r2, c2)
+        e = np.radians(lon2 - lon0) * np.cos(np.radians(lat0)) * sign
+        n = np.radians(lat2 - lat0) * sign
+        norm = np.hypot(e, n)
+        return e / norm, n / norm
+
+    # increasing azimuth time and increasing slant range, whatever the line and pixel order of the product
+    s_az = np.sign(np.nanmedian(np.diff(a[:, 2].reshape(shape), axis=0))) or 1.0
+    s_rg = np.sign(np.nanmedian(np.diff(a[:, 3].reshape(shape), axis=1))) or 1.0
+    out["az_e"], out["az_n"] = (np.round(v, 5) for v in unit(rows + step, cols, s_az))
+    out["rg_e"], out["rg_n"] = (np.round(v, 5) for v in unit(rows, cols + step, s_rg))
+    info = {}
+    head = root.find(".//productInformation/platformHeading")
+    info["platform_heading_deg"] = float(head.text) if head is not None else None
+    vel = [[float(o.find(f"velocity/{k}").text) for k in "xyz"] for o in root.findall(".//orbitList/orbit")]
+    info["sat_speed_ms"] = round(float(np.median(np.linalg.norm(np.array(vel), axis=1))), 1) if vel else None
+    first = root.find(".//imageInformation/productFirstLineUtcTime")
+    dt_line = root.find(".//imageInformation/azimuthTimeInterval")
+    info["first_line_utc"] = first.text if first is not None else None
+    info["line_interval_s"] = float(dt_line.text) if dt_line is not None else None
+    pas = root.find(".//productInformation/pass")
+    info["pass"] = pas.text if pas is not None else None
+    return out, info
+
+
+def mask_polygon(mask: np.ndarray, factor: int, lonlat, simplify_px: float = 8.0):
+    """Polygon (EPSG:4326) of the True cells of a decimated scene mask: cell (i, j) covers rows i*factor to
+    (i+1)*factor and columns j*factor to (j+1)*factor of the full-resolution grid; `lonlat(rows, cols)` maps full
+    resolution pixel coordinates to lon, lat (the scene's Geocoder.lonlat). Outlines are simplified by `simplify_px`
+    full-resolution pixels before they are mapped."""
+    from affine import Affine
+    from rasterio import features
+
+    m = np.asarray(mask, bool)
+    if not m.any():
+        return shapely.Polygon()
+    shapes = [shapely.geometry.shape(g) for g, v in features.shapes(m.astype(np.uint8), mask=m, transform=Affine(factor, 0, 0, 0, factor, 0)) if v]
+    poly = shapely.union_all(shapes).simplify(simplify_px, preserve_topology=True)
+
+    def to_ll(xy):
+        lon, lat = lonlat(xy[:, 1], xy[:, 0])
+        return np.column_stack([np.asarray(lon, float), np.asarray(lat, float)])
+
+    return shapely.make_valid(shapely.transform(poly, to_ll))
+
+
+def tested_area(scene: GRDScene, aoi, inner, buffer_m: float = 1000.0):
+    """The detector's tested sea for one scene as a polygon (EPSG:4326): darkvessel.regional.scene_mask (WorldCover water
+    connected to the open sea, beyond `buffer_m` of land, inside the AOI) on its 160 m grid. Used for on_tested_sea."""
+    m = regional_mod.scene_mask(scene, aoi, buffer_m, aoi_inner=inner)
+    return mask_polygon(m, regional_mod.FACTOR, scene.geocoder.lonlat)
+
+
+def tested_area_for(path: str, aoi, inner, io_threads: int = 2, log=print):
+    """tested_area for a mirror path (annotation and WorldCover read again; for scenes processed before 2026-10-10)."""
+    return tested_area(LiveGRDScene(path, io_threads=io_threads, log=log), aoi, inner)
+
+
 def detect(path: str, aoi, inner, pfa: float = 1e-6, io_threads: int = IO_THREADS, log=print):
     """Regional detection on one scene through LiveGRDScene. Returns (GeoDataFrame of all objects, stats dict).
 
     The regional module is read-only for this package, so its module-level `GRDScene` name is swapped for a
     LiveGRDScene factory while process_scene runs (one scene at a time; the swap is serialised by a lock).
+    The imaging geometry of every object (`sar_geometry`) is added from the annotation the detector already read;
+    when that fails the columns stay null and the matcher falls back to the scene time and no azimuth correction.
+    stats["_tested"] is the tested-sea polygon (`tested_area`), absent when it could not be built.
     """
     made: list[LiveGRDScene] = []
 
@@ -297,6 +403,19 @@ def detect(path: str, aoi, inner, pfa: float = 1e-6, io_threads: int = IO_THREAD
             regional_mod.GRDScene = original
     stats = dict(stats)
     stats["io_retries"] = int(sum(s.io_retries for s in made))
+    if len(det) and made and "row" in det:
+        try:
+            geo, info = sar_geometry(made[0].annotation_xml, det.row.to_numpy(float), det.col.to_numpy(float), made[0].geocoder)
+            for c in GEOMETRY_COLUMNS:
+                det[c] = geo[c].to_numpy()
+            stats.update(info)
+        except Exception as exc:  # noqa: BLE001 the matcher falls back to the scene time and no correction
+            log(f"  geometry: annotation parse failed ({type(exc).__name__}: {str(exc)[:120]}); no azimuth correction")
+    if made:
+        try:  # the tested sea as a polygon, for the AIS-only on_tested_sea test (stats key "_tested", popped by the watcher)
+            stats["_tested"] = tested_area(made[0], aoi, inner)
+        except Exception as exc:  # noqa: BLE001 the matcher falls back to the distance-to-coast layer
+            log(f"  tested area: mask polygon failed ({type(exc).__name__}: {str(exc)[:120]}); on_tested_sea from dist_coast")
     return det, stats
 
 

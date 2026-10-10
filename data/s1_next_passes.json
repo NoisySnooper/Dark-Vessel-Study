@@ -1,7 +1,7 @@
 {
- "generated_utc": "2026-10-09T13:34:20Z",
- "window_start_utc": "2026-10-06T13:34:20Z",
- "window_end_utc": "2026-10-21T13:34:20Z",
+ "generated_utc": "2026-10-10T18:21:00Z",
+ "window_start_utc": "2026-10-07T18:21:00Z",
+ "window_end_utc": "2026-10-22T18:21:00Z",
  "lookback_hours": 72.0,
  "horizon_hours": 288.0,
  "aoi": "south_china_sea",
@@ -9,7 +9,7 @@
  "sources": {
   "esa_plan": {
    "page": "https://sentinels.copernicus.eu/web/sentinel/copernicus/sentinel-1/acquisition-plans",
-   "page_accessed_utc": "2026-10-09T13:34:24Z",
+   "page_accessed_utc": "2026-10-10T18:21:03Z",
    "files": [
     {
      "file": "s1c_mp_user_20261005t174134_20261027t194000.kml",
@@ -147,8 +147,8 @@
   "aoi_overlap_bbox": "lon/lat bbox of the footprint inside the AOI",
   "ais_heard_share": "share of the 0.25 degree AOI cells under the footprint where the live aisstream feed heard at least one position during the recording (data/outputs/small/ais_reach_share_4326.tif); a low value means most radar contacts will be no_coverage, not dark"
  },
- "n_passes": 88,
- "n_pass_groups": 39,
+ "n_passes": 96,
+ "n_pass_groups": 43,
  "passes": [
   {
    "start_utc": "2026-10-07T22:22:20Z",
@@ -595,7 +595,7 @@
    "in_esa_plan": null,
    "in_repeat_prediction": "True",
    "pass_group": "S1D_R003_20261009T2204",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": "s1d_mp_user_20261009t185252_20261029t204800.kml",
    "aoi_parts": [
     "South China Sea"
@@ -630,7 +630,7 @@
    "in_esa_plan": "True",
    "in_repeat_prediction": null,
    "pass_group": "S1D_R003_20261009T2204",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": null,
    "aoi_parts": [
     "South China Sea"
@@ -665,7 +665,7 @@
    "in_esa_plan": null,
    "in_repeat_prediction": "True",
    "pass_group": "S1C_R091_20261009T2250",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": "s1c_mp_user_20261009t183019_20261031t202000.kml",
    "aoi_parts": [
     "Gulf of Tonkin",
@@ -701,7 +701,7 @@
    "in_esa_plan": "True",
    "in_repeat_prediction": null,
    "pass_group": "S1C_R091_20261009T2250",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": null,
    "aoi_parts": [
     "Gulf of Tonkin",
@@ -737,7 +737,7 @@
    "in_esa_plan": null,
    "in_repeat_prediction": "True",
    "pass_group": "S1D_R011_20261010T1032",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": "s1d_mp_user_20261009t185252_20261029t204800.kml",
    "aoi_parts": [
     "South China Sea"
@@ -772,7 +772,7 @@
    "in_esa_plan": "True",
    "in_repeat_prediction": null,
    "pass_group": "S1D_R011_20261010T1032",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": null,
    "aoi_parts": [
     "South China Sea"
@@ -807,7 +807,7 @@
    "in_esa_plan": null,
    "in_repeat_prediction": "True",
    "pass_group": "S1C_R099_20261010T1119",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": "s1c_mp_user_20261009t183019_20261031t202000.kml",
    "aoi_parts": [
     "Gulf of Thailand"
@@ -842,7 +842,7 @@
    "in_esa_plan": "True",
    "in_repeat_prediction": null,
    "pass_group": "S1C_R099_20261010T1119",
-   "status": "upcoming",
+   "status": "past",
    "plan_file": null,
    "aoi_parts": [
     "Gulf of Thailand"
@@ -3253,6 +3253,288 @@
    ],
    "aoi_cells_under": 264,
    "ais_heard_share": 0.0
+  },
+  {
+   "start_utc": "2026-10-21T22:04:56Z",
+   "stop_utc": "2026-10-21T22:09:32Z",
+   "mission": "S1D",
+   "relative_orbit": 3,
+   "pass_dir": "DESCENDING",
+   "source": "esa_plan",
+   "mode": "IW",
+   "polarisation": "DV",
+   "footprint_bbox": [
+    110.6219,
+    -10.0815,
+    116.4387,
+    7.0452
+   ],
+   "aoi_overlap_km2": 51648.2,
+   "basis_pass_start_utc": null,
+   "cycles_ahead": null,
+   "in_esa_plan": null,
+   "in_repeat_prediction": "True",
+   "pass_group": "S1D_R003_20261021T2204",
+   "status": "upcoming",
+   "plan_file": "s1d_mp_user_20261009t185252_20261029t204800.kml",
+   "aoi_parts": [
+    "South China Sea"
+   ],
+   "aoi_overlap_bbox": [
+    113.5415,
+    3.8342,
+    116.4387,
+    7.0452
+   ],
+   "aoi_cells_under": 68,
+   "ais_heard_share": 0.0
+  },
+  {
+   "start_utc": "2026-10-21T22:05:01Z",
+   "stop_utc": "2026-10-21T22:05:55Z",
+   "mission": "S1D",
+   "relative_orbit": 3,
+   "pass_dir": "DESCENDING",
+   "source": "repeat_cycle",
+   "mode": null,
+   "polarisation": null,
+   "footprint_bbox": [
+    113.5562,
+    3.3773,
+    116.4205,
+    6.9884
+   ],
+   "aoi_overlap_km2": 49832.7,
+   "basis_pass_start_utc": "2026-09-27T22:05:01Z",
+   "cycles_ahead": 2,
+   "in_esa_plan": "True",
+   "in_repeat_prediction": null,
+   "pass_group": "S1D_R003_20261021T2204",
+   "status": "upcoming",
+   "plan_file": null,
+   "aoi_parts": [
+    "South China Sea"
+   ],
+   "aoi_overlap_bbox": [
+    113.5593,
+    3.8517,
+    116.4205,
+    6.9884
+   ],
+   "aoi_cells_under": 65,
+   "ais_heard_share": 0.0
+  },
+  {
+   "start_utc": "2026-10-21T22:50:45Z",
+   "stop_utc": "2026-10-21T22:53:03Z",
+   "mission": "S1C",
+   "relative_orbit": 91,
+   "pass_dir": "DESCENDING",
+   "source": "esa_plan",
+   "mode": "IW",
+   "polarisation": "DV",
+   "footprint_bbox": [
+    102.6521,
+    10.5347,
+    106.6306,
+    19.2998
+   ],
+   "aoi_overlap_km2": 11263.8,
+   "basis_pass_start_utc": null,
+   "cycles_ahead": null,
+   "in_esa_plan": null,
+   "in_repeat_prediction": "True",
+   "pass_group": "S1C_R091_20261021T2250",
+   "status": "upcoming",
+   "plan_file": "s1c_mp_user_20261009t183019_20261031t202000.kml",
+   "aoi_parts": [
+    "Gulf of Tonkin",
+    "Gulf of Thailand"
+   ],
+   "aoi_overlap_bbox": [
+    102.6521,
+    10.7764,
+    106.6306,
+    19.0535
+   ],
+   "aoi_cells_under": 14,
+   "ais_heard_share": 0.0
+  },
+  {
+   "start_utc": "2026-10-21T22:50:47Z",
+   "stop_utc": "2026-10-21T22:53:07Z",
+   "mission": "S1C",
+   "relative_orbit": 91,
+   "pass_dir": "DESCENDING",
+   "source": "repeat_cycle",
+   "mode": null,
+   "polarisation": null,
+   "footprint_bbox": [
+    102.6663,
+    10.5935,
+    106.6121,
+    19.2442
+   ],
+   "aoi_overlap_km2": 9772.9,
+   "basis_pass_start_utc": "2026-09-27T22:50:47Z",
+   "cycles_ahead": 2,
+   "in_esa_plan": "True",
+   "in_repeat_prediction": null,
+   "pass_group": "S1C_R091_20261021T2250",
+   "status": "upcoming",
+   "plan_file": null,
+   "aoi_parts": [
+    "Gulf of Tonkin",
+    "Gulf of Thailand"
+   ],
+   "aoi_overlap_bbox": [
+    102.6663,
+    10.8346,
+    106.6121,
+    19.0006
+   ],
+   "aoi_cells_under": 12,
+   "ais_heard_share": 0.0
+  },
+  {
+   "start_utc": "2026-10-22T10:32:42Z",
+   "stop_utc": "2026-10-22T10:33:37Z",
+   "mission": "S1D",
+   "relative_orbit": 11,
+   "pass_dir": "ASCENDING",
+   "source": "esa_plan",
+   "mode": "IW",
+   "polarisation": "DV",
+   "footprint_bbox": [
+    111.6973,
+    20.6288,
+    114.777,
+    24.3764
+   ],
+   "aoi_overlap_km2": 39247.4,
+   "basis_pass_start_utc": null,
+   "cycles_ahead": null,
+   "in_esa_plan": null,
+   "in_repeat_prediction": "True",
+   "pass_group": "S1D_R011_20261022T1032",
+   "status": "upcoming",
+   "plan_file": "s1d_mp_user_20261009t185252_20261029t204800.kml",
+   "aoi_parts": [
+    "South China Sea"
+   ],
+   "aoi_overlap_bbox": [
+    112.156,
+    20.6288,
+    114.777,
+    23.1273
+   ],
+   "aoi_cells_under": 54,
+   "ais_heard_share": 0.1481
+  },
+  {
+   "start_utc": "2026-10-22T10:32:47Z",
+   "stop_utc": "2026-10-22T10:33:41Z",
+   "mission": "S1D",
+   "relative_orbit": 11,
+   "pass_dir": "ASCENDING",
+   "source": "repeat_cycle",
+   "mode": null,
+   "polarisation": null,
+   "footprint_bbox": [
+    111.7313,
+    20.6848,
+    114.766,
+    24.2559
+   ],
+   "aoi_overlap_km2": 37524.8,
+   "basis_pass_start_utc": "2026-09-28T10:32:47Z",
+   "cycles_ahead": 2,
+   "in_esa_plan": "True",
+   "in_repeat_prediction": null,
+   "pass_group": "S1D_R011_20261022T1032",
+   "status": "upcoming",
+   "plan_file": null,
+   "aoi_parts": [
+    "South China Sea"
+   ],
+   "aoi_overlap_bbox": [
+    112.1639,
+    20.6848,
+    114.766,
+    23.1273
+   ],
+   "aoi_cells_under": 53,
+   "ais_heard_share": 0.1509
+  },
+  {
+   "start_utc": "2026-10-22T11:19:02Z",
+   "stop_utc": "2026-10-22T11:21:31Z",
+   "mission": "S1C",
+   "relative_orbit": 99,
+   "pass_dir": "ASCENDING",
+   "source": "esa_plan",
+   "mode": "IW",
+   "polarisation": "DV",
+   "footprint_bbox": [
+    100.3576,
+    10.1808,
+    104.4716,
+    19.6122
+   ],
+   "aoi_overlap_km2": 29868.3,
+   "basis_pass_start_utc": null,
+   "cycles_ahead": null,
+   "in_esa_plan": null,
+   "in_repeat_prediction": "True",
+   "pass_group": "S1C_R099_20261022T1119",
+   "status": "upcoming",
+   "plan_file": "s1c_mp_user_20261009t183019_20261031t202000.kml",
+   "aoi_parts": [
+    "Gulf of Thailand"
+   ],
+   "aoi_overlap_bbox": [
+    101.7007,
+    10.1807,
+    104.1285,
+    12.6895
+   ],
+   "aoi_cells_under": 39,
+   "ais_heard_share": 0.0
+  },
+  {
+   "start_utc": "2026-10-22T11:19:04Z",
+   "stop_utc": "2026-10-22T11:19:58Z",
+   "mission": "S1C",
+   "relative_orbit": 99,
+   "pass_dir": "ASCENDING",
+   "source": "repeat_cycle",
+   "mode": null,
+   "polarisation": null,
+   "footprint_bbox": [
+    101.5594,
+    10.2372,
+    104.4557,
+    13.8343
+   ],
+   "aoi_overlap_km2": 28456.8,
+   "basis_pass_start_utc": "2026-09-28T11:19:04Z",
+   "cycles_ahead": 2,
+   "in_esa_plan": "True",
+   "in_repeat_prediction": null,
+   "pass_group": "S1C_R099_20261022T1119",
+   "status": "upcoming",
+   "plan_file": null,
+   "aoi_parts": [
+    "Gulf of Thailand"
+   ],
+   "aoi_overlap_bbox": [
+    101.7048,
+    10.2372,
+    103.9523,
+    12.6895
+   ],
+   "aoi_cells_under": 38,
+   "ais_heard_share": 0.0
   }
  ],
  "pass_groups": [
@@ -3394,7 +3676,7 @@
     "esa_plan",
     "repeat_cycle"
    ],
-   "status": "upcoming",
+   "status": "past",
    "aoi_overlap_km2": 51648.0,
    "aoi_parts": [
     "South China Sea"
@@ -3419,7 +3701,7 @@
     "esa_plan",
     "repeat_cycle"
    ],
-   "status": "upcoming",
+   "status": "past",
    "aoi_overlap_km2": 11263.7,
    "aoi_parts": [
     "Gulf of Thailand",
@@ -3445,7 +3727,7 @@
     "esa_plan",
     "repeat_cycle"
    ],
-   "status": "upcoming",
+   "status": "past",
    "aoi_overlap_km2": 39274.0,
    "aoi_parts": [
     "South China Sea"
@@ -3470,7 +3752,7 @@
     "esa_plan",
     "repeat_cycle"
    ],
-   "status": "upcoming",
+   "status": "past",
    "aoi_overlap_km2": 29868.3,
    "aoi_parts": [
     "Gulf of Thailand"
@@ -4240,6 +4522,107 @@
    ],
    "ais_heard_share": 0.0063,
    "rows": 3
+  },
+  {
+   "pass_group": "S1D_R003_20261021T2204",
+   "start_utc": "2026-10-21T22:04:56Z",
+   "stop_utc": "2026-10-21T22:09:32Z",
+   "mission": "S1D",
+   "relative_orbit": 3,
+   "pass_dir": "DESCENDING",
+   "sources": [
+    "esa_plan",
+    "repeat_cycle"
+   ],
+   "status": "upcoming",
+   "aoi_overlap_km2": 51648.2,
+   "aoi_parts": [
+    "South China Sea"
+   ],
+   "aoi_overlap_bbox": [
+    113.5415,
+    3.8342,
+    116.4387,
+    7.0452
+   ],
+   "ais_heard_share": 0.0,
+   "rows": 2
+  },
+  {
+   "pass_group": "S1C_R091_20261021T2250",
+   "start_utc": "2026-10-21T22:50:45Z",
+   "stop_utc": "2026-10-21T22:53:03Z",
+   "mission": "S1C",
+   "relative_orbit": 91,
+   "pass_dir": "DESCENDING",
+   "sources": [
+    "esa_plan",
+    "repeat_cycle"
+   ],
+   "status": "upcoming",
+   "aoi_overlap_km2": 11263.8,
+   "aoi_parts": [
+    "Gulf of Thailand",
+    "Gulf of Tonkin"
+   ],
+   "aoi_overlap_bbox": [
+    102.6521,
+    10.7764,
+    106.6306,
+    19.0535
+   ],
+   "ais_heard_share": 0.0,
+   "rows": 2
+  },
+  {
+   "pass_group": "S1D_R011_20261022T1032",
+   "start_utc": "2026-10-22T10:32:42Z",
+   "stop_utc": "2026-10-22T10:33:37Z",
+   "mission": "S1D",
+   "relative_orbit": 11,
+   "pass_dir": "ASCENDING",
+   "sources": [
+    "esa_plan",
+    "repeat_cycle"
+   ],
+   "status": "upcoming",
+   "aoi_overlap_km2": 39247.4,
+   "aoi_parts": [
+    "South China Sea"
+   ],
+   "aoi_overlap_bbox": [
+    112.156,
+    20.6288,
+    114.777,
+    23.1273
+   ],
+   "ais_heard_share": 0.1481,
+   "rows": 2
+  },
+  {
+   "pass_group": "S1C_R099_20261022T1119",
+   "start_utc": "2026-10-22T11:19:02Z",
+   "stop_utc": "2026-10-22T11:21:31Z",
+   "mission": "S1C",
+   "relative_orbit": 99,
+   "pass_dir": "ASCENDING",
+   "sources": [
+    "esa_plan",
+    "repeat_cycle"
+   ],
+   "status": "upcoming",
+   "aoi_overlap_km2": 29868.3,
+   "aoi_parts": [
+    "Gulf of Thailand"
+   ],
+   "aoi_overlap_bbox": [
+    101.7007,
+    10.1807,
+    104.1285,
+    12.6895
+   ],
+   "ais_heard_share": 0.0,
+   "rows": 2
   }
  ],
  "use": "These are the windows when live AIS (scripts/26_ais_record.py) can be matched to Sentinel-1 radar contacts with darkvessel.ais.match. Keep the recorder running through each window and 30 minutes either side.",

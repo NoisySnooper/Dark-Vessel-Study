@@ -239,8 +239,16 @@ def ais_coverage(scene_time: pd.Timestamp, window_s: int = AIS_WINDOW_S, loader=
 
 
 # ----------------------------------------------------------------------------------------------- checkpoints
+OBJECT_COLUMNS = ["det_id", "lon", "lat", "row", "col", "confidence", "low_reason", "length_est_m", "pol_class", "n_pixels",
+                  "scr_vv_db", "scr_vh_db", "inc_angle_deg", "scene_id", "mission", "acq_utc", "pass_dir", "orbit_rel",
+                  "persist_dates", "persist_dates_checked", "n_low_1km", "near_fixed_m", "cnn_score", "cnn_vessel",
+                  "cnn_chip_valid_frac", "az_time_utc", "slant_range_m", "az_e", "az_n", "rg_e", "rg_n"]
+
+
 class Checkpoint:
-    """Per-scene state under data/cache/live/scenes/: <id>.json (status and stats), <id>.parquet, <id>.ais_only.parquet."""
+    """Per-scene state under data/cache/live/scenes/: <id>.json (status and stats), <id>.parquet (contacts),
+    <id>.ais_only.parquet, <id>.objects.parquet (every detected object, all classes: lets --rematch redo the AIS
+    pairing without detecting again), <id>.tested.wkb (the detector's tested sea, for on_tested_sea)."""
 
     def __init__(self, root: Path = SCENE_CACHE):
         self.root = Path(root)
@@ -268,11 +276,33 @@ class Checkpoint:
         _atomic_json(self.root / f"{product_id}.json", rec)
         return rec
 
-    def write_tables(self, product_id: str, contacts: pd.DataFrame, ais_only: pd.DataFrame) -> None:
-        for df, name in ((contacts, f"{product_id}.parquet"), (ais_only, f"{product_id}.ais_only.parquet")):
+    def write_tables(self, product_id: str, contacts: pd.DataFrame, ais_only: pd.DataFrame, objects: pd.DataFrame | None = None) -> None:
+        tables = [(contacts, f"{product_id}.parquet"), (ais_only, f"{product_id}.ais_only.parquet")]
+        if objects is not None:
+            o = pd.DataFrame(objects.drop(columns="geometry")) if "geometry" in objects else pd.DataFrame(objects)
+            tables.append((o[[c for c in OBJECT_COLUMNS if c in o]], f"{product_id}.objects.parquet"))
+        for df, name in tables:
             tmp = self.root / f"{name}.{os.getpid()}.tmp"
             df.to_parquet(tmp, index=False)
             os.replace(tmp, self.root / name)
+
+    def objects(self, product_id: str) -> pd.DataFrame | None:
+        p = self.root / f"{product_id}.objects.parquet"
+        return pd.read_parquet(p) if p.exists() else None
+
+    def write_tested(self, product_id: str, geom) -> None:
+        """The detector's tested-sea polygon of the scene (EPSG:4326, WKB), for the AIS-only on_tested_sea test."""
+        tmp = self.root / f"{product_id}.tested.wkb.{os.getpid()}.tmp"
+        tmp.write_bytes(shapely.to_wkb(geom))
+        os.replace(tmp, self.root / f"{product_id}.tested.wkb")
+
+    def tested(self, product_id: str):
+        p = self.root / f"{product_id}.tested.wkb"
+        if not p.exists():
+            return None
+        g = shapely.from_wkb(p.read_bytes())
+        shapely.prepare(g)
+        return g
 
     def load_all(self) -> tuple[list[dict], pd.DataFrame, pd.DataFrame]:
         """(scene records, contacts, ais_only) of every scene with status done."""
@@ -297,8 +327,11 @@ class Context:
     """Shared, lazily built inputs: AOI, grid, verifier, footprint archive; the output directory and the lock path."""
 
     def __init__(self, workers: int = 2, do_cnn: bool = True, do_persistence: bool = True, pfa: float = 1e-6, aoi_name: str = DEFAULT_AOI,
-                 io_threads: int = scene_mod.IO_THREADS, out_dir: Path = LIVE_DIR, lock_path: Path = CYCLE_LOCK):
+                 io_threads: int = scene_mod.IO_THREADS, out_dir: Path = LIVE_DIR, lock_path: Path = CYCLE_LOCK, do_weather: bool = True,
+                 rebuild_tested: bool = True):
         self.workers, self.do_cnn, self.do_persistence, self.pfa, self.aoi_name = workers, do_cnn, do_persistence, pfa, aoi_name
+        self.do_weather = do_weather
+        self.rebuild_tested = rebuild_tested   # --rematch may rebuild a scene's tested-sea polygon from the mirror
         self.io_threads, self.out_dir, self.lock_path = io_threads, Path(out_dir), Path(lock_path)
         self._aoi = self._grid = self._model = self._fp = None
 
@@ -383,6 +416,10 @@ def process_record(rec: dict, ctx: Context, ckpt: Checkpoint, plan: list[dict], 
         log(f"{pid}: detection failed after {DETECT_ATTEMPTS} attempts: {type(exc).__name__}: {str(exc)[:200]}")
         return ckpt.mark(pid, "error", error=f"{type(exc).__name__}: {str(exc)[:300]}", traceback=traceback.format_exc()[-2000:],
                          attempts_total=attempts_before + DETECT_ATTEMPTS, run_id=run_id)
+    tested = stats.pop("_tested", None)
+    if tested is not None:
+        ckpt.write_tested(pid, tested)
+        shapely.prepare(tested)
     if len(objects) and "acq_utc" not in objects:
         objects["acq_utc"] = start.isoformat()
     ais_window = ais_window_for(scene_time)
@@ -390,7 +427,8 @@ def process_record(rec: dict, ctx: Context, ckpt: Checkpoint, plan: list[dict], 
     static_latest = aisstream.latest_static(aisstream.load_static())
     footprint = shapely.from_wkt(rec["footprint_wkt"])
     scene = {"scene_time": scene_time, "run_id": run_id, "footprint": footprint, "product_id": pid, "mission": rec["mission"],
-             "acq_utc": start.isoformat(), "pass_dir": rec.get("pass_dir") or stats.get("pass_dir"), "orbit_rel": rec.get("orbit_rel") or stats.get("orbit_rel")}
+             "acq_utc": start.isoformat(), "pass_dir": rec.get("pass_dir") or stats.get("pass_dir"), "orbit_rel": rec.get("orbit_rel") or stats.get("orbit_rel"),
+             "sat_speed_ms": stats.get("sat_speed_ms"), "tested": tested}
     if objects.empty:
         contacts, ais_only = pd.DataFrame(), pd.DataFrame()
         counts = {"n_contacts": 0, "n_matched": 0, "n_unmatched": 0, "n_no_coverage": 0, "n_dark_leads": 0, "n_ais_only": 0,
@@ -398,7 +436,7 @@ def process_record(rec: dict, ctx: Context, ckpt: Checkpoint, plan: list[dict], 
                   "ais_footprint_positions": 0, "ais_footprint_mmsi": 0, "ais_near_footprint_mmsi": 0}
     else:
         contacts, ais_only, counts = matching.match_scene(objects, scene, ais_window, static_latest, positions_all, ctx.grid, ctx.aoi[0], log=log)
-    ckpt.write_tables(pid, contacts, ais_only)
+    ckpt.write_tables(pid, contacts, ais_only, objects)
     cls = objects.confidence.value_counts().to_dict() if len(objects) else {}
     info = {
         "run_id": run_id, "mission": rec["mission"], "start_utc": start.isoformat(), "stop_utc": stop.isoformat(), "scene_time_utc": scene_time.isoformat(),
@@ -410,12 +448,67 @@ def process_record(rec: dict, ctx: Context, ckpt: Checkpoint, plan: list[dict], 
         "n_low": int(cls.get("low", 0)), "n_candidates_pre_rules": stats.get("n_candidates_pre_rules", 0), "n_cnn_scored": stats.get("n_cnn_scored", 0),
         "n_cnn_vessel": int(contacts.cnn_vessel.fillna(False).astype(bool).sum()) if len(contacts) else 0, "cnn_model_id": stats.get("cnn_model_id"),
         "cnn_threshold": stats.get("cnn_threshold"), "enl_vv": stats.get("enl_vv"), "enl_vh": stats.get("enl_vh"),
+        "platform_heading_deg": stats.get("platform_heading_deg"), "sat_speed_ms": stats.get("sat_speed_ms"),
+        "first_line_utc": stats.get("first_line_utc"), "line_interval_s": stats.get("line_interval_s"),
         "ais_recorded_hours": int(len(aisstream.recorded_hours(positions_all))), "processed_utc": pd.Timestamp.now(tz="UTC").isoformat(), **counts,
     }
     log(f"{pid}: done in {info['runtime_s']:.0f} s ({used} detection attempt{'s' if used > 1 else ''}, {info['io_retries']} tile retries): "
         f"{info['n_contacts']} contacts ({info['n_matched']} matched, {info['n_unmatched']} unmatched, {info['n_no_coverage']} no_coverage), "
         f"{info['n_ais_only']} AIS-only, {info['tested_km2']:,.0f} km2 tested")
     return ckpt.mark(pid, "done", **info)
+
+
+def rematch_record(pid: str, ctx: Context, ckpt: Checkpoint, log=log) -> dict | None:
+    """Redo the AIS pairing, status and identity of one processed scene from its stored objects (no detection), with
+    the AIS and static messages recorded now. Returns the updated status record, or None when the scene has no
+    objects table (scenes processed before 2026-10-10 keep their result)."""
+    st = ckpt.status(pid)
+    objects = ckpt.objects(pid)
+    if not st or st.get("status") != "done" or objects is None:
+        return None
+    scene_time = pd.Timestamp(st["scene_time_utc"])
+    ais_window = ais_window_for(scene_time)
+    positions_all = ship_stations(aisstream.load_positions())
+    static_latest = aisstream.latest_static(aisstream.load_static())
+    tested = ckpt.tested(pid)
+    if tested is None and st.get("path") and ctx.rebuild_tested:
+        try:  # scenes processed before the tested area was stored: rebuild it from the mirror and WorldCover once
+            aoi, inner = ctx.aoi
+            tested = scene_mod.tested_area_for(st["path"], aoi, inner, log=log)
+            ckpt.write_tested(pid, tested)
+            shapely.prepare(tested)
+        except Exception as exc:  # noqa: BLE001 on_tested_sea falls back to the distance-to-coast layer
+            log(f"{pid}: tested area not rebuilt ({type(exc).__name__}: {str(exc)[:120]}); on_tested_sea from dist_coast")
+            tested = None
+    scene = {"scene_time": scene_time, "run_id": st["run_id"], "footprint": shapely.from_wkt(st["footprint_wkt"]), "product_id": pid,
+             "mission": st["mission"], "acq_utc": st["start_utc"], "pass_dir": st.get("pass_dir"), "orbit_rel": st.get("orbit_rel"),
+             "sat_speed_ms": st.get("sat_speed_ms"), "tested": tested}
+    t0 = time.time()
+    contacts, ais_only, counts = matching.match_scene(objects, scene, ais_window, static_latest, positions_all, ctx.grid, ctx.aoi[0], log=log)
+    ckpt.write_tables(pid, contacts, ais_only)
+    info = {k: v for k, v in st.items() if k not in ("product_id", "status", "updated_utc")}
+    info.update(counts)
+    info["n_cnn_vessel"] = int(contacts.cnn_vessel.fillna(False).astype(bool).sum()) if len(contacts) else 0
+    info["ais_recorded_hours"] = int(len(aisstream.recorded_hours(positions_all)))
+    info["rematched_utc"] = pd.Timestamp.now(tz="UTC").isoformat()
+    info["rematch_runtime_s"] = round(time.time() - t0, 1)
+    log(f"{pid}: rematched: {counts['n_contacts']} contacts ({counts['n_matched']} matched, {counts['n_unmatched']} unmatched, "
+        f"{counts['n_ambiguous']} ambiguous, {counts['n_no_coverage']} no_coverage), {counts['n_ais_only']} AIS-only")
+    return ckpt.mark(pid, "done", **info)
+
+
+def rematch(ctx: Context, ckpt: Checkpoint, since: pd.Timestamp, run_ids: list[str] | None = None, log=log) -> int:
+    """`rematch_record` for every done scene (of `run_ids` when given) under the cycle lock, then rebuild the products."""
+    n = 0
+    with CycleLock(ctx.lock_path, blocking=True):
+        for p in sorted(ckpt.root.glob("*.json")):
+            st = ckpt.status(p.stem)
+            if not st or st.get("status") != "done" or (run_ids and st.get("run_id") not in run_ids):
+                continue
+            n += rematch_record(p.stem, ctx, ckpt, log=log) is not None
+        if n:
+            rebuild_outputs(ctx, ckpt, since, log=log)
+    return n
 
 
 def rebuild_outputs(ctx: Context, ckpt: Checkpoint, since: pd.Timestamp, log=log) -> dict:
@@ -429,6 +522,16 @@ def rebuild_outputs(ctx: Context, ckpt: Checkpoint, since: pd.Timestamp, log=log
     model_id = next((r.get("cnn_model_id") for r in recs if r.get("cnn_model_id")), None)
     thr = next((r.get("cnn_threshold") for r in recs if r.get("cnn_threshold") is not None), None)
     return rebuild(recs, contacts, ais_only, model_id, thr, hours, since.isoformat(), out_dir=ctx.out_dir, log=log)
+
+
+def update_weather(ctx: Context, ckpt: Checkpoint, force: bool = False, log=log) -> dict:
+    """GFS wind and Himawari cloud tops for every processed pass (darkvessel.live.weather sidecars in the output dir)."""
+    from darkvessel.live import weather
+
+    recs, contacts, _ = ckpt.load_all()
+    if not recs or len(contacts) == 0:
+        return {}
+    return weather.update_sidecars(recs, contacts, ctx.out_dir, force=force, log=log)
 
 
 def next_passes_text(plan: list[dict], now: pd.Timestamp, n: int = 3) -> str:
@@ -495,6 +598,11 @@ def _cycle(ctx: Context, ckpt: Checkpoint, since: pd.Timestamp, *, scene_ids, fo
             ckpt.mark(rec["product_id"], "error", error=f"{type(exc).__name__}: {str(exc)[:300]}", attempts_total=ckpt.attempts(rec["product_id"]) + 1)
     if done or not ctx.summary_path.exists():
         rebuild_outputs(ctx, ckpt, since, log=log)
+    if ctx.do_weather:
+        try:  # weather is context for the lead gate; a failure here must never stop the watcher
+            update_weather(ctx, ckpt, log=log)
+        except Exception as exc:  # noqa: BLE001
+            log(f"weather update failed: {type(exc).__name__}: {str(exc)[:200]}")
     return {"candidates": len(cands), "new": len(todo), "processed": done}
 
 

@@ -1,9 +1,11 @@
 """Offline tests for the live-pass pipeline (darkvessel.live): synthetic scene and AIS only, no network, no real data.
 
 Covers the status rules (matched, unmatched, no_coverage, dark_lead), the ship-station MMSI filter, identity and MID
-lookup, the speed-aware gate and the match_quality rule, retried tile reads and retried detection, checkpoint skipping,
+lookup, the speed-aware gate and the match_quality rules, retried tile reads and retried detection, checkpoint skipping,
 the cycle lock, the no-op rerun, mirror candidate selection with a fake listing, and the D1 output schema with its
-GeoPackage field types.
+GeoPackage field types. Round 3: dense-traffic pairing (azimuth shift, assignment, ambiguity), the pairing rules set by
+the Pearl River hand check (length, fixed contacts, oversized returns), the tested-sea polygon, the review tables and
+review_note, rematch, weather sidecars.
 """
 
 from __future__ import annotations
@@ -197,7 +199,8 @@ def test_match_scene_synthetic_schema_and_identity():
     u = contacts[contacts.ais_status != "matched"]
     assert u.mmsi.isna().all() and u.match_method.isna().all() and u.vessel_name.isna().all()
     assert (u.ais_status == "unmatched").all()  # AIS was heard all over the synthetic box: nothing is no_coverage
-    assert u.dark_lead.all() and not m.dark_lead.any() and counts["n_dark_leads"] == len(u)
+    assert (u.dark_lead == ~u.match_ambiguous).all() and not m.dark_lead.any() and counts["n_dark_leads"] == int(u.dark_lead.sum())
+    assert counts["n_ambiguous"] == int(contacts.match_ambiguous.sum()) and not m.match_ambiguous.any()
     assert contacts.nearest_ais_mmsi.notna().all() and (contacts.n_ais_10km >= 1).all()
     assert (contacts.ais_footprint_positions == counts["ais_footprint_positions"]).all() and counts["ais_footprint_positions"] == len(ais)
     assert counts["ais_aoi_positions"] == len(ais) and counts["ais_footprint_mmsi"] == ais.mmsi.nunique() == counts["ais_near_footprint_mmsi"]
@@ -329,6 +332,8 @@ def test_http_retry_resets_session_and_gives_up():
 
 
 def _ctx(tmp_path, **kw):
+    kw.setdefault("rebuild_tested", False)  # never read the mirror in a test
+    kw.setdefault("do_weather", False)      # nor GFS or Himawari
     ctx = watch.Context(workers=1, do_cnn=False, do_persistence=False, out_dir=tmp_path / "live", lock_path=tmp_path / "cycle.lock", **kw)
     g = box(*BBOX).buffer(1.0)
     ctx._aoi, ctx._grid, ctx._model = (g, g.buffer(-0.05)), _grid(), (None, None, None)
@@ -517,3 +522,556 @@ def test_predict_positions_carries_sog_and_reports():
                        columns=["mmsi", "timestamp", "lon", "lat", "sog_kn", "cog_deg", "length_m", "ais_class"])
     p = predict_positions(ais, T, rules.LIVE_MATCH)
     assert p.method.iloc[0] == "interp" and p.n_reports.iloc[0] == 2 and p.sog_kn.iloc[0] == 6.0 and p.ais_class.iloc[0] == "A"
+
+
+# ----------------------------------------------------------------------------------------------- dense traffic (round 3)
+TP = pd.Timestamp("2026-10-10T10:33:02Z")       # middle of a slice
+AZ = np.array([np.sin(np.radians(-11.0)), np.cos(np.radians(-11.0))])   # satellite motion on the ground (ascending)
+RG = np.array([AZ[1], -AZ[0]])                  # right-looking: away from the ground track
+INC, SLANT, VSAT = 35.0, 870_000.0, 7598.0
+ORIGIN = (114.00, 22.15)                         # off Hong Kong, UTM 49N
+
+
+def _utm():
+    from pyproj import Transformer
+
+    return (Transformer.from_crs("EPSG:4326", CRS_UTM_REGIONAL, always_xy=True).transform,
+            Transformer.from_crs(CRS_UTM_REGIONAL, "EPSG:4326", always_xy=True).transform)
+
+
+def _radar_image(x, y, vx, vy):
+    """Where Sentinel-1 images a target at (x, y) moving at (vx, vy) m/s: the azimuth shift -(R/V) v_r along AZ."""
+    v_r = (vx * RG[0] + vy * RG[1]) * np.sin(np.radians(INC))
+    s = -(SLANT / VSAT) * v_r
+    return x + s * AZ[0], y + s * AZ[1]
+
+
+def _dense_anchorage(seed=7):
+    """60 anchored vessels at 300 m spacing, 20 moving at 5 to 20 kn, 30 contacts with 50 to 150 m position noise and
+    the azimuth shift of moving targets, plus one explicit trap (a 20 kn ship imaged 300 m from an undetected anchored
+    ship) and dark boats. The anchorage lies 68 km along track from the slice middle (contact times about +10 s)."""
+    rng = np.random.default_rng(seed)
+    fwd, inv = _utm()
+    ox, oy = fwd(*ORIGIN)
+    ox, oy = ox + 68_000 * AZ[0], oy + 68_000 * AZ[1]
+    vessels = []
+    k = 0
+    for r in range(6):
+        for c in range(10):
+            vessels.append({"mmsi": 477000000 + k, "x": ox + c * 300.0, "y": oy + r * 300.0, "sog": rng.uniform(0, 0.3),
+                            "cog": rng.uniform(0, 360), "kind": "anchored"})
+            k += 1
+    for j in range(20):
+        vessels.append({"mmsi": 563000000 + j, "x": ox + rng.uniform(-1500, 4200), "y": oy + rng.uniform(-1500, 3000),
+                        "sog": rng.uniform(5, 20), "cog": rng.uniform(0, 360), "kind": "moving"})
+    # the trap, 4 km east: ship M at 20 kn straight along the range direction, anchored ship A 300 m from M's image
+    tx, ty = ox + 7000.0, oy
+    cog_m = float(np.degrees(np.arctan2(RG[0], RG[1])))
+    vxm, vym = 20 * 0.514444 * RG[0], 20 * 0.514444 * RG[1]
+    ix, iy = _radar_image(tx, ty, vxm, vym)
+    vessels.append({"mmsi": 412000001, "x": tx, "y": ty, "sog": 20.0, "cog": cog_m, "kind": "trap_moving"})
+    vessels.append({"mmsi": 412000002, "x": ix + 300 * RG[0], "y": iy + 300 * RG[1], "sog": 0.0, "cog": 0.0, "kind": "trap_anchored"})
+    v = pd.DataFrame(vessels)
+    v["vx"] = v.sog * 0.514444 * np.sin(np.radians(v.cog))
+    v["vy"] = v.sog * 0.514444 * np.cos(np.radians(v.cog))
+    # AIS reports: anchored every 180 s with 10 m jitter, moving every 30 s, from -30 to +30 min
+    rows = []
+    for _, s in v.iterrows():
+        step = 180 if s.kind in ("anchored", "trap_anchored") else 30
+        for t in np.arange(-1800 + rng.uniform(0, step), 1800, step):
+            lo, la = inv(s.x + s.vx * t + rng.normal(0, 10), s.y + s.vy * t + rng.normal(0, 10))
+            rows.append({"mmsi": int(s.mmsi), "timestamp": TP + pd.Timedelta(seconds=float(t)), "lon": lo, "lat": la,
+                         "sog_kn": round(float(s.sog), 1), "cog_deg": round(float(s.cog), 1), "ais_class": "A", "ship_name": None,
+                         "length_m": 120.0})
+    ais = pd.DataFrame(rows)
+    # radar contacts: 20 anchored, 8 moving, the trap ship, 2 dark boats far from everything, 2 at grid-square centres
+    det_anch = rng.choice(np.where(v.kind == "anchored")[0], 20, replace=False)
+    det_mov = rng.choice(np.where(v.kind == "moving")[0], 8, replace=False)
+    det_rows = []
+    t_c = 68_000 / 6800.0                        # contact time offset from the slice middle, s
+    for i in list(det_anch) + list(det_mov) + [int(np.where(v.kind == "trap_moving")[0][0])]:
+        s = v.iloc[i]
+        x, y = s.x + s.vx * t_c, s.y + s.vy * t_c
+        x, y = _radar_image(x, y, s.vx, s.vy)
+        ang, d = rng.uniform(0, 2 * np.pi), (40.0 if s.kind == "trap_moving" else rng.uniform(50, 150))
+        det_rows.append({"x": x + d * np.cos(ang), "y": y + d * np.sin(ang), "truth": int(s.mmsi), "kind": s.kind})
+    undetected = sorted(set(np.where(v.kind == "anchored")[0]) - set(det_anch))
+    centres = []
+    for r in range(5):
+        for c in range(9):
+            corner = [r * 10 + c, r * 10 + c + 1, (r + 1) * 10 + c, (r + 1) * 10 + c + 1]
+            if all(q in undetected for q in corner):
+                centres.append((ox + c * 300 + 150, oy + r * 300 + 150))
+    assert len(centres) >= 2, "seed gives too few empty grid squares"
+    for x, y in centres[:2]:
+        det_rows.append({"x": x, "y": y, "truth": None, "kind": "dark_centre"})
+    for x, y in ((ox - 6000, oy - 6000), (ox + 3000, oy + 6000)):
+        det_rows.append({"x": x, "y": y, "truth": None, "kind": "dark_far"})
+    d = pd.DataFrame(det_rows)
+    lo, la = inv(d.x.to_numpy(), d.y.to_numpy())
+    n = len(d)
+    objects = pd.DataFrame({"det_id": [f"DEN_{i:03d}" for i in range(n)], "confidence": "high", "length_est_m": 150.0, "lon": lo, "lat": la,
+                            "scene_id": "SYN_DENSE", "mission": "S1D", "acq_utc": TP.isoformat(), "row": 5000.0, "col": 5000.0,
+                            "inc_angle_deg": INC, "pol_class": "VV+VH", "n_pixels": 30, "scr_vv_db": 15.0, "scr_vh_db": 10.0,
+                            "low_reason": "", "persist_dates": 0, "persist_dates_checked": 0, "n_low_1km": 0, "near_fixed_m": np.nan,
+                            "cnn_score": 0.9, "cnn_vessel": True,
+                            "az_time_utc": (TP + pd.Timedelta(seconds=t_c)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                            "slant_range_m": SLANT, "az_e": AZ[0], "az_n": AZ[1], "rg_e": RG[0], "rg_n": RG[1]})
+    return objects, ais, d.assign(det_id=objects.det_id), v
+
+
+def _dense_scene(objects):
+    from shapely.geometry import box as _box
+
+    lo, la = objects.lon.to_numpy(), objects.lat.to_numpy()
+    fp = _box(lo.min() - 0.1, la.min() - 0.1, lo.max() + 0.1, la.max() + 0.1)
+    return {"scene_time": TP, "run_id": "live_S1D_20261010T1032", "footprint": fp, "product_id": "SYN_DENSE", "mission": "S1D",
+            "acq_utc": TP.isoformat(), "pass_dir": "ASCENDING", "orbit_rel": 11, "sat_speed_ms": VSAT}
+
+
+def test_dense_anchorage_correct_or_conservative():
+    from darkvessel.live import assign as asg
+
+    objects, ais, truth, vessels = _dense_anchorage()
+    static = _static(vessels.mmsi.astype("int64").tolist(), lengths=[120.0] * len(vessels))
+    scene = _dense_scene(objects)
+    transform, shape = _grid()
+    contacts, ais_only, counts = matching.match_scene(objects, scene, ais, static, ais, (transform, shape), scene["footprint"], log=lambda m: None)
+    t = truth.set_index("det_id")
+    c = contacts.set_index("det_id")
+    m = c[c.ais_status == "matched"]
+    wrong = m[m.mmsi.astype("int64").to_numpy() != t.loc[m.index, "truth"].fillna(-1).astype("int64").to_numpy()]
+    assert len(wrong) == 0, f"wrong identities: {wrong[['mmsi']].join(t[['truth', 'kind']]).to_dict('index')}"
+    ais_det = t[t.truth.notna()]
+    assert len(m) >= 0.5 * len(ais_det)          # 29 contacts carry AIS; 150 m noise in a 300 m grid is often truly ambiguous
+    amb = c[c.match_ambiguous & c.index.isin(ais_det.index)]
+    for i, r in amb.iterrows():                  # conservative, not wrong: the right vessel is always among the candidates
+        assert str(int(t.loc[i, "truth"])) in str(r.ambiguous_mmsi).split(";")
+    mov = t[t.kind == "moving"].index
+    assert (c.loc[mov, "ais_status"] == "matched").sum() >= 6               # azimuth-shifted ships are found
+    assert c.loc[t[t.kind == "trap_moving"].index[0], "ais_status"] == "matched"
+    assert c.loc[t[t.kind == "trap_moving"].index[0], "mmsi"] == 412000001
+    for i in t[t.kind == "dark_far"].index:                               # nothing within any gate: a dark lead
+        assert c.loc[i, "ais_status"] == "unmatched" and c.loc[i, "dark_lead"] and not c.loc[i, "match_ambiguous"]
+    for i in t[t.kind == "dark_centre"].index:                            # 212 m from four undetected ships: never named
+        assert c.loc[i, "ais_status"] != "matched" and c.loc[i, "match_ambiguous"] and not c.loc[i, "dark_lead"]
+        assert len(str(c.loc[i, "ambiguous_mmsi"]).split(";")) >= 2
+    # moving matches carry the shift, and the corrected distance is the smaller one
+    mm = m[m.index.isin(mov)]
+    big = mm[mm.az_shift_m.abs() > 150]
+    assert len(big) >= 2 and (big.match_dist_m < big.match_dist_uncorr_m).all()
+    assert counts["azimuth_correction"] and counts["azimuth_check"]["vessels"] >= 5
+    ac = counts["azimuth_check"]
+    assert ac["corrected_median_nearest_m"] < ac["uncorrected_median_nearest_m"] < ac["sign_flipped_median_nearest_m"]
+    # paired reading: per vessel, the corrected position is the one with the nearest contact more often than either other
+    assert ac["vessels_compared"] >= 5 and ac["closest_corrected"] > max(ac["closest_uncorrected"], ac["closest_sign_flipped"])
+    assert ac["closest_uncorrected"] + ac["closest_corrected"] + ac["closest_sign_flipped"] == ac["vessels_compared"]
+    # AIS-only: the undetected anchored ships; the ones a dark centre boat competed for are marked
+    assert ais_only.ambiguous_det_id.notna().sum() >= 2 and ais_only.mmsi.isin(vessels[vessels.kind == "anchored"].mmsi).sum() >= 30
+    # the old matcher (scene time, no shift, most pairs) names the trap contact after the anchored ship
+    import geopandas as gpd
+
+    det = gpd.GeoDataFrame(objects.copy(), geometry=gpd.points_from_xy(objects.lon, objects.lat), crs="EPSG:4326")
+    old, _ = match_detections(det, matching.ais_with_static(ais, static), TP, rules.LIVE_MATCH)
+    trap = old.set_index("det_id").loc[t[t.kind == "trap_moving"].index[0]]
+    assert trap.ais_status == "matched" and int(trap.mmsi) == 412000002
+    # without the correction the same scene loses or confuses ships under way, never more right than with it
+    c2, _, _ = matching.match_scene(objects, scene, ais, static, ais, (transform, shape), scene["footprint"], log=lambda m: None, correct=False)
+    m2 = c2.set_index("det_id")
+    m2 = m2[m2.ais_status == "matched"]
+    right2 = (m2.mmsi.astype("int64").to_numpy() == t.loc[m2.index, "truth"].fillna(-1).astype("int64").to_numpy()).sum()
+    assert right2 < len(m)
+    assert asg.AMBIG_MARGIN_M == 100.0 and asg.AMBIG_RATIO == 1.5
+
+
+def test_rafted_vessels_are_ambiguous_and_chain_is_not_forced():
+    from darkvessel.live import assign as asg
+
+    # two ships rafted 40 m apart (bunkering), one radar return between them: no identity, not a lead
+    fwd, inv = _utm()
+    x0, y0 = fwd(*ORIGIN)
+    lo, la = inv(np.array([x0, x0 + 40.0]), np.array([y0, y0]))
+    ais = pd.DataFrame({"mmsi": [413000001, 413000002] * 2, "timestamp": [TP - pd.Timedelta("1min")] * 2 + [TP + pd.Timedelta("2min")] * 2,
+                        "lon": np.r_[lo, lo], "lat": np.r_[la, la], "sog_kn": 0.0, "cog_deg": 0.0, "ais_class": "A", "ship_name": None})
+    clo, cla = inv(x0 + 25.0, y0 + 10.0)
+    contacts = pd.DataFrame({"det_id": ["r1"], "confidence": ["high"], "length_est_m": [200.0], "lon": [clo], "lat": [cla]})
+    out, ao, diag = asg.assign(contacts, ais, TP, rules.LIVE_MATCH)
+    assert out.ais_status.iloc[0] == "unmatched" and out.match_ambiguous.iloc[0]
+    assert set(out.ambiguous_mmsi.iloc[0].split(";")) == {"413000001", "413000002"} and not out.dark_candidate.iloc[0]
+    # both rafted vessels are held back (not counted as radar misses), not only the one the assignment tried
+    assert diag["ambiguous_pairs"] == 1 and ao.ambiguous_det_id.notna().sum() == 2 and set(ao.ambiguous_det_id) == {"r1"}
+    # chain: c1 is 50 m from v1 and 480 m from v2, c2 is 450 m from v1 only. Most pairs would give c1-v2 and c2-v1;
+    # the cost with unpaired vessels pays the gate keeps c1-v1, and c2 stays unmatched
+    D = np.array([[50.0, 480.0], [450.0, 1e9]])
+    feas = D <= 500.0
+    pairs = asg._assign_component(D, feas, np.array([500.0, 500.0]))
+    assert pairs == [(0, 0)]
+
+
+def test_gear_beacons_never_named_but_count_as_coverage():
+    objects, ais, truth = _synthetic()
+    heard = truth[truth.has_ais].mmsi.astype("int64").tolist()
+    names = [f"VESSEL {m}" for m in heard]
+    names[0] = "NET-82542-84%"                                   # a net beacon sitting on a ship-station MMSI
+    static = _static(heard, lengths=truth[truth.has_ais].length_m.tolist(), names=names)
+    contacts, ais_only, counts = matching.match_scene(objects, SCENE, ais, static, ais, _grid(), box(*BBOX).buffer(1.0), log=lambda m: None)
+    assert counts["ais_gear_beacons_excluded"] == 1
+    assert not contacts.mmsi.isin([heard[0]]).any() and not contacts.nearest_ais_mmsi.isin([heard[0]]).any()
+    assert not ais_only.mmsi.isin([heard[0]]).any()
+    assert matching.gear_mmsi(ais.assign(ship_name=None), static) == {heard[0]}
+
+
+def _annotation_xml():
+    """A minimal Sentinel-1 annotation: 2 x 3 geolocation grid, ascending, right-looking, two orbit vectors."""
+    pts = []
+    for line, t in ((0, "2026-10-10T10:32:47.500000"), (1000, "2026-10-10T10:32:49.000000")):
+        for pixel, srt, inc in ((0, 5.33e-3, 30.8), (10000, 5.80e-3, 38.0), (20000, 6.40e-3, 45.9)):
+            k = 1.0 / np.cos(np.radians(20.6))              # degrees of longitude per degree of latitude, in metres
+            lat = 20.6 + line * 0.0001 * np.cos(np.radians(-11)) + pixel * 0.00002 * np.sin(np.radians(11))
+            lon = 112.4 + k * (line * 0.0001 * np.sin(np.radians(-11)) + pixel * 0.00002 * np.cos(np.radians(11)))
+            pts.append(f"<geolocationGridPoint><azimuthTime>{t}</azimuthTime><slantRangeTime>{srt}</slantRangeTime><line>{line}</line>"
+                       f"<pixel>{pixel}</pixel><latitude>{lat}</latitude><longitude>{lon}</longitude><height>0</height>"
+                       f"<incidenceAngle>{inc}</incidenceAngle><elevationAngle>27</elevationAngle></geolocationGridPoint>")
+    orbit = "".join(f"<orbit><time>2026-10-10T10:32:{s}.0</time><frame>Earth Fixed</frame><position><x>0</x><y>0</y><z>0</z></position>"
+                    f"<velocity><x>2194.6</x><y>-1345.5</y><z>7148.4</z></velocity></orbit>" for s in (40, 50))
+    return (f"<product><generalAnnotation><productInformation><pass>Ascending</pass><platformHeading>-1.228e+01</platformHeading>"
+            f"</productInformation><orbitList count='2'>{orbit}</orbitList></generalAnnotation><imageAnnotation><imageInformation>"
+            f"<productFirstLineUtcTime>2026-10-10T10:32:47.500000</productFirstLineUtcTime><azimuthTimeInterval>1.5e-03</azimuthTimeInterval>"
+            f"</imageInformation></imageAnnotation><geolocationGrid><geolocationGridPointList count='6'>{''.join(pts)}"
+            f"</geolocationGridPointList></geolocationGrid></product>").encode()
+
+
+def test_sar_geometry_from_annotation():
+    from darkvessel.s1.grd import Geocoder
+
+    xml = _annotation_xml()
+    geo, info = scene_mod.sar_geometry(xml, [500.0, 0.0], [10000.0, 0.0], Geocoder.from_annotation(xml))
+    assert list(geo.columns) == scene_mod.GEOMETRY_COLUMNS
+    assert geo.az_time_utc.iloc[0].startswith("2026-10-10T10:32:48.25") and geo.az_time_utc.iloc[1].startswith("2026-10-10T10:32:47.5")
+    assert geo.slant_range_m.iloc[1] == pytest.approx(5.33e-3 * 299_792_458.0 / 2, rel=1e-6)
+    heading = np.degrees(np.arctan2(geo.az_e, geo.az_n))
+    look = np.degrees(np.arctan2(geo.rg_e, geo.rg_n))
+    assert np.allclose(heading, -11.0, atol=1.0) and np.allclose(look, 79.0, atol=1.0)   # right-looking: track + 90
+    assert info["platform_heading_deg"] == pytest.approx(-12.28) and info["sat_speed_ms"] == pytest.approx(7597.6, abs=1.0)
+    assert info["pass"] == "Ascending" and info["line_interval_s"] == 1.5e-3
+
+
+# ----------------------------------------------------------------------------------------------- live weather join
+def _fake_gfs(fail_first: int = 1):
+    """GFS fetch stand-in: the first `fail_first` cycles answer 404, then a global 0.25 degree grid of 6 m/s with 14 m/s
+    east of 114.0E."""
+    import requests
+    from rasterio.transform import from_origin
+
+    calls = []
+
+    def fetch(cycle, fh, cache_dir):
+        calls.append((cycle, fh))
+        if len(calls) <= fail_first:
+            resp = requests.Response()
+            resp.status_code, resp.url = 404, f"https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.{cycle:%Y%m%d}/{cycle:%H}/x.idx"
+            raise requests.HTTPError("404 Client Error", response=resp)
+        spd = np.full((721, 1440), 6.0, np.float32)
+        spd[:, int((114.0 + 0.125) / 0.25):int(120 / 0.25)] = 14.0
+        return spd, from_origin(-0.125, 90.125, 0.25, 0.25), "fake"
+
+    return fetch, calls
+
+
+def test_weather_wind_falls_back_to_previous_cycle():
+    from darkvessel.live import weather as lw_
+
+    fetch, calls = _fake_gfs(fail_first=1)
+    t = pd.Timestamp("2026-10-10T10:33:00Z").to_pydatetime()
+    wind, cycle, fh, src = lw_.wind_at(t, np.array([113.5, 114.5]), np.array([22.0, 22.0]), cache_dir=None, fetch=fetch)
+    assert [c[1] for c in calls] == [5, 11]                     # 06Z f005 missing, then 00Z f011
+    assert f"{cycle:%H}" == "00" and fh == 11 and np.allclose(wind, [6.0, 14.0]) and src.startswith("GFS 2026-10-10 00Z f011")
+    fetch, calls = _fake_gfs(fail_first=9)
+    wind, cycle, fh, src = lw_.wind_at(t, np.array([113.5]), np.array([22.0]), cache_dir=None, fetch=fetch)
+    assert np.isnan(wind).all() and cycle is None and src.startswith("unknown:") and "HTTP 404" in src and src.count("|") == 2
+
+
+def test_weather_cloud_unknown_kept_apart_from_clear():
+    from darkvessel.live import weather as lw_
+
+    t = pd.Timestamp("2026-10-10T10:33:00Z").to_pydatetime()
+    lon, lat = np.array([113.5, 114.5]), np.array([22.0, 22.0])
+    plon, plat = np.meshgrid(np.arange(113.0, 115.0, 0.02), np.arange(21.5, 22.5, 0.02))
+    ctt = np.where(plon > 114.0, 210.0, np.nan).astype(np.float32)        # a deep convective cell east of 114E, clear west
+    c, deep, key, src = lw_.cloud_at(t, lon, lat, key_fn=lambda t: "AHI-L2-FLDK-Clouds/x.nc", window_fn=lambda k, bb: None,
+                                     ctt_fn=lambda k, w: (plon, plat, ctt))
+    assert np.isnan(c[0]) and c[1] == 210.0 and deep == [False, True] and key.endswith("x.nc")
+    c, deep, key, src = lw_.cloud_at(t, lon, lat, key_fn=lambda t: None)
+    assert np.isnan(c).all() and deep == [None, None] and key is None and src.startswith("unknown:")
+
+
+def test_weather_sidecars_written_and_retried(tmp_path):
+    from darkvessel.live import weather as lw_
+
+    T1 = pd.Timestamp.now(tz="UTC").floor("min") - pd.Timedelta("5h")    # the retry window counts from the scene time
+    contacts = pd.DataFrame({"det_id": ["a", "b", "c"], "run_id": "live_S1D_20261010T1032", "scene_id": ["S1", "S1", "S2"],
+                             "lon": [113.5, 114.5, 114.2], "lat": [22.0, 22.0, 22.5]})
+    recs = [{"run_id": "live_S1D_20261010T1032", "product_id": "S1", "scene_time_utc": T1.isoformat(), "status": "done"},
+            {"run_id": "live_S1D_20261010T1032", "product_id": "S2", "scene_time_utc": (T1 + pd.Timedelta("25s")).isoformat(), "status": "done"}]
+    state = {"cloud_ok": False}
+
+    def scene_fn(cs, t, run_id, scene_id):
+        fetch, _ = _fake_gfs(fail_first=0)
+        cloud = (lambda *a, **k: (np.full(len(cs), np.nan), [False] * len(cs), "k.nc", "Himawari-9 k.nc")) if state["cloud_ok"] else \
+                (lambda *a, **k: (np.full(len(cs), np.nan), [None] * len(cs), None, "unknown: HTTPError HTTP 503 https://noaa-himawari9.s3.amazonaws.com/x"))
+        return lw_.scene_weather(cs, t, run_id, scene_id, cache_dir=None, wind_fn=lambda t, lo, la, cd: lw_.wind_at(t, lo, la, cd, fetch=fetch),
+                                 cloud_fn=cloud)
+
+    out = lw_.update_sidecars(recs, contacts, tmp_path, now=T1 + pd.Timedelta("5h"), log=lambda m: None, scene_fn=scene_fn)
+    assert out == {"live_S1D_20261010T1032": "written with unknown parts"}
+    df = pd.read_parquet(tmp_path / "live_S1D_20261010T1032_weather.parquet")
+    assert list(df.columns) == lw_.WEATHER_COLUMNS and len(df) == 3 and df.wind_ms.notna().all() and df.deep_convection.isna().all()
+    assert set(df.scene_id) == {"S1", "S2"} and df.cloud_source.str.contains("HTTP 503").all()
+    # too soon to retry: kept; after RETRY_MINUTES: retried and complete
+    state["cloud_ok"] = True
+    out = lw_.update_sidecars(recs, contacts, tmp_path, now=pd.Timestamp.now(tz="UTC"), log=lambda m: None, scene_fn=scene_fn)
+    assert out == {"live_S1D_20261010T1032": "unknown parts kept"}
+    later = pd.Timestamp.now(tz="UTC") + pd.Timedelta(minutes=lw_.RETRY_MINUTES + 1)
+    out = lw_.update_sidecars(recs, contacts, tmp_path, now=later, log=lambda m: None, scene_fn=scene_fn)
+    assert out == {"live_S1D_20261010T1032": "complete"}
+    df = pd.read_parquet(tmp_path / "live_S1D_20261010T1032_weather.parquet")
+    assert (df.deep_convection == False).all() and lw_.complete(df)  # noqa: E712
+    # complete and unchanged contacts: not fetched again
+    out = lw_.update_sidecars(recs, contacts, tmp_path, now=later, log=lambda m: None, scene_fn=lambda *a: 1 / 0)
+    assert out == {"live_S1D_20261010T1032": "complete"}
+
+
+def test_review_and_figures_on_synthetic_pass(tmp_path):
+    import geopandas as gpd
+
+    from darkvessel.live import figures, review
+
+    objects, ais, truth, vessels = _dense_anchorage()
+    static = _static(vessels.mmsi.astype("int64").tolist(), lengths=[120.0] * len(vessels))
+    scene = _dense_scene(objects)
+    contacts, ais_only, _ = matching.match_scene(objects, scene, ais, static, ais, _grid(), scene["footprint"], log=lambda m: None)
+    me = review.matched_evidence(contacts, ais, static)
+    assert len(me) == (contacts.ais_status == "matched").sum() and me.check.eq("consistent").mean() >= 0.8
+    assert me.before_dt_s.le(0).all() and me.after_dt_s.gt(0).all() and not me.gear_beacon_like.any()
+    ue = review.unmatched_evidence(contacts, ais, ais_only, TP)
+    assert len(ue) == (contacts.ais_status == "unmatched").sum() and ue.why_unmatched.str.startswith("ambiguous").sum() == contacts.match_ambiguous.sum()
+    scenes = gpd.GeoDataFrame({"product_id": ["SYN_DENSE"]}, geometry=[scene["footprint"]], crs="EPSG:4326")
+    lo, la = objects.lon, objects.lat
+    mp = figures.pass_map(contacts, scenes, ais, tmp_path / "map.png", "synthetic", zoom=(lo.min() - 0.02, la.min() - 0.02, lo.max() + 0.02, la.max() + 0.02))
+    pp = figures.match_panels(contacts, tmp_path / "matches.png", "synthetic")
+    assert mp.stat().st_size > 20_000 and pp.stat().st_size > 20_000
+
+
+def test_rematch_from_stored_objects(tmp_path, monkeypatch):
+    """--rematch redoes pairing, status and identity from <id>.objects.parquet without detection, with the AIS of now."""
+    objects, ais, truth = _synthetic()
+    heard = truth[truth.has_ais].mmsi.astype("int64").tolist()
+    monkeypatch.setattr(watch, "aisstream", _FakeAIS(ais.iloc[:0], _static([])))
+    monkeypatch.setattr(watch, "PASSES_PATH", tmp_path / "passes.json")
+    ctx, ck = _ctx(tmp_path, do_weather=False), watch.Checkpoint(tmp_path / "scenes")
+    rec = _mirror_rec()
+
+    def working(path, aoi, inner, **kw):
+        return objects.copy(), {"tested_km2": 3500.0, "blocks_processed": 4, "orbit_rel": 164, "pass_dir": "DESCENDING", "io_retries": 0,
+                                "n_candidates_pre_rules": len(objects), "n_cnn_scored": 0, "runtime_s": 1.0, "sat_speed_ms": 7597.0}
+
+    st = watch.process_record(rec, ctx, ck, [], force=True, process=working, log=lambda m: None)
+    assert st["status"] == "done" and st["n_matched"] == 0 and st["n_no_coverage"] == len(objects) and st["sat_speed_ms"] == 7597.0
+    assert ck.objects(rec["product_id"]) is not None and len(ck.objects(rec["product_id"])) == len(objects)
+    # the AIS of that window arrives later (a late flush, or a recorder caught up): rematch, no detection call
+    monkeypatch.setattr(watch, "aisstream", _FakeAIS(ais, _static(heard)))
+    n = watch.rematch(ctx, ck, pd.Timestamp("2026-10-08T00:00Z"), log=lambda m: None)
+    st = ck.status(rec["product_id"])
+    assert n == 1 and st["n_matched"] >= 10 and st["rematched_utc"] and st["attempts_total"] == 1
+    recs, contacts, _ = ck.load_all()
+    assert (contacts.ais_status == "matched").sum() == st["n_matched"] and contacts.vessel_name.notna().sum() >= 10
+    assert (ctx.out_dir / "live_contacts.gpkg").exists()
+
+
+# ----------------------------------------------------------------------------------------------- Pearl River hand-check rules
+def _pair_frames(contacts, vessels, minutes=2.0):
+    """Contacts (lon, lat from metre offsets around ORIGIN) and AIS reports either side of TP for stationary or moving
+    vessels (x, y in metres, sog kn, cog deg, length m). No imaging geometry: no azimuth shift."""
+    fwd, inv = _utm()
+    x0, y0 = fwd(*ORIGIN)
+    c = pd.DataFrame(contacts)
+    c["lon"], c["lat"] = inv(x0 + c.pop("x").to_numpy(float), y0 + c.pop("y").to_numpy(float))
+    rows = []
+    for v in vessels:
+        vx, vy = v["sog"] * 0.514444 * np.sin(np.radians(v["cog"])), v["sog"] * 0.514444 * np.cos(np.radians(v["cog"]))
+        for dt in (-minutes * 60, minutes * 60):
+            lo, la = inv(x0 + v["x"] + vx * dt, y0 + v["y"] + vy * dt)
+            rows.append({"mmsi": v["mmsi"], "timestamp": TP + pd.Timedelta(seconds=dt), "lon": lo, "lat": la, "sog_kn": v["sog"],
+                         "cog_deg": v["cog"], "ais_class": "A", "ship_name": None, "length_m": v.get("length", np.nan)})
+    return c, pd.DataFrame(rows)
+
+
+def test_pairing_rules_length_and_fixed_contacts():
+    from darkvessel.live import assign as asg
+
+    # a 290 m tanker 150 m from a 41 m return and 350 m from a 330 m return: the short return cannot be the tanker
+    c, ais = _pair_frames([{"det_id": "short", "confidence": "medium", "length_est_m": 41.0, "x": 150.0, "y": 0.0},
+                           {"det_id": "long", "confidence": "high", "length_est_m": 330.0, "x": -350.0, "y": 0.0}],
+                          [{"mmsi": 477584200, "x": 0.0, "y": 0.0, "sog": 0.0, "cog": 0.0, "length": 290.0}])
+    out, ao, _ = asg.assign(c, ais, TP, rules.LIVE_MATCH)
+    o = out.set_index("det_id")
+    assert o.loc["long", "ais_status"] == "matched" and o.loc["long", "mmsi"] == 477584200
+    assert o.loc["short", "ais_status"] == "unmatched" and not o.loc["short", "match_ambiguous"]
+    # alone, the short return stays unpaired: the vessel is AIS-only, not named on a return a seventh of its length
+    out, ao, _ = asg.assign(c[c.det_id == "short"], ais, TP, rules.LIVE_MATCH)
+    assert out.ais_status.iloc[0] == "unmatched" and len(ao) == 1
+    # a fixed contact (a structure on earlier passes) 50 m from a vessel under way at 8 kn is not that vessel ...
+    c, ais = _pair_frames([{"det_id": "fx", "confidence": "fixed", "length_est_m": 32.0, "x": 50.0, "y": 0.0}],
+                          [{"mmsi": 412536055, "x": 0.0, "y": 0.0, "sog": 8.2, "cog": 90.0}], minutes=0.5)
+    out, ao, _ = asg.assign(c, ais, TP, rules.LIVE_MATCH)
+    assert out.ais_status.iloc[0] == "unmatched" and ao.mmsi.tolist() == [412536055]
+    # ... but a vessel at anchor on a fixed contact is (a ship moored at the same berth on every pass)
+    c, ais = _pair_frames([{"det_id": "fx", "confidence": "fixed", "length_est_m": 106.0, "x": 50.0, "y": 0.0}],
+                          [{"mmsi": 412402680, "x": 0.0, "y": 0.0, "sog": 0.0, "cog": 0.0, "length": 84.0}])
+    out, _, _ = asg.assign(c, ais, TP, rules.LIVE_MATCH)
+    assert out.ais_status.iloc[0] == "matched" and out.mmsi.iloc[0] == 412402680
+    assert rules.MIN_LENGTH_RATIO == 0.25 and rules.FIXED_MAX_SOG_KN == 2.0
+
+
+def test_oversized_return_takes_its_large_ship_and_duplicates_are_left_out():
+    from darkvessel.live import assign as asg
+
+    # PANCON BRIDGE case: a 172 m ship whose bright return the detector dropped as oversized (459 m) lies 40 m from its
+    # expected position; a faint 60 m return 300 m away must not inherit the name
+    c, ais = _pair_frames([{"det_id": "faint", "confidence": "medium", "length_est_m": 60.0, "x": 300.0, "y": 0.0},
+                           {"det_id": "ovs", "confidence": "low", "low_reason": "oversized", "length_est_m": 459.0, "x": 0.0, "y": 40.0}],
+                          [{"mmsi": 441420000, "x": 0.0, "y": 0.0, "sog": 0.0, "cog": 0.0, "length": 172.0}])
+    contacts, extra = c[c.det_id == "faint"], c[c.det_id == "ovs"]
+    out, ao, diag = asg.assign(contacts, ais, TP, rules.LIVE_MATCH)          # without the oversized return: a false name
+    assert out.ais_status.iloc[0] == "matched"
+    out, ao, diag = asg.assign(contacts, ais, TP, rules.LIVE_MATCH, extra_returns=extra)
+    assert out.ais_status.iloc[0] == "unmatched" and out.dark_candidate.iloc[0] and len(out) == 1
+    assert ao.mmsi.tolist() == [441420000] and ao.oversized_det_id.tolist() == ["ovs"] and diag["pairs_with_oversized"] == 1
+    # an oversized return within 150 m of a contact is that contact's other polarisation: left out of the pairing
+    objs = pd.concat([c.assign(low_reason=c.get("low_reason")), c[c.det_id == "faint"].assign(det_id="dup", confidence="low",
+                      low_reason="oversized", lat=c.lat.iloc[0] + 0.0004)], ignore_index=True)
+    ov = matching.oversized_returns(objs, objs[objs.det_id == "faint"])
+    assert ov.det_id.tolist() == ["ovs"] and rules.OVERSIZED_DUPLICATE_M == 150.0
+
+
+def test_live_quality_rule_uses_distance_travelled():
+    q = rules.live_match_quality(
+        [79, 79, 442, 424, 239, 150, 99, np.nan, 100],
+        [1183, 1183, 472, 268, 144, 60, 98, 60, 1200],
+        [0.1, 10.0, 29.9, 4.0, 8.7, 0.0, 27.9, 0.0, np.nan],
+        [279, 279, 110, 170, 61, 400, 54, 30, 100], [190, 190, 41, 269, 96, 100, 40, 25, 100])
+    # anchored, old reports: high | the same at 10 kn (6 km of dead reckoning): low | 30 kn for 8 min: low |
+    # 424 m: medium | 239 m: medium | ratio 4.0: medium | 28 kn for 98 s (1.4 km): medium | unmatched | speed unknown: time bands
+    assert list(q) == ["high", "low", "low", "medium", "medium", "medium", "medium", None, "low"]
+    assert rules.live_match_quality([100], [200], [np.nan], [30], [25])[0] == "high"
+    assert "track_m" in rules.QUALITY_TEXT and "200 m" in rules.QUALITY_TEXT
+
+
+def test_on_tested_sea_follows_the_detector_mask_and_recall_uses_it(tmp_path):
+    objects, ais, truth = _synthetic()
+    static = _static(truth[truth.has_ais].mmsi.astype("int64").tolist())
+    west = box(BBOX[0] - 0.1, BBOX[1] - 0.1, (BBOX[0] + BBOX[2]) / 2, BBOX[3] + 0.1)   # only the west half was tested
+    scene = dict(SCENE, tested=west)
+    contacts, ais_only, counts = matching.match_scene(objects, scene, ais, static, ais, _grid(), box(*BBOX).buffer(1.0), log=lambda m: None)
+    assert len(ais_only) >= 2 and counts["tested_area_source"] == "detector_mask"
+    import shapely
+
+    assert (ais_only.on_tested_sea.astype(bool).to_numpy() == shapely.contains_xy(west, ais_only.lon.to_numpy(), ais_only.lat.to_numpy())).all()
+    assert counts["n_ais_only_on_tested_sea"] == int(ais_only.on_tested_sea.sum())
+    # without the polygon the distance-to-coast layer stands in
+    _, _, c2 = matching.match_scene(objects, SCENE, ais, static, ais, _grid(), box(*BBOX).buffer(1.0), log=lambda m: None)
+    assert c2["tested_area_source"] == "dist_coast"
+    p = outputs.pass_summary("live_S1D_20261008T2258", contacts, ais_only, pd.DataFrame([_scene_record(objects, counts)]))
+    n_ais = sum(v["n_ais"] for v in p["recall_by_ais_length"].values())
+    tested_ok = int((ais_only.on_tested_sea.astype(bool) & ais_only.ambiguous_det_id.isna()).sum())
+    assert n_ais == int((contacts.ais_status == "matched").sum()) + tested_ok - int(pd.to_numeric(ais_only.length_ais_m, errors="coerce")[ais_only.on_tested_sea.astype(bool) & ais_only.ambiguous_det_id.isna()].isna().sum())
+    assert p["ais_only_on_tested_sea_not_ambiguous"] == tested_ok and "on tested sea" in p["recall_note"]
+
+
+def test_mask_polygon_maps_cells_to_lonlat():
+    m = np.zeros((10, 12), bool)
+    m[2:6, 3:9] = True                       # 4 x 6 cells of 16 px
+
+    def lonlat(rows, cols):                  # 10 m pixels near the equator: 1e-4 degree per pixel, north up
+        return 110.0 + np.asarray(cols) * 1e-4, 10.0 - np.asarray(rows) * 1e-4
+
+    poly = scene_mod.mask_polygon(m, 16, lonlat)
+    assert poly.area == pytest.approx((6 * 16e-4) * (4 * 16e-4), rel=1e-6)
+    import shapely
+
+    assert shapely.contains_xy(poly, 110.0 + 100 * 1e-4, 10.0 - 50 * 1e-4) and not shapely.contains_xy(poly, 110.0 + 10 * 1e-4, 10.0 - 10 * 1e-4)
+    assert scene_mod.mask_polygon(np.zeros((3, 3), bool), 16, lonlat).is_empty
+
+
+def test_review_tables_keep_grades_and_feed_review_note(tmp_path):
+    import pyogrio
+
+    from darkvessel.live import review
+
+    objects, ais, truth = _synthetic()
+    static = _static(truth[truth.has_ais].mmsi.astype("int64").tolist())
+    contacts, ais_only, counts = matching.match_scene(objects, SCENE, ais, static, ais, _grid(), box(*BBOX).buffer(1.0), log=lambda m: None)
+    m = contacts[contacts.ais_status == "matched"]
+    me = review.matched_evidence(contacts, ais, static, scene_times={"SYN": T}, sat_speed={"SYN": 7597.0})
+    assert len(me) == len(m) and me.pred_lon.notna().all() and (me.check_dist_m - me.match_dist_m).abs().max() < 1.0
+    ue = review.unmatched_evidence(contacts, ais, ais_only, T, static_latest=static)
+    ue["sample"] = review.pick_samples(ue, n_leads=3, n_ambiguous=2, n_no_coverage=1).to_numpy()
+    assert ue["sample"].eq("top_cnn_dark_lead").sum() == 3
+    # both tables carry the dark caveat and the board D4.7 label of the aisstream identities on every row
+    for t in (me, ue):
+        assert (t.caveat == DARK_CAVEAT).all() and (t.identity_label == "live AIS relayed by aisstream.io; terms UNVERIFIED").all()
+    # the reviewer grades two matched rows and one lead; a rerun of --review keeps the grades
+    me = review.keep_hand_check(me.assign(sample="all_matched"), None)
+    me.loc[0, ["grade", "reason"]] = ["confirmed", "track through the return"]
+    me.loc[1, ["grade", "reason"]] = ["doubtful", "a brighter return 300 m away"]
+    ue = review.keep_hand_check(ue, None, key=("det_id",))
+    lead = ue.index[ue["sample"] == "top_cnn_dark_lead"][0]
+    ue.loc[lead, ["grade", "reason"]] = ["confirmed", "no AIS vessel within its gate"]
+    out_dir = tmp_path / "live"
+    out_dir.mkdir()
+    mp, up = review.review_paths("live_S1D_20261008T2258", out_dir)
+    me.to_csv(mp, index=False)
+    ue.to_csv(up, index=False)
+    again = review.keep_hand_check(review.matched_evidence(contacts, ais, static).assign(sample="all_matched"), review.read_review(mp))
+    assert again.grade.notna().sum() == 2 and list(again.columns[-4:]) == review.HAND_COLUMNS
+    assert list(again.columns[-6:-4]) == review.LABEL_COLUMNS and (review.read_review(up).caveat == DARK_CAVEAT).all()
+    # a rematch that pairs a graded contact with another MMSI drops its note
+    moved = contacts.copy()
+    moved.loc[moved.det_id == me.det_id.iloc[1], "mmsi"] = 999999999
+    notes = review.review_notes(moved.assign(run_id="live_S1D_20261008T2258"), out_dir)
+    assert notes.notna().sum() == 2 and notes[moved.det_id == me.det_id.iloc[0]].iloc[0] == "confirmed: track through the return"
+    # the products carry review_note as the last contacts column, null where nobody looked; the about layer has the rule
+    outputs.rebuild([_scene_record(objects, counts)], contacts, ais_only, None, None, 1, T.isoformat(), out_dir=out_dir, log=lambda m: None)
+    gp = out_dir / "live_S1D_20261008T2258.gpkg"
+    c = pyogrio.read_dataframe(gp, layer="contacts_4326", read_geometry=False)
+    assert list(c.columns[:len(D1_COLUMNS)]) == D1_COLUMNS and c.columns[-1] == "review_note"
+    assert c.review_note.notna().sum() == 3 and c.review_note.dropna().str.match(r"^(confirmed|plausible|doubtful): ").all()
+    info = pyogrio.read_info(gp, layer="contacts_4326")
+    assert dict(zip(info["fields"], info["dtypes"]))["review_note"] == "object"
+    assert "hand-checked" in pyogrio.read_dataframe(gp, layer="about").iloc[0]["review_note"]
+    s = json.loads((out_dir / "live_summary.json").read_text())["passes"]["live_S1D_20261008T2258"]
+    assert s["hand_check"]["matched"] == {"confirmed": 1, "plausible": 0, "doubtful": 1} and s["hand_check"]["unmatched"]["confirmed"] == 1
+    # static identity counts rows whose identity comes from a static message, apart from rows that only have a name
+    cm = c[c.ais_status == "matched"]
+    assert s["matched_with_static_identity"] == int((cm.identity_source == ident.IDENTITY_STATIC).sum()) > 0
+    assert s["matched_with_name"] == int(cm.vessel_name.notna().sum()) and "ambiguous contacts" in s["dark_leads_note"]
+
+
+def test_rebuild_and_weather_modes_respect_the_lock(tmp_path, monkeypatch):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("live_script", os.path.join(os.path.dirname(__file__), "..", "scripts", "30_live_pass.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    lock = tmp_path / "cycle.lock"
+    calls = []
+    monkeypatch.setattr(mod.lw, "rebuild_outputs", lambda *a, **k: calls.append("rebuild"))
+    monkeypatch.setattr(mod.lw, "update_weather", lambda *a, **k: calls.append("weather"))
+    real_ctx = mod.lw.Context
+    monkeypatch.setattr(mod.lw, "Context", lambda **kw: real_ctx(lock_path=lock, out_dir=tmp_path / "live", **kw))
+    for flag in ("--rebuild", "--weather"):
+        monkeypatch.setattr("sys.argv", ["30_live_pass.py", flag, "--nice", "0"])
+        with watch.CycleLock(lock):
+            assert mod.main() == 2            # the watcher holds the lock: nothing written
+        assert mod.main() == 0
+    assert calls == ["rebuild", "weather"]

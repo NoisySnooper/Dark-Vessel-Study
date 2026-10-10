@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree
 
-from darkvessel.ais.match import MatchConfig, QUALITY_RULE_TEXT
+from darkvessel.ais.match import KN_TO_MS, MatchConfig
 from darkvessel.config import CRS_UTM_REGIONAL
 
 AIS_WINDOW_S = 1800          # positions within this of the scene time are "the window"
@@ -49,8 +49,9 @@ GATE_TEXT = (
     "AIS position and timing error, track interpolation and radar geolocation; the speed term absorbs the Sentinel-1 "
     "azimuth shift of a moving target, about (R / V) x radial speed with R / V 110 to 135 s for IW (slant range 790 to "
     "950 km at 693 km altitude, effective velocity about 7.1 km/s; Raney 1971, doi:10.1109/TAES.1971.310292). "
-    "A stopped vessel therefore gets 500 m, a 20 kn vessel about 1,790 m. One-to-one assignment by the Hungarian "
-    "algorithm on distance."
+    "A stopped vessel therefore gets 500 m, a 20 kn vessel about 1,790 m. The gate is applied to the distance between "
+    "the contact and the vessel's expected radar position (its AIS position at the contact's azimuth time plus the "
+    "predicted azimuth shift, see the azimuth_correction field), so it also absorbs an error in that prediction."
 )
 WINDOW_TEXT = (
     f"AIS positions from {AIS_WINDOW_S // 60} min before to {AIS_WINDOW_S // 60} min after the scene time (middle of the "
@@ -63,14 +64,19 @@ STATUS_TEXT = (
     "matched = paired inside the gate. unmatched = not matched and at least one AIS position was heard during the "
     f"window in the contact's 0.25 degree cell or within {NEAR_KM:.0f} km of the contact (the feed was listening there). "
     "An unmatched high or medium contact is a dark lead (dark_lead = true): a vessel the radar saw and AIS did not "
-    "place, not evidence of wrongdoing. An unmatched fixed contact is a structure, never a lead. no_coverage = not "
+    "place, not evidence of wrongdoing. An unmatched contact with match_ambiguous = true (two or more AIS vessels or "
+    "contacts too close to tell apart, see the ambiguity field) is never a lead: it is very likely one of the AIS "
+    "vessels in ambiguous_mmsi. An unmatched fixed contact is a structure, never a lead. no_coverage = not "
     f"matched and nothing heard in the cell or within {NEAR_KM:.0f} km during the window (terrestrial AIS does not "
     "reach there; nothing can be said)."
 )
 MMSI_FILTER_TEXT = (
     f"Only ship-station MMSIs are used (nine digits, first three digits = MID 201 to 775, so {MMSI_SHIP_MIN} to "
     f"{MMSI_SHIP_MAX}): coast stations, SAR aircraft, aids to navigation, craft of a parent ship, group calls and "
-    "malformed numbers are dropped before matching, the coverage test, the evidence counts and the AIS-only layer."
+    "malformed numbers are dropped before matching, the coverage test, the evidence counts and the AIS-only layer. "
+    "Senders that look like fishing-gear or net beacons (a name ending in a percentage, the words NET or BUOY; "
+    "darkvessel.ais.aisstream.gear_beacon_like, a heuristic) count for the coverage test only: they are not vessels, so "
+    "they are never paired, named, counted in n_ais_10km, given as nearest_ais_mmsi or put in the AIS-only layer."
 )
 EVIDENCE_TEXT = (
     "nearest_ais_* = nearest AIS vessel placed at the scene time (any distance) and the time from the scene to its "
@@ -78,7 +84,52 @@ EVIDENCE_TEXT = (
     "share of recorded hours (hours with any AIS in the AOI) in which the contact's 0.25 degree cell had AIS; "
     "ais_footprint_positions = AIS positions heard inside the scene footprint during the window."
 )
-QUALITY_TEXT = QUALITY_RULE_TEXT
+# Match quality of live pairs (round 3 hand check, 2026-10-10). The shared ais.match rule graded time to the nearest
+# report, which marks a ship at anchor reporting every few minutes as weak and a 30 kn craft dead-reckoned for 8 min
+# as good. Here the AIS position's own uncertainty is the distance the vessel travels between its nearest report and
+# the scene (speed x time, `track_m`); the distance bands are those the azimuth-corrected pairs support (the hand check
+# confirmed pairs at 28 to 96 m from their expected position; the doubtful ones lay 178 m to 1.9 km away).
+LIVE_QUALITY = {
+    "high": {"dist_m": 200.0, "track_m": 1000.0, "dt_s": 300.0, "ratio": (0.4, 3.0)},
+    "medium": {"dist_m": 500.0, "track_m": 3000.0, "dt_s": 900.0, "ratio": (0.25, 4.0)},
+}
+QUALITY_TEXT = (
+    "track_m = the vessel's speed (SOG of the report nearest the scene, else its track speed) x the time from the scene "
+    "to that report: how far it moved since it was last pinned. high = match_dist_m <= 200 m, track_m <= 1,000 m and the "
+    "radar length 0.4 to 3.0 times the AIS length (or AIS length unknown); medium = <= 500 m, track_m <= 3,000 m, ratio "
+    "0.25 to 4.0 (or unknown); low = any other pair inside the gate. With the speed unknown the time bands of the "
+    "shared rule apply instead (300 s high, 900 s medium). The radar length is the extent of the detected pixels, crude "
+    "and upward-biased (sidelobes and the smear of a moving ship add to it), hence the wide bands. Rule set by the "
+    "hand check of the Pearl River pass of 2026-10-10 (docs/live_pass.md); the September research build keeps the "
+    "rule of darkvessel.ais.match."
+)
+# Pairs that cannot be the same object (applied before the assignment, see assign.PAIRING_RULES_TEXT)
+MIN_LENGTH_RATIO = 0.25      # a return shorter than a quarter of the AIS hull is not that hull
+FIXED_MAX_SOG_KN = 2.0       # a fixed contact (recurs on earlier passes) cannot be a vessel under way
+OVERSIZED_REASON = "oversized"   # low objects the detector dropped for size: strong returns that may be large ships
+OVERSIZED_DUPLICATE_M = 150.0    # an oversized return this close to a contact is the same target (VV/VH halves not fused)
+
+
+def live_match_quality(dist_m, dt_s, speed_kn=None, length_est_m=None, length_ais_m=None) -> np.ndarray:
+    """'high', 'medium' or 'low' per pair (QUALITY_TEXT); None where dist_m is null."""
+    d = np.asarray(dist_m, float)
+    t = np.abs(np.asarray(dt_s, float))
+    v = np.full(d.shape, np.nan) if speed_kn is None else np.asarray(pd.to_numeric(pd.Series(speed_kn), errors="coerce"), float).reshape(d.shape)
+    le = np.full(d.shape, np.nan) if length_est_m is None else np.asarray(pd.to_numeric(pd.Series(length_est_m), errors="coerce"), float).reshape(d.shape)
+    la = np.full(d.shape, np.nan) if length_ais_m is None else np.asarray(pd.to_numeric(pd.Series(length_ais_m), errors="coerce"), float).reshape(d.shape)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = le / la
+        track = np.abs(v) * KN_TO_MS * t
+    known = np.isfinite(ratio) & (la > 0)
+    out = np.full(d.shape, None, dtype=object)
+    matched = np.isfinite(d)
+    for grade in ("medium", "high"):  # high overwrites medium
+        r = LIVE_QUALITY[grade]
+        ok_len = ~known | ((ratio >= r["ratio"][0]) & (ratio <= r["ratio"][1]))
+        ok_pos = np.where(np.isfinite(track), track <= r["track_m"], t <= r["dt_s"])
+        out[matched & (d <= r["dist_m"]) & ok_pos & ok_len] = grade
+    out[matched & (out == None)] = "low"  # noqa: E711
+    return out
 
 
 def ship_stations(ais: pd.DataFrame) -> pd.DataFrame:
@@ -163,10 +214,12 @@ def reach_at(lon, lat, positions_all: pd.DataFrame, transform, shape) -> tuple[n
 
 
 def assign_status(det: pd.DataFrame, ais_window: pd.DataFrame, pred_ll: pd.DataFrame, positions_all: pd.DataFrame,
-                  transform, shape) -> pd.DataFrame:
+                  transform, shape, ais_vessels: pd.DataFrame | None = None) -> pd.DataFrame:
     """Fill ais_status (keeping 'matched'), dark_lead, nearest_ais_*, n_ais_10km and ais_reach on `det`.
 
-    `det` needs lon, lat, ais_status (and confidence for dark_lead; without it every unmatched row is a lead).
+    `det` needs lon, lat, ais_status (and confidence for dark_lead; without it every unmatched row is a lead; a true
+    match_ambiguous keeps an unmatched row out of the leads). `ais_window` (every ship station, gear beacons included)
+    decides coverage; `ais_vessels` (gear beacons dropped; default `ais_window`) gives the n_ais_10km count.
     """
     out = det.copy()
     lon, lat = out.lon.to_numpy(float), out.lat.to_numpy(float)
@@ -174,12 +227,13 @@ def assign_status(det: pd.DataFrame, ais_window: pd.DataFrame, pred_ll: pd.DataF
     status = np.where(out.ais_status.to_numpy() == "matched", "matched", np.where(covered, "unmatched", "no_coverage"))
     out["ais_status"] = status
     lead_class = out.confidence.isin(LEAD_CLASSES).to_numpy() if "confidence" in out else np.ones(len(out), bool)
-    out["dark_lead"] = (status == "unmatched") & lead_class
+    amb = out.match_ambiguous.fillna(False).astype(bool).to_numpy() if "match_ambiguous" in out else np.zeros(len(out), bool)
+    out["dark_lead"] = (status == "unmatched") & lead_class & ~amb
     mm, dist, dt = nearest_placed(lon, lat, pred_ll)
     out["nearest_ais_mmsi"] = pd.array([None if m is None else int(m) for m in mm], dtype="Int64")
     out["nearest_ais_dist_m"] = np.round(dist, 1)
     out["nearest_ais_dt_s"] = np.round(dt, 1)
-    out["n_ais_10km"] = n_within(lon, lat, ais_window)
+    out["n_ais_10km"] = n_within(lon, lat, ais_window if ais_vessels is None else ais_vessels)
     reach, hours = reach_at(lon, lat, positions_all, transform, shape)
     out["ais_reach"] = np.round(reach, 4)
     out["ais_recorded_hours"] = hours
