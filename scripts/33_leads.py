@@ -5,18 +5,20 @@ evidence, a factor-by-factor review priority (0 to 100, not a risk score), lawfu
 next planned radar look and the product caveat. "Dark" means only "no AIS match"; it never means illegal.
 
 Method (darkvessel.leads; the output's 'about' layer repeats every rule and weight)
-- L1, unmatched radar contact in AIS reach: ais_status unmatched, class high or medium, cnn_score >= 0.5, both channels
-  where the polarisation is known, no clutter-zone or near-fixed flag, and no known weather failure, gated per part:
-  out when wind is known and >= 12 m/s or deep convection is known true; a missing part keeps the lead with the factor
-  'weather unknown' at 0 points (board D4.5). Open build: live passes (data/live/). Research build: the September run
-  with GFW identity (data/research/regional_identity.parquet).
+- L1, unmatched radar contact in AIS reach: ais_status unmatched and not flagged ambiguous (live passes: match_ambiguous,
+  a contact two or more AIS vessels could explain), class high or medium, cnn_score >= 0.5, both channels where the
+  polarisation is known, no clutter-zone or near-fixed flag, and no known weather failure, gated per part: out when
+  wind is known and >= 12 m/s or deep convection is known true; a missing part keeps the lead with the factor
+  'weather unknown' at 0 points (board D4.5). Open build: live passes (data/live/), weather from the per-pass sidecars
+  data/live/live_*_weather.parquet (darkvessel.live.weather). Research build: the September run with GFW identity
+  (data/research/regional_identity.parquet).
 - L7, lit activity where radar does not look: clear-sky VIIRS lit-vessel candidates with no Sentinel-1 pass in the
   90-day window, more than 1 km from Satlas infrastructure, one lead per 0.25 degree cell, the 20 brightest lights as
   evidence. A coverage lead for tasking, not a vessel lead. Both builds.
 - Priority factors: evidence quality 0 to 30, corroboration 0 to 25 (light or AIS behaviour event within 2 km and 3 h),
   AIS reach quality 0 to 20, persistence 0 to 15 (unmatched again within 2 km on another pass within 72 h), area
-  weight 0 to 10 (default 0). No AIS match adds 0. L7 is scored within the same meanings (evidence on half the scale,
-  no corroboration, no AIS claim, persistence for other nights) and stays at 30 or below without an area weight.
+  weight 0 to 10 (default 0). No AIS match adds 0. L7 is scored within the same meanings (evidence on a third of the
+  scale, no corroboration, no AIS claim, persistence for other nights) and stays at 20 or below without an area weight.
   Bands: low 0 to 33, medium 34 to 66, high 67 to 100. Model id lead_priority_v0_20261009, calibrated false until the
   owner's labels exist. next_look_utc is the first planned pass after both the lead time and the plan's generation.
 - The open build never opens data/research/ (guard in code, tested). Research rows add the research line of the
@@ -29,11 +31,11 @@ Method (darkvessel.leads; the output's 'about' layer repeats every rule and weig
 Inputs (read-only): data/live/live_contacts.gpkg (open L1), data/research/regional_identity.parquet and
   data/research/gfw_events_{loitering,encounters}*.parquet (research L1), data/viirs_lights_all.gpkg (every VIIRS night;
   L7 and corroboration; data/viirs_lights.gpkg is the fallback and the source of the recurring light sites),
-  data/weather_context.parquet, data/ocean_static_cells.parquet, data/outputs/small/s1_passes_4326.tif,
+  data/weather_context.parquet, data/live/live_*_weather.parquet (open), data/ocean_static_cells.parquet, data/outputs/small/s1_passes_4326.tif,
   data/outputs/small/ais_reach_share_4326.tif, data/s1_next_passes.json and data/ais_live.gpkg (next look).
 Output: data/leads_open.gpkg (leads_4326, leads_utm49n EPSG:32649, lead_evidence, about), data/leads_open_summary.json;
   data/research/leads_research.gpkg, data/research/leads_research.parquet, data/research/leads_research_summary.json;
-  docs/figures/leads_priority.png.
+  docs/figures/leads_priority.png (both panels; drawn only by a --build both run, so a single-build run leaves it as is).
 Usage: nice -n 10 python scripts/33_leads.py --build both
        python scripts/33_leads.py --build open --dry-run
        python scripts/33_leads.py --build research --since 2026-09-20 --until 2026-10-02
@@ -83,7 +85,10 @@ def main():
             continue
         B.write_outputs(res, log=log)
     if not a.dry_run and not a.no_figure:
-        B.figure(results, log=log)
+        if set(results) == set(BUILDS):
+            B.figure(results, log=log)
+        else:   # the committed figure has both panels; a one-panel redraw would replace it
+            log(f"figure not redrawn ({B._rel(B.FIG_PATH)} needs both builds; run --build both)")
     log(f"done in {time.time() - t0:.1f} s" + (" (dry run, nothing written)" if a.dry_run else ""))
 
 

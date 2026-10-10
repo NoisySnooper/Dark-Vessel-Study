@@ -5,7 +5,8 @@ gate condition, the per-part weather gate and the weather-unknown rule (board D4
 bands, registry source keys, the L7 scoring and its ceiling below L1, the persistence pairing, the next-look lookup
 (past passes skipped), lead_id stability across reruns, the open-build guard against data/research/, the caveat on
 every lead and evidence row, the contract 3.5 field names, the VIIRS file choice, the L7 selection and evidence cap,
-and a GeoPackage round trip (atomic write, constant columns as defaults, generated time, no GFW text in the open file).
+a GeoPackage round trip (atomic write, constant columns as defaults, generated time, no GFW text in the open file),
+and the script rule that only a run of both builds redraws the two-panel figure.
 """
 
 from __future__ import annotations
@@ -515,3 +516,61 @@ def test_gpkg_round_trip(tmp_path, monkeypatch):
             assert meta[b"caveat"].decode() == caveat_for("research")
             twin = pd.read_parquet(outputs[build]["parquet"])
             assert len(twin) == len(df) and twin.research_only.all()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# round 3: live ambiguity flag and live weather sidecars
+
+def test_l1_gate_excludes_ambiguous_live_contact():
+    c = contacts()
+    c = pd.concat([c, c[c.det_id == "ok"].assign(det_id="ambiguous")], ignore_index=True)
+    c["match_ambiguous"] = c.det_id == "ambiguous"
+    w = pd.concat([weather(), weather()[weather().det_id == "ok"].assign(det_id="ambiguous")], ignore_index=True)
+    g = R.l1_gate(E.join_weather(c, w)).set_index(c.det_id)
+    assert g.loc["ok", "l1"] and not g.loc["ambiguous", "l1"] and not g.loc["ambiguous", "not_ambiguous"]
+    counts = R.l1_gate_counts(R.l1_gate(E.join_weather(c, w)))
+    assert counts["fail_by_condition_among_unmatched"]["not_ambiguous"] == 1
+    # inputs without the flag (the September run) keep the earlier count layout
+    counts_old = R.l1_gate_counts(R.l1_gate(E.join_weather(contacts(), weather())))
+    assert "not_ambiguous" not in counts_old["fail_by_condition_among_unmatched"]
+    assert "\u2013" not in R.L1_AMBIGUITY_TEXT and "\u2014" not in R.L1_AMBIGUITY_TEXT   # no en or em dash
+
+
+def test_live_weather_sidecars_join(tmp_path, monkeypatch):
+    live = tmp_path / "live"
+    live.mkdir()
+    monkeypatch.setattr(B, "LIVE_DIR", live)
+    pd.DataFrame({"det_id": ["ok", "weather_unknown"], "run_id": "live_S1D_20260925T2230", "wind_ms": [4.0, np.nan], "ctt_k": [np.nan, np.nan],
+                  "deep_convection": pd.array([False, None], dtype="boolean")}).to_parquet(live / "live_S1D_20260925T2230_weather.parquet")
+    paths = B.input_paths("open")
+    assert [p.name for p in paths["live_weather"]] == ["live_S1D_20260925T2230_weather.parquet"]
+    assert "live_weather" not in B.input_paths("research")
+    w, note = B.load_weather("open", {**paths, "weather": [tmp_path / "missing.parquet"]})
+    assert len(w) == 2 and "wind known 1" in note
+    c = E.join_weather(contacts(), w)
+    g = R.l1_gate(c).set_index(c.det_id)
+    assert g.loc["ok", "l1"] and g.loc["ok", "weather_known"]                 # calm and clear from the sidecar
+    assert g.loc["weather_unknown", "l1"] and g.loc["weather_unknown", "weather_missing"] == "wind and deep convection"
+
+
+def test_script_draws_figure_only_for_both_builds(monkeypatch):
+    """The committed figure has an open and a research panel; a single-build run (make leads) must not redraw it."""
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location("leads_script", REPO / "scripts" / "33_leads.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    counts = {"leads": 0, "by_type": {}, "by_band": {}, "evidence_rows": 0, "L1": {}, "corroboration_window": {}}
+    drawn, written = [], []
+    monkeypatch.setattr(mod.B, "assemble", lambda b, **kw: {"build": b, "counts": counts})
+    monkeypatch.setattr(mod.B, "write_outputs", lambda res, **kw: written.append(res["build"]))
+    monkeypatch.setattr(mod.B, "figure", lambda results, **kw: drawn.append(sorted(results)))
+    for argv, want_written, want_drawn in ((["--build", "open"], ["open"], []), (["--build", "research"], ["research"], []),
+                                           (["--build", "both"], ["open", "research"], [["open", "research"]]),
+                                           (["--build", "both", "--dry-run"], [], [])):
+        drawn.clear()
+        written.clear()
+        monkeypatch.setattr(sys, "argv", ["33_leads.py", *argv])
+        mod.main()
+        assert written == want_written and drawn == want_drawn, argv

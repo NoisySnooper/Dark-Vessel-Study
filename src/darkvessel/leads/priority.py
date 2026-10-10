@@ -28,7 +28,8 @@ L7 (one 0.25 degree cell, a coverage lead), scored within the same factor meanin
 - area_weight, 0 to 10: as L1.
 Without an analyst area weight an L7 lead scores at most 20 (low band). That keeps vessel detection and identification
 first: on the September research leads, 93 % of L1 leads score above 20 even with their weather and corroboration
-points removed (the open build has neither yet), and every L1 lead with CNN 0.75, both channels and half AIS reach does.
+points removed (the open build had neither when the ceiling was set; live weather sidecars came later), and every L1
+lead with CNN 0.75, both channels and half AIS reach does.
 
 Factor `source` values are registry keys of app/CONTRACT.md section 2, several joined by "; ".
 """

@@ -146,6 +146,8 @@ def input_paths(build: str) -> dict[str, list[Path]]:
         "weather": [DATA_DIR / "weather_context.parquet"],
         "ocean_static": [DATA_DIR / "ocean_static_cells.parquet"],
     }
+    if build == "open":  # GFS wind and Himawari cloud tops per live contact (darkvessel.live.weather sidecars)
+        paths["live_weather"] = sorted(LIVE_DIR.glob("live_*_weather.parquet"))
     if build == "research":
         paths["regional_identity"] = [RESEARCH_DIR / "regional_identity.parquet"]
         paths["gfw_events_loitering"] = sorted(RESEARCH_DIR.glob("gfw_events_loitering*.parquet"))
@@ -197,6 +199,31 @@ def load_contacts(build: str, paths: dict) -> tuple[pd.DataFrame, str]:
     if "pass_id" not in df.columns:
         df["pass_id"] = df["run_id"].astype(str)
     return df, f"{len(df)} September contacts from regional_identity.parquet"
+
+
+WEATHER_JOIN = ["det_id", "wind_ms", "ctt_k", "deep_convection"]
+WEATHER_LIVE_TEXT = ("Live contacts: GFS 10 m wind of the hour nearest the scene and Himawari-9 cloud-top temperature (deep convection "
+                     "below 220 K) from data/live/<run_id>_weather.parquet (darkvessel.live.weather, the method of "
+                     "scripts/16_weather_context.py); a part whose source could not be read stays unknown, never calm.")
+
+
+def load_weather(build: str, paths: dict) -> tuple[pd.DataFrame | None, str]:
+    """Weather per contact for the L1 gate: the regional sample (data/weather_context.parquet) and, in the open build,
+    the live-pass sidecars (data/live/live_*_weather.parquet). Null wind or deep_convection means unknown."""
+    frames, parts = [], []
+    if _exists(paths, "weather"):
+        frames.append(read_parquet(paths["weather"][0], build, columns=WEATHER_JOIN))
+        parts.append(f"regional {len(frames[-1])}")
+    for p in paths.get("live_weather", []):
+        if p.exists():
+            w = read_parquet(p, build, columns=WEATHER_JOIN)
+            w["deep_convection"] = w["deep_convection"].astype(object).where(w["deep_convection"].notna(), None)
+            frames.append(w)
+            parts.append(f"{p.stem} {len(w)} (wind known {int(w.wind_ms.notna().sum())}, convection known {int(w.deep_convection.notna().sum())})")
+    if not frames:
+        return None, "no weather file"
+    w = pd.concat([f.astype({"deep_convection": object}) for f in frames], ignore_index=True).drop_duplicates("det_id", keep="last")
+    return w, "; ".join(parts)
 
 
 def load_events(build: str, paths: dict) -> pd.DataFrame | None:
@@ -601,7 +628,9 @@ def assemble(build: str, since=None, until=None, area_weights: dict | None = Non
     notes = {}
     contacts, notes["contacts"] = load_contacts(build, paths)
     contacts = _filter_window(contacts, "acq_utc", since, until)
-    weather = read_parquet(paths["weather"][0], build) if _exists(paths, "weather") else None
+    weather, weather_note = load_weather(build, paths)
+    if build == "open":
+        notes["weather"] = weather_note
     static = read_parquet(paths["ocean_static"][0], build) if _exists(paths, "ocean_static") else None
     lights, sites, notes["viirs"] = load_lights(build, paths)
     lights = _filter_window(lights, "time_utc", since, until) if lights is not None else None
@@ -694,6 +723,7 @@ def about_frame(result: dict, generated_utc: str) -> pd.DataFrame:
         "input_notes": json.dumps(result["notes"]), "window_since": result["since"], "window_until": result["until"],
         "n_leads": int(c["leads"]), "counts": json.dumps({k: v for k, v in c.items() if k not in ("factor_distributions",)}, default=str),
         "lead_types": json.dumps(R.LEAD_NAMES), "rules": json.dumps(R.RULE_TEXT),
+        **({"rules_l1_ambiguity": R.L1_AMBIGUITY_TEXT, "weather_live": WEATHER_LIVE_TEXT} if build == "open" else {}),
         "corroboration_rule": CORROBORATION_RULE[build],
         "persistence_rule": f"an unmatched contact within {R.PERSISTENCE_KM:.0f} km on another pass (over {R.PERSISTENCE_MIN_GAP_S:.0f} s apart) within {R.PERSISTENCE_H:.0f} h",
         "next_look_rule": ("first planned pass that starts after both time_utc and the plan's generated_utc (passes with status past are "
@@ -827,6 +857,7 @@ def write_outputs(result: dict, figure: bool = True, log=print, now: str | None 
         "product": "SCS Vessel Watch leads queue", "build": build, "generated_utc": generated, "inputs_signature": result["inputs_signature"],
         "priority_model_id": PRIORITY_MODEL_ID, "calibrated": False,
         "counts": result["counts"], "weights": P.WEIGHTS, "rules": R.RULE_TEXT, "lead_names": R.LEAD_NAMES,
+        **({"rules_l1_ambiguity": R.L1_AMBIGUITY_TEXT, "weather_live": WEATHER_LIVE_TEXT} if result["build"] == "open" else {}),
         "corroboration_rule": CORROBORATION_RULE[build],
         "plan_file": result["plan"], "inputs": result["inputs"], "input_notes": result["notes"],
         "outputs": {k: _rel(v) for k, v in written.items()},

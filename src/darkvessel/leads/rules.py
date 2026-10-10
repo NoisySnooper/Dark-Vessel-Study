@@ -1,6 +1,7 @@
 """Lead rules: the L1 gate, the L7 selection and the pre-listed explanations per lead type (spec 4.1, MDA brief 2.5).
 
-L1, unmatched radar contact in AIS reach: ais_status unmatched, detector class high or medium, CNN score at least 0.5,
+L1, unmatched radar contact in AIS reach: ais_status unmatched and not flagged ambiguous (a live contact that two or
+more AIS vessels could explain, match_ambiguous true, is very likely one of them), detector class high or medium, CNN score at least 0.5,
 both channels where the polarisation is known (live pol_class VV+VH; regional class high = VV and VH), not in a clutter
 zone and not near a fixed structure where those flags exist (the regional run already downgraded such objects to low),
 and no known weather failure. Wind and deep convection are gated one by one (board D4.5): a contact fails when its wind
@@ -37,9 +38,13 @@ L7_CLASS = "lit_vessel_candidate"
 L7_EVIDENCE_LIGHTS_MAX = 20     # light evidence rows per L7 cell: the brightest 20; n_lights keeps the full count
 
 LEAD_NAMES = {"L1": "Unmatched radar contact in AIS reach", "L7": "Lit activity where radar does not look"}
+# Applies only to inputs that carry match_ambiguous (live passes, open build): stated in the open build's about and summary.
+L1_AMBIGUITY_TEXT = ("L1 also requires match_ambiguous not true: a live contact the AIS pairing could not tell apart from two or more AIS "
+                     "vessels (or that competed with another contact for one vessel) is very likely one of those vessels and is not a "
+                     "lead (darkvessel.live.assign).")
 PRIMARY_TYPE = {"L1": "contact", "L7": "cell"}
 
-L1_CONDITIONS = ["unmatched", "vessel_class", "cnn", "both_channels", "not_clutter", "not_near_fixed", "weather"]
+L1_CONDITIONS = ["unmatched", "not_ambiguous", "vessel_class", "cnn", "both_channels", "not_clutter", "not_near_fixed", "weather"]
 
 RULE_TEXT = {
     "L1": ("ais_status = unmatched (AIS was heard near the contact, so an absence of a match means something here); "
@@ -156,6 +161,8 @@ def l1_gate(df: pd.DataFrame) -> pd.DataFrame:
     `weather_known` and `channels` (text for the card)."""
     g = pd.DataFrame(index=df.index)
     g["unmatched"] = _col(df, "ais_status", None).astype(str) == "unmatched"
+    g["not_ambiguous"] = ~_col(df, "match_ambiguous", None).astype(object).map(lambda v: _bool_or_none(v) is True).astype(bool)
+    g.attrs["has_ambiguity"] = "match_ambiguous" in df.columns
     g["vessel_class"] = _col(df, "confidence", None).astype(str).isin(L1_CLASSES)
     cnn = pd.to_numeric(_col(df, "cnn_score"), errors="coerce")
     g["cnn"] = cnn.notna() & (cnn >= L1_CNN_MIN)
@@ -186,6 +193,8 @@ def l1_gate_counts(gate: pd.DataFrame) -> dict:
     um = gate[gate.unmatched]
     out = {"unmatched": int(gate.unmatched.sum()), "fail_by_condition_among_unmatched": {}}
     for c in L1_CONDITIONS[1:]:
+        if c == "not_ambiguous" and not gate.attrs.get("has_ambiguity", True):
+            continue  # inputs without the flag (the September run) keep their earlier count layout
         out["fail_by_condition_among_unmatched"][c] = int((~um[c]).sum())
     out["pass_all"] = int(gate.l1.sum())
     out["pass_with_weather_unknown"] = int((gate.l1 & ~gate.weather_known).sum())

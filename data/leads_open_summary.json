@@ -1,8 +1,8 @@
 {
  "product": "SCS Vessel Watch leads queue",
  "build": "open",
- "generated_utc": "2026-10-10T01:42:02Z",
- "inputs_signature": "8edaceea34146f31",
+ "generated_utc": "2026-10-10T13:28:16Z",
+ "inputs_signature": "c5b10d4cbd61c988",
  "priority_model_id": "lead_priority_v0_20261009",
  "calibrated": false,
  "counts": {
@@ -34,10 +34,11 @@
   },
   "evidence_rows": 27676,
   "L1": {
-   "contacts": 3081,
+   "contacts": 3861,
    "gate": {
     "unmatched": 0,
     "fail_by_condition_among_unmatched": {
+     "not_ambiguous": 0,
      "vessel_class": 0,
      "cnn": 0,
      "both_channels": 0,
@@ -199,11 +200,13 @@
   "L1": "Unmatched radar contact in AIS reach",
   "L7": "Lit activity where radar does not look"
  },
+ "rules_l1_ambiguity": "L1 also requires match_ambiguous not true: a live contact the AIS pairing could not tell apart from two or more AIS vessels (or that competed with another contact for one vessel) is very likely one of those vessels and is not a lead (darkvessel.live.assign).",
+ "weather_live": "Live contacts: GFS 10 m wind of the hour nearest the scene and Himawari-9 cloud-top temperature (deep convection below 220 K) from data/live/<run_id>_weather.parquet (darkvessel.live.weather, the method of scripts/16_weather_context.py); a part whose source could not be read stays unknown, never calm.",
  "corroboration_rule": "a VIIRS lit-vessel candidate within 2 km and 3 h of the contact (15 points); AIS behaviour events (10 points) have no source in the open build yet",
  "plan_file": {
-  "generated_utc": "2026-10-10T00:20:09Z",
-  "window_start_utc": "2026-10-07T00:20:09Z",
-  "window_end_utc": "2026-10-22T00:20:09Z",
+  "generated_utc": "2026-10-10T12:20:33Z",
+  "window_start_utc": "2026-10-07T12:20:33Z",
+  "window_end_utc": "2026-10-22T12:20:33Z",
   "primary_source": "esa_plan"
  },
  "inputs": [
@@ -216,8 +219,20 @@
   {
    "role": "live_contacts",
    "path": "data/live/live_contacts.gpkg",
-   "size": 5246976,
-   "mtime_utc": "2026-10-09T07:37:07Z"
+   "size": 6529024,
+   "mtime_utc": "2026-10-10T12:58:40Z"
+  },
+  {
+   "role": "live_weather",
+   "path": "data/live/live_S1C_20261010T1119_weather.parquet",
+   "size": 18448,
+   "mtime_utc": "2026-10-10T12:59:14Z"
+  },
+  {
+   "role": "live_weather",
+   "path": "data/live/live_S1D_20261008T2258_weather.parquet",
+   "size": 42544,
+   "mtime_utc": "2026-10-10T03:18:47Z"
   },
   {
    "role": "ocean_static",
@@ -234,14 +249,14 @@
   {
    "role": "s1_footprints_plan",
    "path": "data/ais_live.gpkg",
-   "size": 2232320,
-   "mtime_utc": "2026-10-10T00:20:34Z"
+   "size": 2240512,
+   "mtime_utc": "2026-10-10T12:20:46Z"
   },
   {
    "role": "s1_next_passes",
    "path": "data/s1_next_passes.json",
-   "size": 98265,
-   "mtime_utc": "2026-10-10T00:20:35Z"
+   "size": 102274,
+   "mtime_utc": "2026-10-10T12:20:46Z"
   },
   {
    "role": "s1_passes_tif",
@@ -275,7 +290,8 @@
   }
  ],
  "input_notes": {
-  "contacts": "3081 live contacts from live_contacts.gpkg",
+  "contacts": "3861 live contacts from live_contacts.gpkg",
+  "weather": "regional 162386; live_S1C_20261010T1119_weather 780 (wind known 780, convection known 780); live_S1D_20261008T2258_weather 3081 (wind known 3081, convection known 3081)",
   "viirs": "164333 lit-vessel candidates of 191622 lights from viirs_lights_all.gpkg, 27 nights 2026-09-05 to 2026-10-01"
  },
  "outputs": {
