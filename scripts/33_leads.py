@@ -17,9 +17,10 @@ Method (darkvessel.leads; the output's 'about' layer repeats every rule and weig
   evidence. A coverage lead for tasking, not a vessel lead. Both builds.
 - Priority factors: evidence quality 0 to 30, corroboration 0 to 25 (light or AIS behaviour event within 2 km and 3 h),
   AIS reach quality 0 to 20, persistence 0 to 15 (unmatched again within 2 km on another pass within 72 h), area
-  weight 0 to 10 (default 0). No AIS match adds 0. L7 is scored within the same meanings (evidence on a third of the
-  scale, no corroboration, no AIS claim, persistence for other nights) and stays at 20 or below without an area weight.
-  Bands: low 0 to 33, medium 34 to 66, high 67 to 100. Model id lead_priority_v0_20261009, calibrated false until the
+  weight 0 to 10 (default 0). No AIS match adds 0. L7 is scored within the same meanings (evidence on a sixth of the
+  scale, no corroboration, no AIS claim, persistence for other nights) and stays at 10 or below without an area weight,
+  the floor of an L1 lead with known calm weather, so vessel leads come first (owner priority P0).
+  Bands: low 0 to 33, medium 34 to 66, high 67 to 100. Model id lead_priority_v1_20261010, calibrated false until the
   owner's labels exist. next_look_utc is the first planned pass after both the lead time and the plan's generation.
 - The open build never opens data/research/ (guard in code, tested). Research rows add the research line of the
   caveat and research_only true; the about layer and the parquet metadata carry the GFW licence, attribution and
@@ -33,8 +34,10 @@ Inputs (read-only): data/live/live_contacts.gpkg (open L1), data/research/region
   L7 and corroboration; data/viirs_lights.gpkg is the fallback and the source of the recurring light sites),
   data/weather_context.parquet, data/live/live_*_weather.parquet (open), data/ocean_static_cells.parquet, data/outputs/small/s1_passes_4326.tif,
   data/outputs/small/ais_reach_share_4326.tif, data/s1_next_passes.json and data/ais_live.gpkg (next look).
-Output: data/leads_open.gpkg (leads_4326, leads_utm49n EPSG:32649, lead_evidence, about), data/leads_open_summary.json;
-  data/research/leads_research.gpkg, data/research/leads_research.parquet, data/research/leads_research_summary.json;
+Output: data/leads_open.gpkg (leads_4326 with every contract 3.5 column, about; the app backend reads it),
+  data/leads_open_detail.gpkg (leads_utm49n EPSG:32649, lead_evidence, about; board D6.3 keeps each committed file under
+  20 MB), data/leads_open_summary.json; data/research/leads_research.gpkg (all four layers; local only, never committed, board D6.5),
+  data/research/leads_research.parquet, data/research/leads_research_summary.json;
   docs/figures/leads_priority.png (both panels; drawn only by a --build both run, so a single-build run leaves it as is).
 Usage: nice -n 10 python scripts/33_leads.py --build both
        python scripts/33_leads.py --build open --dry-run

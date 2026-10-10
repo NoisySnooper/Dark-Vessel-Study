@@ -5,8 +5,12 @@ gate condition, the per-part weather gate and the weather-unknown rule (board D4
 bands, registry source keys, the L7 scoring and its ceiling below L1, the persistence pairing, the next-look lookup
 (past passes skipped), lead_id stability across reruns, the open-build guard against data/research/, the caveat on
 every lead and evidence row, the contract 3.5 field names, the VIIRS file choice, the L7 selection and evidence cap,
-a GeoPackage round trip (atomic write, constant columns as defaults, generated time, no GFW text in the open file),
-and the script rule that only a run of both builds redraws the two-panel figure.
+a GeoPackage round trip (atomic write, constant columns as defaults, generated time, no GFW text in the open files,
+the open build's two-file layout of board D6.3 and byte-identical reruns of every file), the script rule that only a
+run of both builds redraws the two-panel figure, the gate waterfall counts, the gate re-checked on the output rows (no
+matched, no_coverage, fixed, low or ambiguous contact becomes a lead), the queue order of model v1 (every L1 lead with
+known weather before every L7 lead), the codes of board D5.1 against the frontend's text.ts, and a research input
+signature that ignores live passes.
 """
 
 from __future__ import annotations
@@ -219,17 +223,17 @@ def test_l7_points_within_spec_meaning_and_ceiling():
     df = pd.DataFrame({"n_lights": [1, 30, 200, 0], "n_nights": [1, 4, 9, 0], "ais_reach_share": [1.0, 0.5, 0.0, np.nan],
                        "region_box": "other"})
     pts, factors = P.l7_points(df)
-    assert pts.pts_evidence_quality.tolist() == [2, 10, 10, 0]          # a third of the L1 scale
+    assert pts.pts_evidence_quality.tolist() == [1, 5, 5, 0]            # a sixth of the L1 scale
     assert pts.pts_corroboration.tolist() == [0, 0, 0, 0]               # radar did not look; lights not matched to AIS
     assert pts.pts_ais_reach.tolist() == [0, 0, 0, 0]                   # an L7 lead makes no AIS claim
-    assert pts.pts_persistence.tolist() == [0, 5, 10, 0]                # other nights: 0 for one night, 10 at 7 or more
-    assert P.total(pts).tolist() == [2, 15, 20, 0]
-    assert P.total(pts).max() <= P.L7_CEILING == 20 and set(P.band(P.total(pts))) == {"low"}
+    assert pts.pts_persistence.tolist() == [0, 3, 5, 0]                 # other nights: 0 for one night, 5 at 7 or more
+    assert P.total(pts).tolist() == [1, 8, 10, 0]
+    assert P.total(pts).max() <= P.L7_CEILING == 10 and set(P.band(P.total(pts))) == {"low"}
     for fl, p in zip(factors, P.total(pts)):
         assert P.check_factors(fl, p) and [f["factor"] for f in fl] == P.FACTORS
     # with an analyst area weight the cell can leave the low band; that is the analyst's call
     w, _ = P.l7_points(df.assign(region_box="Gulf of Thailand"), area_weights={"Gulf of Thailand": 10})
-    assert P.total(w).max() == 30
+    assert P.total(w).max() == 20
     # no L7 lead outranks an open-build L1 lead with ordinary evidence: CNN 0.75, both channels, weather unknown, half AIS
     # reach, no AIS vessel within 10 km, no corroboration, no persistence (10 + 5 + 0 + 6 = 21 points)
     l1 = pd.DataFrame([{"cnn_score": 0.75, "both_channels": True, "wind_ms": np.nan, "deep_convection": None, "n_lights_2km_3h": 0,
@@ -237,6 +241,12 @@ def test_l7_points_within_spec_meaning_and_ceiling():
                         "ais_source": "aisstream"}])
     l1_pts, _ = P.l1_points(l1)
     assert P.total(l1_pts).iloc[0] == 21 > P.total(pts).max() == P.L7_CEILING
+    # owner P0, model v1: the weakest L1 lead with known calm weather (CNN at the 0.5 floor, both channels, AIS never heard
+    # in the cell, no AIS vessel within 10 km) still reaches the L7 ceiling, and ties sort L1 first (lead_id)
+    weakest = l1.assign(cnn_score=0.5, wind_ms=5.0, deep_convection=False, ais_reach=0.0)
+    w_pts, _ = P.l1_points(weakest)
+    assert P.total(w_pts).iloc[0] == P.L1_FLOOR_WEATHER_KNOWN == 10 >= P.L7_CEILING
+    assert PRIORITY_MODEL_ID == "lead_priority_v1_20261010"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -400,7 +410,7 @@ def test_l7_evidence_cap_brightest_first():
     assert row.n_lights == 25 and row.n_nights == 8
     lids = [e["id"] for e in json.loads(row.evidence) if e["role"] == "light"]
     assert lids == [f"L{i:03d}" for i in range(24, 4, -1)]           # the 20 brightest, brightest first
-    assert c7["light_evidence_rows"] == R.L7_EVIDENCE_LIGHTS_MAX and row.priority == 9 + 10   # 10 x ln 26 / ln 31 = 9.5; 8 nights
+    assert c7["light_evidence_rows"] == R.L7_EVIDENCE_LIGHTS_MAX and row.priority == 5 + 5   # 5 x ln 26 / ln 31 = 4.7; 8 nights
 
 
 def test_load_lights_prefers_every_night_file(tmp_path):
@@ -452,8 +462,9 @@ def test_open_build_guard():
 def test_gpkg_round_trip(tmp_path, monkeypatch):
     import pyogrio
 
-    outputs = {"open": {"gpkg": tmp_path / "leads_open.gpkg", "summary": tmp_path / "leads_open_summary.json", "parquet": None},
-               "research": {"gpkg": tmp_path / "leads_research.gpkg", "summary": tmp_path / "leads_research_summary.json",
+    outputs = {"open": {"gpkg": tmp_path / "leads_open.gpkg", "detail": tmp_path / "leads_open_detail.gpkg",
+                        "summary": tmp_path / "leads_open_summary.json", "parquet": None},
+               "research": {"gpkg": tmp_path / "leads_research.gpkg", "detail": None, "summary": tmp_path / "leads_research_summary.json",
                             "parquet": tmp_path / "leads_research.parquet"}}
     monkeypatch.setattr(B, "OUTPUTS", outputs)
     for build in ("open", "research"):
@@ -469,45 +480,63 @@ def test_gpkg_round_trip(tmp_path, monkeypatch):
                           "evidence_rows": len(ev) + len(ev7), "L1": c1, "L7": c7, "with_next_look": 0, "factor_distributions": {}, "corroboration_window": {}}}
         w1 = B.write_outputs(res, log=lambda *a: None, now="2026-10-01T00:00:00Z")
         gpkg = outputs[build]["gpkg"]
+        detail = outputs[build]["detail"] or gpkg              # open: two files (board D6.3); research: one file
         assert w1["generated_utc"] == "2026-10-01T00:00:00Z"
         assert not list(tmp_path.glob(".*writing*"))          # written under a temporary name, then moved into place
         layers = [l[0] for l in pyogrio.list_layers(gpkg)]
-        assert layers == ["leads_4326", "leads_utm49n", "lead_evidence", "about"]
+        if build == "open":
+            assert layers == ["leads_4326", "about"]
+            assert [l[0] for l in pyogrio.list_layers(detail)] == ["leads_utm49n", "lead_evidence", "about"]
+            assert set(w1["paths"]) == {"gpkg", "detail", "summary"}
+        else:
+            assert layers == ["leads_4326", "leads_utm49n", "lead_evidence", "about"]
         assert pyogrio.read_info(gpkg, layer="leads_4326")["crs"] == "EPSG:4326"
-        assert pyogrio.read_info(gpkg, layer="leads_utm49n")["crs"] == "EPSG:32649"
+        assert pyogrio.read_info(detail, layer="leads_utm49n")["crs"] == "EPSG:32649"
         back = pyogrio.read_dataframe(gpkg, layer="leads_4326")
         assert len(back) == len(df) and (back.caveat == caveat_for(build)).all()
         assert (back.research_only == (build == "research")).all()
-        evb = pyogrio.read_dataframe(gpkg, layer="lead_evidence")
+        utm = pyogrio.read_dataframe(detail, layer="leads_utm49n")
+        assert utm.lead_id.tolist() == back.lead_id.tolist() and (utm.caveat == caveat_for(build)).all()
+        assert list(utm.columns) == list(back.columns)          # the UTM layer keeps every column too (project rule 4)
+        evb = pyogrio.read_dataframe(detail, layer="lead_evidence")
         assert len(evb) == len(ev) + len(ev7) and (evb.caveat == caveat_for(build)).all()
         assert evb.research_only.dtype == bool and (evb.research_only == (build == "research")).all()
-        with sqlite3.connect(gpkg) as con:                      # the caveat is a column default, stored once per table
-            dflt = {r[1]: r[4] for r in con.execute('PRAGMA table_info("lead_evidence")')}
-            assert dflt["caveat"] == "'" + caveat_for(build).replace("'", "''") + "'"
-            assert {r[1]: r[4] for r in con.execute('PRAGMA table_info("leads_utm49n")')}["caveat"] is not None
-            assert con.execute("PRAGMA page_size").fetchone()[0] == B.GPKG_PAGE_SIZE
+        for f in {gpkg, detail}:
+            with sqlite3.connect(f) as con:                     # the caveat is a column default, stored once per table
+                tables = [r[0] for r in con.execute("SELECT table_name FROM gpkg_contents")]
+                for t in tables:
+                    if t.startswith("lead"):
+                        assert {r[1]: r[4] for r in con.execute(f'PRAGMA table_info("{t}")')}["caveat"] is not None, t
+                if "lead_evidence" in tables:
+                    dflt = {r[1]: r[4] for r in con.execute('PRAGMA table_info("lead_evidence")')}
+                    assert dflt["caveat"] == "'" + caveat_for(build).replace("'", "''") + "'"
+                assert con.execute("PRAGMA page_size").fetchone()[0] == B.GPKG_PAGE_SIZE
+            ab = pyogrio.read_dataframe(f, layer="about")
+            assert json.loads(ab.file_layout.iloc[0]) == B.file_layout(build) and ab.generated_utc.iloc[0] == w1["generated_utc"]
         for f in CONTRACT_35_FIELDS:
             assert f in back.columns
         about = pyogrio.read_dataframe(gpkg, layer="about")
         assert about.priority_model_id.iloc[0] == PRIORITY_MODEL_ID and about.caveat.iloc[0] == caveat_for(build)
         assert json.loads(about.lawful_explanations.iloc[0])["L1"]["no_carriage_requirement"].startswith("No carriage requirement")
         assert json.loads(about.weights.iloc[0])["max_points"] == P.MAX_POINTS
-        # a rerun with the same inputs keeps the generated time and the bytes
-        first = gpkg.read_bytes()
+        # a rerun with the same inputs keeps the generated time and the bytes of every file
+        first = {k: v.read_bytes() for k, v in w1["paths"].items()}
         w2 = B.write_outputs(res, log=lambda *a: None, now="2026-10-02T00:00:00Z")
         assert w2["generated_utc"] == w1["generated_utc"] == "2026-10-01T00:00:00Z"
-        assert gpkg.read_bytes() == first
+        assert {k: v.read_bytes() for k, v in w2["paths"].items()} == first
         # a changed input signature moves the generated time
         res2 = {**res, "inputs_signature": "sig2"}
         w3 = B.write_outputs(res2, log=lambda *a: None, now="2026-10-03T00:00:00Z")
         assert w3["generated_utc"] == "2026-10-03T00:00:00Z"
         assert pyogrio.read_dataframe(gpkg, layer="about").generated_utc.iloc[0] == "2026-10-03T00:00:00Z"
         if build == "open":   # no research-only source name may reach an open file (contract section 2)
-            blob = gpkg.read_bytes() + outputs[build]["summary"].read_bytes()
+            blob = gpkg.read_bytes() + detail.read_bytes() + outputs[build]["summary"].read_bytes()
             for word in (b"GFW", b"gfw", b"Global Fishing Watch", b"CC BY-NC"):
                 assert word not in blob, word
         summary = json.loads(outputs[build]["summary"].read_text())
         assert summary["caveat"] == caveat_for(build) and summary["calibrated"] is False
+        assert summary["file_layout"] == B.file_layout(build)
+        assert {B._rel(f): f.stat().st_size for f in {gpkg, detail}} == {k: v for k, v in summary["output_bytes"].items() if k.endswith(".gpkg")}
         if build == "research":
             import pyarrow.parquet as pq
 
@@ -574,3 +603,130 @@ def test_script_draws_figure_only_for_both_builds(monkeypatch):
         monkeypatch.setattr(sys, "argv", ["33_leads.py", *argv])
         mod.main()
         assert written == want_written and drawn == want_drawn, argv
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# round 3 second dispatch (R3-T8): gate waterfall, gate invariant on output rows, queue order, codes in every output
+
+def _contacts_with_ambiguous() -> pd.DataFrame:
+    c = contacts()
+    c = pd.concat([c, c[c.det_id == "ok"].assign(det_id="ambiguous")], ignore_index=True)
+    c["match_ambiguous"] = c.det_id == "ambiguous"
+    return c
+
+
+def _weather_with_ambiguous() -> pd.DataFrame:
+    w = weather()
+    return pd.concat([w, w[w.det_id == "ok"].assign(det_id="ambiguous")], ignore_index=True)
+
+
+def test_l1_gate_waterfall_counts():
+    """remaining_after_condition applies the conditions one after another; a reviewer can rebuild it from the contacts
+    file with plain filters, and its last entry is pass_all."""
+    c = E.join_weather(_contacts_with_ambiguous(), _weather_with_ambiguous())
+    counts = R.l1_gate_counts(R.l1_gate(c))
+    rem = counts["remaining_after_condition"]
+    assert list(rem) == R.L1_CONDITIONS[1:]
+    vals = [counts["unmatched"], *rem.values()]
+    assert all(a >= b for a, b in zip(vals, vals[1:])) and rem["weather"] == counts["pass_all"] == 3
+    um = c.ais_status == "unmatched"
+    assert counts["unmatched"] == int(um.sum()) and rem["not_ambiguous"] == int((um & ~c.match_ambiguous).sum())
+    # without the ambiguity flag (the September run) the waterfall skips that step
+    old = R.l1_gate_counts(R.l1_gate(E.join_weather(contacts(), weather())))
+    assert "not_ambiguous" not in old["remaining_after_condition"] and list(old["remaining_after_condition"])[-1] == "weather"
+
+
+def test_build_l1_never_makes_a_lead_of_matched_no_coverage_fixed_or_ambiguous():
+    leads, ev, counts = B.build_l1(_contacts_with_ambiguous(), "open", _weather_with_ambiguous(), None, None, None, E.passes_frame(plan()))
+    ids = set(leads.det_id)
+    assert ids == {"ok", "channel_unknown", "weather_unknown"}
+    assert not ids & {"matched", "no_coverage", "fixed_class", "low_class", "ambiguous"}
+    assert counts["leads_by_ais_status"] == {"unmatched": 3} and counts["leads_ambiguous"] == 0
+    assert set(counts["leads_by_confidence"]) <= set(R.L1_CLASSES) and sum(counts["leads_by_pass"].values()) == 3
+    # the invariant check fires if a forbidden row ever reaches the output (here: a gate that lets everything through)
+    import unittest.mock as um
+
+    real_gate = R.l1_gate
+    allow_all = lambda df: real_gate(df).assign(l1=True)   # noqa: E731
+    with um.patch.object(B.R, "l1_gate", allow_all), pytest.raises(AssertionError, match="break the gate"):
+        B.build_l1(_contacts_with_ambiguous(), "open", _weather_with_ambiguous(), None, None, None, E.passes_frame(plan()))
+
+
+def test_queue_order_puts_l1_before_l7():
+    """Owner P0: with model v1 every L1 lead with known calm weather sorts before every L7 lead; the summary says so."""
+    l1, _, _ = B.build_l1(contacts(), "open", weather(), None, None, None, E.passes_frame(plan()))
+    t = pd.Timestamp("2026-09-10T18:00:00Z")
+    many = pd.DataFrame([{"light_id": f"L{i:03d}", "lon": 109.12 + i * 0.001, "lat": 7.12, "time_utc": t.isoformat(),
+                          "night": f"2026-09-{1 + i % 20:02d}", "quality": "clear", "s1_passes_90d": 0, "satlas_infra_m": np.nan,
+                          "radiance_nw": float(i)} for i in range(60)])
+    l7, _, _ = B.build_l7(many, None, "open", None, E.passes_frame(None), (None, None, None), (None, None, None))
+    assert l7.priority.max() == P.L7_CEILING
+    known = l1[l1.weather_known]
+    weakest = known.iloc[[0]].assign(lead_id="L1-weakest", priority=P.L1_FLOOR_WEATHER_KNOWN)   # ties sort L1 first
+    df = B.finalize([pd.concat([known, weakest], ignore_index=True), l7], "open")
+    q = B.queue_order(df)
+    assert q["every_l1_before_every_l7"] and q["l1_below_l7_max"] == 0 and q["l1_at_l7_max"] == 1
+    top = B.top_of_queue(df)
+    assert top["top_100_by_type_band"] == {f"L1_{b}": int(n) for b, n in df[df.lead_type == "L1"].priority_band.value_counts().items()} | {"L7_low": 1}
+    # an L1 lead with weather unknown can score under the ceiling; the summary reports it rather than hiding it
+    low = known.iloc[[0]].assign(lead_id="L1-low", priority=5)
+    q2 = B.queue_order(B.finalize([pd.concat([known, low], ignore_index=True), l7], "open"))
+    assert not q2["every_l1_before_every_l7"] and q2["l1_below_l7_max"] == 1
+
+
+TEXT_TS = REPO / "app" / "frontend" / "src" / "app" / "text.ts"
+
+
+def _ts_keys(name: str) -> set[str]:
+    src = TEXT_TS.read_text(encoding="utf-8")
+    m = re.search(rf"export const {name}: Record<string, string> = \{{(.*?)\n\}};", src, re.S)
+    assert m, name
+    return {a or b for a, b in re.findall(r'^\s+(?:"([^"]+)"|([a-z0-9_]+)):', m.group(1), re.M)}
+
+
+def test_rows_carry_codes_with_display_strings():
+    """Board D5.1: factor, lawful_explanations and change_indicators carry codes, not sentences, in every output row of
+    both builds, and every code has a display string in the frontend's text.ts (read here, never edited)."""
+    factor_codes, lawful_codes, change_codes = set(), set(), set()
+    for build in ("open", "research"):
+        c = contacts(2)
+        if build == "research":
+            c["ais_source"] = "gfw"
+        l1, _, _ = B.build_l1(c, build, weather(), None, None, None, E.passes_frame(plan()))
+        l7, _, _ = B.build_l7(synthetic_lights(), None, build, None, E.passes_frame(plan()), (None, None, None), (None, None, None))
+        df = B.finalize([l1, l7], build)
+        for _, r in df.iterrows():
+            factor_codes |= {f["factor"] for f in json.loads(r.factors)}
+            lawful = json.loads(r.lawful_explanations)
+            change = json.loads(r.change_indicators)
+            assert lawful == list(R.LAWFUL_EXPLANATIONS[r.lead_type]) and change == list(R.CHANGE_INDICATORS[r.lead_type])
+            lawful_codes |= set(lawful)
+            change_codes |= set(change)
+    assert factor_codes == set(P.FACTORS) | {"weather unknown"}
+    for code in lawful_codes | change_codes | set(P.FACTORS):
+        assert re.fullmatch(r"[a-z0-9_]+", code), code          # a code, not a sentence
+    assert not factor_codes - _ts_keys("FACTOR_LABEL"), factor_codes - _ts_keys("FACTOR_LABEL")
+    assert not lawful_codes - _ts_keys("LAWFUL_TEXT"), lawful_codes - _ts_keys("LAWFUL_TEXT")
+    assert not change_codes - _ts_keys("CHANGE_TEXT"), change_codes - _ts_keys("CHANGE_TEXT")
+
+
+def test_research_signature_ignores_live_passes():
+    """The research build does not read live passes, so a processed live pass must not move its inputs_signature (and
+    with it generated_utc and the bytes of every research file)."""
+    assert "live_contacts" in B.input_paths("open") and "live_weather" in B.input_paths("open")
+    assert "live_contacts" not in B.input_paths("research") and "live_weather" not in B.input_paths("research")
+
+
+def test_signature_moves_with_model(monkeypatch):
+    """generated_utc follows inputs_signature, so a rule or weight change must move the signature (provenance); the same
+    code and inputs give the same signature (byte-identical reruns)."""
+    paths = {"x": [B.DATA_DIR / "no_such_input.parquet"]}
+    rows, sig = B.inputs_manifest(paths)
+    assert B.inputs_manifest(paths)[1] == sig and len(sig) == 16
+    monkeypatch.setattr(P, "L1_DENSITY_SATURATION", P.L1_DENSITY_SATURATION + 1)
+    assert B.inputs_manifest(paths)[1] != sig
+    monkeypatch.undo()
+    monkeypatch.setattr(B, "PRIORITY_MODEL_ID", "lead_priority_test")
+    assert B.inputs_manifest(paths)[1] != sig
+    monkeypatch.undo()
+    assert B.inputs_manifest(paths, {"since": "2026-10-01"})[1] != sig

@@ -1,9 +1,9 @@
 {
  "product": "SCS Vessel Watch leads queue",
  "build": "research",
- "generated_utc": "2026-10-10T13:28:27Z",
- "inputs_signature": "ff992a0480ff51be",
- "priority_model_id": "lead_priority_v0_20261009",
+ "generated_utc": "2026-10-10T17:33:23Z",
+ "inputs_signature": "c043a4e27c23ed54",
+ "priority_model_id": "lead_priority_v1_20261010",
  "calibrated": false,
  "counts": {
   "leads": 14261,
@@ -59,6 +59,14 @@
      "not_near_fixed": 0,
      "weather": 19094
     },
+    "remaining_after_condition": {
+     "vessel_class": 68470,
+     "cnn": 21397,
+     "both_channels": 15812,
+     "not_clutter": 15812,
+     "not_near_fixed": 15812,
+     "weather": 12124
+    },
     "pass_all": 12124,
     "pass_with_weather_unknown": 127,
     "pass_with_weather_known": 11997,
@@ -71,6 +79,47 @@
    },
    "leads": 12124,
    "weather_unknown": 127,
+   "leads_by_pass": {
+    "S1C_20260920T1048": 1639,
+    "S1C_20260920T2300": 99,
+    "S1C_20260922T2242": 52,
+    "S1C_20260923T1110": 20,
+    "S1C_20260926T0958": 10,
+    "S1C_20260927T2250": 53,
+    "S1C_20260928T1119": 10,
+    "S1C_20260928T2151": 73,
+    "S1C_20260929T2235": 255,
+    "S1C_20261001T1005": 59,
+    "S1D_20260920T1134": 423,
+    "S1D_20260920T2213": 75,
+    "S1D_20260921T1040": 1685,
+    "S1D_20260921T2250": 468,
+    "S1D_20260922T1115": 733,
+    "S1D_20260922T2153": 86,
+    "S1D_20260923T1024": 251,
+    "S1D_20260923T2235": 500,
+    "S1D_20260924T1102": 242,
+    "S1D_20260926T1048": 1551,
+    "S1D_20260926T2300": 188,
+    "S1D_20260927T1123": 368,
+    "S1D_20260927T2205": 36,
+    "S1D_20260928T1032": 643,
+    "S1D_20260928T2242": 357,
+    "S1D_20260929T1107": 376,
+    "S1D_20260930T1016": 358,
+    "S1D_20261001T1054": 1403,
+    "S1D_20261001T2308": 111
+   },
+   "leads_by_ais_status": {
+    "unmatched": 12124
+   },
+   "leads_by_confidence": {
+    "high": 12124
+   },
+   "leads_by_channels": {
+    "VV and VH (class high)": 12124
+   },
+   "leads_ambiguous": 0,
    "with_light_2km_3h": 0,
    "with_ais_event_2km_3h": 485,
    "with_persistence_72h": 1584,
@@ -97,7 +146,7 @@
    "light_evidence_rows": 25427,
    "lights_at_sites": 221,
    "cells_with_any_ais_reach": 0,
-   "max_priority": 20
+   "max_priority": 10
   },
   "with_next_look": 12161,
   "factor_distributions": {
@@ -155,20 +204,20 @@
    "L7": {
     "n": 2137,
     "priority": {
-     "min": 2.0,
-     "q25": 8.0,
-     "median": 14.0,
-     "q75": 19.0,
-     "max": 20.0,
-     "mean": 12.84
-    },
-    "evidence_quality": {
-     "min": 2.0,
-     "q25": 5.0,
+     "min": 1.0,
+     "q25": 4.0,
      "median": 7.0,
      "q75": 9.0,
      "max": 10.0,
-     "mean": 7.04
+     "mean": 6.5
+    },
+    "evidence_quality": {
+     "min": 1.0,
+     "q25": 3.0,
+     "median": 4.0,
+     "q75": 5.0,
+     "max": 5.0,
+     "mean": 3.54
     },
     "corroboration": {
      "min": 0.0,
@@ -188,11 +237,11 @@
     },
     "persistence": {
      "min": 0.0,
-     "q25": 2.0,
-     "median": 7.0,
-     "q75": 10.0,
-     "max": 10.0,
-     "mean": 5.81
+     "q25": 1.0,
+     "median": 3.0,
+     "q75": 5.0,
+     "max": 5.0,
+     "mean": 2.96
     },
     "area_weight": {
      "min": 0.0,
@@ -240,11 +289,22 @@
    },
    "top_1000": {
     "L1": 1000
+   },
+   "top_100_by_type_band": {
+    "L1_high": 7,
+    "L1_medium": 93
    }
+  },
+  "queue_order": {
+   "l1_min_priority": 11,
+   "l7_max_priority": 10,
+   "l1_below_l7_max": 0,
+   "l1_at_l7_max": 0,
+   "every_l1_before_every_l7": true
   }
  },
  "weights": {
-  "model_id": "lead_priority_v0_20261009",
+  "model_id": "lead_priority_v1_20261010",
   "calibrated": false,
   "max_points": {
    "evidence_quality": 30,
@@ -281,12 +341,13 @@
    "area_weight_default": 0
   },
   "L7": {
-   "evidence_quality": "10 x min(1, ln(1 + n_lights) / ln(1 + 30)) (a third of the L1 scale)",
+   "evidence_quality": "5 x min(1, ln(1 + n_lights) / ln(1 + 30)) (a sixth of the L1 scale)",
    "corroboration": "0 by construction (radar did not look; lights not matched to AIS)",
    "ais_reach": "0 (an L7 lead makes no AIS claim; ais_reach_share is context)",
-   "persistence": "10 x min(1, (n_nights - 1) / 6)",
+   "persistence": "5 x min(1, (n_nights - 1) / 6)",
    "area_weight_default": 0,
-   "ceiling_without_area_weight": 20
+   "ceiling_without_area_weight": 10,
+   "l1_floor_weather_known": 10
   }
  },
  "rules": {
@@ -334,12 +395,6 @@
    "path": "data/research/gfw_events_loitering_part3of3.parquet",
    "size": 12835060,
    "mtime_utc": "2026-10-09T06:43:20Z"
-  },
-  {
-   "role": "live_contacts",
-   "path": "data/live/live_contacts.gpkg",
-   "size": 6529024,
-   "mtime_utc": "2026-10-10T12:58:40Z"
   },
   {
    "role": "ocean_static",
@@ -410,6 +465,19 @@
   "gpkg": "data/research/leads_research.gpkg",
   "parquet": "data/research/leads_research.parquet"
  },
+ "output_bytes": {
+  "data/research/leads_research.gpkg": 85196800,
+  "data/research/leads_research.parquet": 1739849
+ },
+ "file_layout": {
+  "data/research/leads_research.gpkg": [
+   "leads_4326",
+   "leads_utm49n",
+   "lead_evidence",
+   "about"
+  ]
+ },
+ "size_rule": "Every committed leads file stays under 20 MB (board D6.3). The open build always writes two files: data/leads_open.gpkg with leads_4326 (every contract 3.5 column, read by the app backend) and about, and data/leads_open_detail.gpkg with leads_utm49n (EPSG:32649), lead_evidence and about, so both CRS are kept (project rule 4). The research GeoPackage is local only and never committed (board D6.5); its committed copy is the parquet.",
  "caveat": "'Dark' means only that no AIS position was matched to this radar contact. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and both satellite and terrestrial AIS have blind spots: satellite AIS misses messages in busy coastal waters, and shore receivers cover only the waters within their radio range. Treat every unmatched contact as a lead for review, not as evidence of wrongdoing. An AIS gap is not proof of intent. Research build, noncommercial, CC BY-NC 4.0. Contains Global Fishing Watch data. Powered by Global Fishing Watch.",
  "research_only": true,
  "use": "research build only, noncommercial (Global Fishing Watch data, CC BY-NC 4.0)",

@@ -28,7 +28,9 @@ except ImportError:
 RESEARCH_LINE = ("Research build, noncommercial, CC BY-NC 4.0. Contains Global Fishing Watch data. "
                  "Powered by Global Fishing Watch.")
 
-PRIORITY_MODEL_ID = "lead_priority_v0_20261009"
+# v1 (2026-10-10): the L7 ceiling went from 20 to 10 so that every L1 lead with known weather ranks above every L7 lead
+# (owner priority P0, checked on the first open L1 leads); L1 weights are those of v0 (lead_priority_v0_20261009).
+PRIORITY_MODEL_ID = "lead_priority_v1_20261010"
 BUILDS = ("open", "research")
 
 

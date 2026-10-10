@@ -1,30 +1,35 @@
 {
  "product": "SCS Vessel Watch leads queue",
  "build": "open",
- "generated_utc": "2026-10-10T13:28:16Z",
- "inputs_signature": "c5b10d4cbd61c988",
- "priority_model_id": "lead_priority_v0_20261009",
+ "generated_utc": "2026-10-10T17:33:11Z",
+ "inputs_signature": "e135d19ab9595147",
+ "priority_model_id": "lead_priority_v1_20261010",
  "calibrated": false,
  "counts": {
-  "leads": 2137,
+  "leads": 2531,
   "by_type": {
+   "L1": 394,
    "L7": 2137
   },
   "by_band": {
-   "low": 2137
+   "low": 2260,
+   "medium": 271
   },
   "by_type_band": {
+   "L1_low": 123,
+   "L1_medium": 271,
    "L7_low": 2137
   },
   "by_region_box": {
    "Central sea": 1207,
    "Gulf of Tonkin": 17,
-   "North shelf": 293,
+   "North shelf": 687,
    "South Vietnam shelf": 250,
    "Southern sea": 95,
    "other": 275
   },
   "by_type_region_box": {
+   "L1|North shelf": 394,
    "L7|Central sea": 1207,
    "L7|Gulf of Tonkin": 17,
    "L7|North shelf": 293,
@@ -32,30 +37,59 @@
    "L7|Southern sea": 95,
    "L7|other": 275
   },
-  "evidence_rows": 27676,
+  "evidence_rows": 29646,
   "L1": {
-   "contacts": 3861,
+   "contacts": 8573,
    "gate": {
-    "unmatched": 0,
+    "unmatched": 1947,
     "fail_by_condition_among_unmatched": {
-     "not_ambiguous": 0,
-     "vessel_class": 0,
-     "cnn": 0,
-     "both_channels": 0,
-     "not_clutter": 0,
-     "not_near_fixed": 0,
+     "not_ambiguous": 62,
+     "vessel_class": 533,
+     "cnn": 1247,
+     "both_channels": 1207,
+     "not_clutter": 277,
+     "not_near_fixed": 376,
      "weather": 0
     },
-    "pass_all": 0,
+    "remaining_after_condition": {
+     "not_ambiguous": 1885,
+     "vessel_class": 1364,
+     "cnn": 553,
+     "both_channels": 394,
+     "not_clutter": 394,
+     "not_near_fixed": 394,
+     "weather": 394
+    },
+    "pass_all": 394,
     "pass_with_weather_unknown": 0,
-    "pass_with_weather_known": 0,
+    "pass_with_weather_known": 394,
     "pass_weather_missing_by_part": {
      "wind": 0,
      "deep convection": 0,
      "wind and deep convection": 0
     },
-    "pass_strict_weather_known": 0
-   }
+    "pass_strict_weather_known": 394
+   },
+   "leads": 394,
+   "weather_unknown": 0,
+   "leads_by_pass": {
+    "live_S1D_20261010T1032": 394
+   },
+   "leads_by_ais_status": {
+    "unmatched": 394
+   },
+   "leads_by_confidence": {
+    "high": 394
+   },
+   "leads_by_channels": {
+    "VV+VH": 394
+   },
+   "leads_ambiguous": 0,
+   "with_light_2km_3h": 0,
+   "with_ais_event_2km_3h": 0,
+   "with_persistence_72h": 0,
+   "with_next_look": 394,
+   "under_25_m": 1
   },
   "L7": {
    "lights": 164333,
@@ -77,27 +111,78 @@
    "light_evidence_rows": 25427,
    "lights_at_sites": 221,
    "cells_with_any_ais_reach": 0,
-   "max_priority": 20
+   "max_priority": 10
   },
-  "with_next_look": 44,
+  "with_next_look": 438,
   "factor_distributions": {
+   "L1": {
+    "n": 394,
+    "priority": {
+     "min": 11.0,
+     "q25": 31.0,
+     "median": 38.0,
+     "q75": 42.0,
+     "max": 50.0,
+     "mean": 36.23
+    },
+    "evidence_quality": {
+     "min": 11.0,
+     "q25": 23.0,
+     "median": 28.0,
+     "q75": 29.0,
+     "max": 30.0,
+     "mean": 25.39
+    },
+    "corroboration": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 0.0,
+     "mean": 0.0
+    },
+    "ais_reach": {
+     "min": 0.0,
+     "q25": 8.0,
+     "median": 11.0,
+     "q75": 14.0,
+     "max": 20.0,
+     "mean": 10.84
+    },
+    "persistence": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 0.0,
+     "mean": 0.0
+    },
+    "area_weight": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 0.0,
+     "mean": 0.0
+    }
+   },
    "L7": {
     "n": 2137,
     "priority": {
-     "min": 2.0,
-     "q25": 8.0,
-     "median": 14.0,
-     "q75": 19.0,
-     "max": 20.0,
-     "mean": 12.84
-    },
-    "evidence_quality": {
-     "min": 2.0,
-     "q25": 5.0,
+     "min": 1.0,
+     "q25": 4.0,
      "median": 7.0,
      "q75": 9.0,
      "max": 10.0,
-     "mean": 7.04
+     "mean": 6.5
+    },
+    "evidence_quality": {
+     "min": 1.0,
+     "q25": 3.0,
+     "median": 4.0,
+     "q75": 5.0,
+     "max": 5.0,
+     "mean": 3.54
     },
     "corroboration": {
      "min": 0.0,
@@ -117,11 +202,11 @@
     },
     "persistence": {
      "min": 0.0,
-     "q25": 2.0,
-     "median": 7.0,
-     "q75": 10.0,
-     "max": 10.0,
-     "mean": 5.81
+     "q25": 1.0,
+     "median": 3.0,
+     "q75": 5.0,
+     "max": 5.0,
+     "mean": 2.96
     },
     "area_weight": {
      "min": 0.0,
@@ -135,19 +220,51 @@
   },
   "corroboration_window": {
    "window_h": 3.0,
-   "note": "no contacts or no lights"
+   "radar_passes": 1,
+   "radar_hours_utc": [
+    10
+   ],
+   "viirs_hours_utc": [
+    16,
+    17,
+    18,
+    19
+   ],
+   "passes_within_3h_by_time_of_day": 0,
+   "min_gap_by_time_of_day_h": 6.08,
+   "passes_within_3h_absolute": 0,
+   "min_gap_absolute_h": 206.8,
+   "radar_dates": [
+    "2026-10-10",
+    "2026-10-10"
+   ],
+   "viirs_dates": [
+    "2026-09-05",
+    "2026-10-01"
+   ]
   },
   "top_of_queue_by_type": {
    "top_100": {
-    "L7": 100
+    "L1": 100
    },
    "top_1000": {
-    "L7": 1000
+    "L1": 394,
+    "L7": 606
+   },
+   "top_100_by_type_band": {
+    "L1_medium": 100
    }
+  },
+  "queue_order": {
+   "l1_min_priority": 11,
+   "l7_max_priority": 10,
+   "l1_below_l7_max": 0,
+   "l1_at_l7_max": 0,
+   "every_l1_before_every_l7": true
   }
  },
  "weights": {
-  "model_id": "lead_priority_v0_20261009",
+  "model_id": "lead_priority_v1_20261010",
   "calibrated": false,
   "max_points": {
    "evidence_quality": 30,
@@ -184,12 +301,13 @@
    "area_weight_default": 0
   },
   "L7": {
-   "evidence_quality": "10 x min(1, ln(1 + n_lights) / ln(1 + 30)) (a third of the L1 scale)",
+   "evidence_quality": "5 x min(1, ln(1 + n_lights) / ln(1 + 30)) (a sixth of the L1 scale)",
    "corroboration": "0 by construction (radar did not look; lights not matched to AIS)",
    "ais_reach": "0 (an L7 lead makes no AIS claim; ais_reach_share is context)",
-   "persistence": "10 x min(1, (n_nights - 1) / 6)",
+   "persistence": "5 x min(1, (n_nights - 1) / 6)",
    "area_weight_default": 0,
-   "ceiling_without_area_weight": 20
+   "ceiling_without_area_weight": 10,
+   "l1_floor_weather_known": 10
   }
  },
  "rules": {
@@ -219,8 +337,8 @@
   {
    "role": "live_contacts",
    "path": "data/live/live_contacts.gpkg",
-   "size": 6529024,
-   "mtime_utc": "2026-10-10T12:58:40Z"
+   "size": 14790656,
+   "mtime_utc": "2026-10-10T15:23:41Z"
   },
   {
    "role": "live_weather",
@@ -233,6 +351,12 @@
    "path": "data/live/live_S1D_20261008T2258_weather.parquet",
    "size": 42544,
    "mtime_utc": "2026-10-10T03:18:47Z"
+  },
+  {
+   "role": "live_weather",
+   "path": "data/live/live_S1D_20261010T1032_weather.parquet",
+   "size": 43723,
+   "mtime_utc": "2026-10-10T14:03:35Z"
   },
   {
    "role": "ocean_static",
@@ -290,13 +414,30 @@
   }
  ],
  "input_notes": {
-  "contacts": "3861 live contacts from live_contacts.gpkg",
-  "weather": "regional 162386; live_S1C_20261010T1119_weather 780 (wind known 780, convection known 780); live_S1D_20261008T2258_weather 3081 (wind known 3081, convection known 3081)",
+  "contacts": "8573 live contacts from live_contacts.gpkg",
+  "weather": "regional 162386; live_S1C_20261010T1119_weather 780 (wind known 780, convection known 780); live_S1D_20261008T2258_weather 3081 (wind known 3081, convection known 3081); live_S1D_20261010T1032_weather 4712 (wind known 4712, convection known 4712)",
   "viirs": "164333 lit-vessel candidates of 191622 lights from viirs_lights_all.gpkg, 27 nights 2026-09-05 to 2026-10-01"
  },
  "outputs": {
-  "gpkg": "data/leads_open.gpkg"
+  "gpkg": "data/leads_open.gpkg",
+  "detail": "data/leads_open_detail.gpkg"
  },
+ "output_bytes": {
+  "data/leads_open.gpkg": 7274496,
+  "data/leads_open_detail.gpkg": 8962048
+ },
+ "file_layout": {
+  "data/leads_open.gpkg": [
+   "leads_4326",
+   "about"
+  ],
+  "data/leads_open_detail.gpkg": [
+   "leads_utm49n",
+   "lead_evidence",
+   "about"
+  ]
+ },
+ "size_rule": "Every committed leads file stays under 20 MB (board D6.3). The open build always writes two files: data/leads_open.gpkg with leads_4326 (every contract 3.5 column, read by the app backend) and about, and data/leads_open_detail.gpkg with leads_utm49n (EPSG:32649), lead_evidence and about, so both CRS are kept (project rule 4). The research GeoPackage is local only and never committed (board D6.5); its committed copy is the parquet.",
  "caveat": "'Dark' means only that no AIS position was matched to this radar contact. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and both satellite and terrestrial AIS have blind spots: satellite AIS misses messages in busy coastal waters, and shore receivers cover only the waters within their radio range. Treat every unmatched contact as a lead for review, not as evidence of wrongdoing. An AIS gap is not proof of intent.",
  "research_only": false
 }

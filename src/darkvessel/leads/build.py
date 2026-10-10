@@ -1,9 +1,15 @@
-"""Assembly and outputs of the leads queue: inputs per build, L1 and L7 leads with evidence and priority, GeoPackage
-(leads_4326, leads_utm49n, lead_evidence, about), research parquet twin, summary JSON and figure.
+"""Assembly and outputs of the leads queue: inputs per build, L1 and L7 leads with evidence and priority, GeoPackages,
+research parquet twin, summary JSON and figure.
+
+File layout (board D6.3: every committed leads file stays under 20 MB). Open build: data/leads_open.gpkg holds
+leads_4326 (every contract 3.5 column; the app backend reads it) and about; data/leads_open_detail.gpkg holds
+leads_utm49n (EPSG:32649), lead_evidence and the same about row. Research build (local, never committed): one file,
+data/research/leads_research.gpkg, with all four layers; the committed research copy is the parquet twin.
 
 Reruns with unchanged inputs write byte-identical tables: rows are sorted, JSON keys are fixed, and the GeoPackage
 timestamp (gpkg_contents.last_change, GDAL option OGR_CURRENT_DATE) is the about layer's generated_utc, which changes
-only when an input's modification time or size changes (the previous about layer is read first).
+only when an input's modification time or size, a rule or weight constant, the model id or a run option changes
+(inputs_signature; the previous about layer is read first).
 
 Every file is written to a temporary name in the same directory and moved into place with os.replace, so a reader
 (the app backend) never sees a missing or half-written file. In the GeoPackages the constant columns `caveat` (every
@@ -40,10 +46,16 @@ LIVE_DIR = DATA_DIR / "live"
 FIG_PATH = DOCS_DIR / "figures" / "leads_priority.png"
 
 OUTPUTS = {
-    "open": {"gpkg": DATA_DIR / "leads_open.gpkg", "summary": DATA_DIR / "leads_open_summary.json", "parquet": None},
-    "research": {"gpkg": RESEARCH_DIR / "leads_research.gpkg", "summary": RESEARCH_DIR / "leads_research_summary.json",
+    "open": {"gpkg": DATA_DIR / "leads_open.gpkg", "detail": DATA_DIR / "leads_open_detail.gpkg",
+             "summary": DATA_DIR / "leads_open_summary.json", "parquet": None},
+    "research": {"gpkg": RESEARCH_DIR / "leads_research.gpkg", "detail": None, "summary": RESEARCH_DIR / "leads_research_summary.json",
                  "parquet": RESEARCH_DIR / "leads_research.parquet"},
 }
+COMMIT_LIMIT_MB = 20.0   # project rule for committed files (board D6.3 for the leads files)
+SIZE_RULE = ("Every committed leads file stays under 20 MB (board D6.3). The open build always writes two files: "
+             "data/leads_open.gpkg with leads_4326 (every contract 3.5 column, read by the app backend) and about, and "
+             "data/leads_open_detail.gpkg with leads_utm49n (EPSG:32649), lead_evidence and about, so both CRS are kept "
+             "(project rule 4). The research GeoPackage is local only and never committed (board D6.5); its committed copy is the parquet.")
 
 JSON_COLUMNS = ["factors", "evidence", "lawful_explanations", "change_indicators", "history", "prov", "nights"]
 PTS = [P.POINTS_COLUMNS[f] for f in P.FACTORS]
@@ -134,7 +146,6 @@ def input_paths(build: str) -> dict[str, list[Path]]:
     """Every file a build may read, by role (lists because some products come in parts). Missing files are kept in the
     dict so the about layer can say they were absent."""
     paths = {
-        "live_contacts": [LIVE_DIR / "live_contacts.gpkg"],
         "viirs_lights_all": [DATA_DIR / "viirs_lights_all.gpkg"],
         "viirs_lights": [DATA_DIR / "viirs_lights.gpkg"],
         "viirs_summary": [DATA_DIR / "viirs_summary.json"],
@@ -146,8 +157,9 @@ def input_paths(build: str) -> dict[str, list[Path]]:
         "weather": [DATA_DIR / "weather_context.parquet"],
         "ocean_static": [DATA_DIR / "ocean_static_cells.parquet"],
     }
-    if build == "open":  # GFS wind and Himawari cloud tops per live contact (darkvessel.live.weather sidecars)
-        paths["live_weather"] = sorted(LIVE_DIR.glob("live_*_weather.parquet"))
+    if build == "open":  # live contacts, and GFS wind and Himawari cloud tops per live contact (darkvessel.live.weather sidecars)
+        paths["live_contacts"] = [LIVE_DIR / "live_contacts.gpkg"]   # only the open build reads it, so only its signature
+        paths["live_weather"] = sorted(LIVE_DIR.glob("live_*_weather.parquet"))   # moves when a live pass is processed
     if build == "research":
         paths["regional_identity"] = [RESEARCH_DIR / "regional_identity.parquet"]
         paths["gfw_events_loitering"] = sorted(RESEARCH_DIR.glob("gfw_events_loitering*.parquet"))
@@ -158,7 +170,17 @@ def input_paths(build: str) -> dict[str, list[Path]]:
     return paths
 
 
-def inputs_manifest(paths: dict[str, list[Path]]) -> tuple[list[dict], str]:
+def model_fingerprint() -> dict:
+    """The rule and weight constants that shape every row (every upper-case constant of rules.py and priority.py, the
+    model id, the caveat texts). Part of inputs_signature, so a code change that changes the rows also moves
+    generated_utc; a rerun with unchanged code and inputs keeps it."""
+    consts = {m.__name__.rsplit(".", 1)[-1]: {k: v for k, v in vars(m).items() if k.isupper()} for m in (R, P)}
+    return {"priority_model_id": PRIORITY_MODEL_ID, "caveats": {b: caveat_for(b) for b in BUILDS}, "constants": consts}
+
+
+def inputs_manifest(paths: dict[str, list[Path]], run: dict | None = None) -> tuple[list[dict], str]:
+    """Input files (role, path, size, mtime) and a 16-hex signature over them, the model fingerprint and the run
+    options (`run`: since, until, area weights)."""
     rows = []
     for role, lst in sorted(paths.items()):
         for p in lst:
@@ -169,7 +191,8 @@ def inputs_manifest(paths: dict[str, list[Path]]) -> tuple[list[dict], str]:
             else:
                 rows.append({"role": role, "path": p.relative_to(DATA_DIR.parent).as_posix() if p.is_absolute() else str(p),
                              "size": None, "mtime_utc": None, "missing": True})
-    sig = hashlib.sha1(json.dumps(rows, sort_keys=True).encode()).hexdigest()[:16]
+    blob = {"inputs": rows, "model": model_fingerprint(), "run": run or {}}
+    sig = hashlib.sha1(json.dumps(blob, sort_keys=True, default=str).encode()).hexdigest()[:16]
     return rows, sig
 
 
@@ -391,8 +414,19 @@ def build_l1(contacts: pd.DataFrame, build: str, weather, static, lights, events
     if build == "research":
         for col in RESEARCH_COLUMNS:
             out[col] = cand[col].to_numpy() if col in cand.columns else None
+    # The gate's promise, checked again on the output rows: no matched, no_coverage, fixed, low or ambiguous contact is a lead.
+    amb = (cand["match_ambiguous"].astype(object).map(lambda v: R._bool_or_none(v) is True).to_numpy(bool)
+           if "match_ambiguous" in cand.columns else np.zeros(len(cand), bool))
+    bad = (out.ais_status.to_numpy() != "unmatched") | ~out.confidence.isin(R.L1_CLASSES).to_numpy() | amb
+    if bad.any():
+        raise AssertionError(f"{int(bad.sum())} L1 rows break the gate (status, class or ambiguity): {out.lead_id[bad].head(5).tolist()}")
     ev_rows = [{"lead_id": lid, **e} for lid, lst in zip(out.lead_id, ev_lists) for e in lst]
     counts.update({"leads": int(len(out)), "weather_unknown": int((~out.weather_known).sum()),
+                   "leads_by_pass": {k: int(v) for k, v in out.pass_id.value_counts().sort_index().items()},
+                   "leads_by_ais_status": {k: int(v) for k, v in out.ais_status.value_counts().sort_index().items()},
+                   "leads_by_confidence": {k: int(v) for k, v in out.confidence.value_counts().sort_index().items()},
+                   "leads_by_channels": {k: int(v) for k, v in out.channels.value_counts().sort_index().items()},
+                   "leads_ambiguous": int(amb.sum()),
                    "with_light_2km_3h": int((out.n_lights_2km_3h > 0).sum()), "with_ais_event_2km_3h": int((out.n_ais_events_2km_3h > 0).sum()),
                    "with_persistence_72h": int((out.n_persist_72h > 0).sum()), "with_next_look": int(out.next_look_utc.notna().sum()),
                    "under_25_m": int((out.length_est_m < 25).sum())})
@@ -592,11 +626,31 @@ def corroboration_feasibility(contacts: pd.DataFrame | None, lights: pd.DataFram
 
 
 def top_of_queue(leads: pd.DataFrame, sizes=(100, 1000)) -> dict:
-    """Lead types among the first n leads of the queue's default sort (priority, high first; ties by lead_id)."""
+    """Lead types among the first n leads of the queue's default sort (priority, high first; ties by lead_id), and the
+    first 100 by type and band."""
     if len(leads) == 0:
         return {}
     q = leads.assign(_p=-leads.priority.astype(int)).sort_values(["_p", "lead_id"])
-    return {f"top_{n}": {k: int(v) for k, v in q.head(n).lead_type.value_counts().sort_index().items()} for n in sizes}
+    out = {f"top_{n}": {k: int(v) for k, v in q.head(n).lead_type.value_counts().sort_index().items()} for n in sizes}
+    h = q.head(100)
+    out["top_100_by_type_band"] = {f"{t}_{b}": int(n) for (t, b), n in h.groupby(["lead_type", "priority_band"]).size().items()}
+    return out
+
+
+def queue_order(leads: pd.DataFrame) -> dict:
+    """Owner priority P0, vessel leads first: the lowest L1 and the highest L7 priority, how many L1 leads score at or
+    below the highest L7 lead (ties sort L1 first by lead_id) and whether the queue's default sort puts every L1 lead
+    before every L7 lead."""
+    l1 = leads.priority[leads.lead_type == "L1"].astype(int)
+    l7 = leads.priority[leads.lead_type == "L7"].astype(int)
+    if len(l1) == 0 or len(l7) == 0:
+        return {"l1_min_priority": int(l1.min()) if len(l1) else None, "l7_max_priority": int(l7.max()) if len(l7) else None,
+                "l1_below_l7_max": 0, "l1_at_l7_max": 0, "every_l1_before_every_l7": True}
+    q = leads.assign(_p=-leads.priority.astype(int)).sort_values(["_p", "lead_id"]).lead_type.to_numpy()
+    first_l7 = int(np.argmax(q == "L7"))
+    return {"l1_min_priority": int(l1.min()), "l7_max_priority": int(l7.max()),
+            "l1_below_l7_max": int((l1 < l7.max()).sum()), "l1_at_l7_max": int((l1 == l7.max()).sum()),
+            "every_l1_before_every_l7": bool((q[first_l7:] != "L1").all())}
 
 
 def factor_distributions(leads: pd.DataFrame) -> dict:
@@ -624,7 +678,7 @@ def assemble(build: str, since=None, until=None, area_weights: dict | None = Non
         raise ValueError(f"unknown build {build!r}")
     t0 = time.time()
     paths = input_paths(build)
-    manifest, signature = inputs_manifest(paths)
+    manifest, signature = inputs_manifest(paths, {"since": since, "until": until, "area_weights": area_weights})
     notes = {}
     contacts, notes["contacts"] = load_contacts(build, paths)
     contacts = _filter_window(contacts, "acq_utc", since, until)
@@ -657,7 +711,7 @@ def assemble(build: str, since=None, until=None, area_weights: dict | None = Non
         "evidence_rows": int(len(evidence)), "L1": c1, "L7": c7,
         "with_next_look": int(leads.next_look_utc.notna().sum()),
         "factor_distributions": factor_distributions(leads), "corroboration_window": feas,
-        "top_of_queue_by_type": top_of_queue(leads),
+        "top_of_queue_by_type": top_of_queue(leads), "queue_order": queue_order(leads),
     }
     plan_meta = {k: plan.get(k) for k in ("generated_utc", "window_start_utc", "window_end_utc", "primary_source")} if plan else {}
     return {"build": build, "leads": leads, "evidence": evidence, "counts": counts, "inputs": manifest, "inputs_signature": signature,
@@ -714,6 +768,14 @@ def gfw_tags(build: str) -> dict:
     return tags
 
 
+def file_layout(build: str) -> dict:
+    """Which layers each GeoPackage of a build holds (paths relative to the repo)."""
+    out = OUTPUTS[build]
+    if out.get("detail") is not None:
+        return {_rel(out["gpkg"]): ["leads_4326", "about"], _rel(out["detail"]): ["leads_utm49n", "lead_evidence", "about"]}
+    return {_rel(out["gpkg"]): ["leads_4326", "leads_utm49n", "lead_evidence", "about"]}
+
+
 def about_frame(result: dict, generated_utc: str) -> pd.DataFrame:
     build = result["build"]
     c = result["counts"]
@@ -730,10 +792,13 @@ def about_frame(result: dict, generated_utc: str) -> pd.DataFrame:
                            "skipped) and whose footprint contains the point (data/s1_next_passes.json; polygons from data/ais_live.gpkg "
                            "s1_next_passes_4326, else the plan bbox); a repeat_cycle row is a prediction, not ESA's plan"),
         "plan_generated_utc": (result.get("plan") or {}).get("generated_utc"),
-        "l7_scoring": (f"L7 is scored within the spec meaning of each factor: evidence quality on a third of the L1 scale (at most "
+        "l7_scoring": (f"L7 is scored within the spec meaning of each factor: evidence quality on a sixth of the L1 scale (at most "
                        f"{P.L7_EVIDENCE_PTS}), corroboration 0 (radar did not look; lights not matched to AIS), AIS reach 0 (no AIS "
                        f"claim), persistence for lights on other nights (at most {P.L7_PERSISTENCE_PTS}), area weight as L1. Without "
-                       f"an area weight an L7 lead scores at most {P.L7_CEILING}, the low band, so vessel leads come first."),
+                       f"an area weight an L7 lead scores at most {P.L7_CEILING}, the low band; an L1 lead with known calm weather "
+                       f"scores at least {P.L1_FLOOR_WEATHER_KNOWN} (both channels and weather), so vessel leads come first (owner "
+                       f"priority P0; ties sort L1 first by lead_id)."),
+        "file_layout": json.dumps(file_layout(build)), "size_rule": SIZE_RULE,
         "l7_evidence_cap": f"the {R.L7_EVIDENCE_LIGHTS_MAX} brightest lights of a cell are evidence rows; n_lights is the full count",
         "gpkg_constant_columns": ("caveat (leads layers and lead_evidence) and research_only (lead_evidence) are SQLite column defaults: "
                                   "every row reads the value; the file stores it once per table"),
@@ -793,16 +858,22 @@ def compact_gpkg(gpkg: Path, page_size: int = GPKG_PAGE_SIZE) -> None:
         con.close()
 
 
-def write_gpkg(path: Path, leads: pd.DataFrame, evidence: pd.DataFrame, about: pd.DataFrame, build: str, generated: str) -> Path:
-    """The four layers to a temporary file, the constant columns as defaults, then os.replace onto `path`."""
+def write_gpkg(path: Path, leads: pd.DataFrame, evidence: pd.DataFrame, about: pd.DataFrame, build: str, generated: str,
+               detail: Path | None = None) -> list[Path]:
+    """Leads in EPSG:4326 and UTM 49N, lead_evidence and about to temporary files, the constant columns as defaults,
+    VACUUM, then os.replace into place. Without `detail` the four layers go to `path`. With it (open build, board D6.3)
+    `path` gets leads_4326 and about, and `detail` gets leads_utm49n, lead_evidence and the same about row. Returns the
+    files written."""
     import geopandas as gpd
     import pyogrio
 
-    from darkvessel.io import utm_suffix, write_dual_crs
+    from darkvessel.io import utm_suffix
 
-    tmp = _tmp(path)
-    if tmp.exists():
-        tmp.unlink()
+    main_tmp = _tmp(path)
+    det_tmp = _tmp(detail) if detail is not None else main_tmp
+    for t in {main_tmp, det_tmp}:
+        if t.exists():
+            t.unlink()
     lead_consts = {c: leads[c].iloc[0] if len(leads) else caveat_for(build) for c in CONST_GPKG_COLUMNS["leads"]}
     ev_consts = {"caveat": caveat_for(build), "research_only": build == "research"}
     for c, v in lead_consts.items():
@@ -810,24 +881,35 @@ def write_gpkg(path: Path, leads: pd.DataFrame, evidence: pd.DataFrame, about: p
             raise ValueError(f"column {c} is not constant; it cannot be stored as a default")
     lead_body = leads.drop(columns=list(lead_consts))
     gdf = gpd.GeoDataFrame(lead_body, geometry=gpd.points_from_xy(lead_body.lon, lead_body.lat), crs=CRS_GEO)
+    utm_name = f"leads_{utm_suffix(CRS_UTM_REGIONAL)}"
+    opts = None if build == "open" else {"SPATIAL_INDEX": "NO"}   # the research file is local; ArcGIS Pro can add an index
     pyogrio.set_gdal_config_options({"OGR_CURRENT_DATE": generated.replace("Z", ".000Z")})
     try:
-        names = write_dual_crs(gdf, tmp, "leads", utm_crs=CRS_UTM_REGIONAL, spatial_index=(build == "open"))
-        pyogrio.write_dataframe(evidence.drop(columns=list(ev_consts)), tmp, layer="lead_evidence", driver="GPKG")
-        pyogrio.write_dataframe(about, tmp, layer="about", driver="GPKG")
+        gdf.to_file(main_tmp, layer="leads_4326", driver="GPKG", engine="pyogrio", layer_options=opts)
+        gdf.to_crs(CRS_UTM_REGIONAL).to_file(det_tmp, layer=utm_name, driver="GPKG", engine="pyogrio", layer_options=opts)
+        pyogrio.write_dataframe(evidence.drop(columns=list(ev_consts)), det_tmp, layer="lead_evidence", driver="GPKG")
+        pyogrio.write_dataframe(about, main_tmp, layer="about", driver="GPKG")
+        if det_tmp != main_tmp:
+            pyogrio.write_dataframe(about, det_tmp, layer="about", driver="GPKG")
     except BaseException:
-        if tmp.exists():
-            tmp.unlink()
+        for t in {main_tmp, det_tmp}:
+            if t.exists():
+                t.unlink()
         raise
     finally:
         pyogrio.set_gdal_config_options({"OGR_CURRENT_DATE": None})
-    assert names == ["leads_4326", f"leads_{utm_suffix(CRS_UTM_REGIONAL)}"], names
-    for name in names:
-        add_const_columns(tmp, name, {c: (bool(v) if isinstance(v, (bool, np.bool_)) else str(v)) for c, v in lead_consts.items()})
-    add_const_columns(tmp, "lead_evidence", ev_consts)
-    compact_gpkg(tmp)
-    os.replace(tmp, path)
-    return path
+    consts = {c: (bool(v) if isinstance(v, (bool, np.bool_)) else str(v)) for c, v in lead_consts.items()}
+    add_const_columns(main_tmp, "leads_4326", consts)
+    add_const_columns(det_tmp, utm_name, consts)
+    add_const_columns(det_tmp, "lead_evidence", ev_consts)
+    for t in sorted({main_tmp, det_tmp}):
+        compact_gpkg(t)
+    written = []
+    if det_tmp != main_tmp:   # the detail file first: the backend reads only `path`
+        os.replace(det_tmp, detail)
+        written.append(detail)
+    os.replace(main_tmp, path)
+    return [path, *written]
 
 
 def _write_text(path: Path, text: str) -> Path:
@@ -838,8 +920,9 @@ def _write_text(path: Path, text: str) -> Path:
 
 
 def write_outputs(result: dict, figure: bool = True, log=print, now: str | None = None) -> dict:
-    """GeoPackage (dual CRS leads, lead_evidence, about), research parquet, summary JSON; each written to a temporary
-    name and moved into place. `now` replaces the clock (tests). Returns paths, sizes and generated_utc."""
+    """GeoPackages (dual CRS leads, lead_evidence, about; the open build in two files, see file_layout), research
+    parquet, summary JSON; each written to a temporary name and moved into place. `now` replaces the clock (tests).
+    Returns paths, sizes and generated_utc."""
     build = result["build"]
     out = OUTPUTS[build]
     gpkg: Path = out["gpkg"]
@@ -849,8 +932,11 @@ def write_outputs(result: dict, figure: bool = True, log=print, now: str | None 
     generated = prev_time if prev_sig == result["inputs_signature"] and prev_time else clock
     about = about_frame(result, generated)
     leads = result["leads"]
-    write_gpkg(gpkg, leads, result["evidence"], about, build, generated)
+    detail = out.get("detail")
+    write_gpkg(gpkg, leads, result["evidence"], about, build, generated, detail=detail)
     written = {"gpkg": gpkg}
+    if detail is not None:
+        written["detail"] = detail
     if out["parquet"] is not None:
         written["parquet"] = write_parquet(leads, out["parquet"], about.iloc[0].to_dict(), build)
     summary = {
@@ -861,6 +947,8 @@ def write_outputs(result: dict, figure: bool = True, log=print, now: str | None 
         "corroboration_rule": CORROBORATION_RULE[build],
         "plan_file": result["plan"], "inputs": result["inputs"], "input_notes": result["notes"],
         "outputs": {k: _rel(v) for k, v in written.items()},
+        "output_bytes": {_rel(v): int(v.stat().st_size) for v in written.values()},
+        "file_layout": file_layout(build), "size_rule": SIZE_RULE,
         "caveat": caveat_for(build), "research_only": build == "research",
     }
     summary.update(gfw_tags(build))
@@ -868,9 +956,12 @@ def write_outputs(result: dict, figure: bool = True, log=print, now: str | None 
     sizes = {k: round(v.stat().st_size / 1e6, 2) for k, v in written.items()}
     for k, v in written.items():
         log(f"[{build}] wrote {_rel(v)} ({sizes[k]} MB)")
-        if sizes[k] > 20:
-            log(f"[{build}] WARNING {_rel(v)} is over the 20 MB commit limit: keep it out of git (.gitignore, as for "
-                f"data/research/regional_identity.gpkg); it is rebuilt by scripts/33_leads.py in seconds")
+        if sizes[k] > COMMIT_LIMIT_MB and build == "research" and k == "gpkg":
+            log(f"[{build}] note: {_rel(v)} is over the {COMMIT_LIMIT_MB:.0f} MB commit limit: it stays out of git (ignored by "
+                f"name, board D6.5); the committed research copy is the parquet, and the file is rebuilt in seconds")
+        elif sizes[k] > COMMIT_LIMIT_MB:
+            log(f"[{build}] WARNING {_rel(v)} is over the {COMMIT_LIMIT_MB:.0f} MB commit limit (board D6.3): do not commit "
+                f"it; narrow the build window (--since) or slim the detail layers before the next commit")
     return {"paths": written, "sizes_mb": sizes, "generated_utc": generated}
 
 
@@ -925,12 +1016,14 @@ def figure(results: dict[str, dict], path: Path = FIG_PATH, log=print) -> Path |
                 ax.hist(sub.priority.astype(int), bins=bins, histtype="step", color=SERIES_LIGHT[1], linewidth=1.6, label=lab)
         for x in (33.5, 66.5):
             ax.axvline(x, color=BASELINE, linewidth=0.8, linestyle="--")
-        ax.text(16, ax.get_ylim()[1] * 0.97, "low", ha="center", va="top", fontsize=7, color=MUTED)
-        ax.text(50, ax.get_ylim()[1] * 0.97, "medium", ha="center", va="top", fontsize=7, color=MUTED)
-        ax.text(83, ax.get_ylim()[1] * 0.97, "high", ha="center", va="top", fontsize=7, color=MUTED)
+        # log counts: the open build has a few hundred L1 leads spread over 40 points beside 2,000 L7 cells on 10
+        ax.set_yscale("log", nonpositive="clip")
+        ax.set_ylim(0.7, ax.get_ylim()[1] * 3)
+        for x, lab in ((16, "low"), (50, "medium"), (83, "high")):
+            ax.text(x, ax.get_ylim()[1] * 0.85, lab, ha="center", va="top", fontsize=7, color=MUTED)
         ax.set_xlim(0, 100)
         ax.set_xlabel("review priority (0 to 100)", fontsize=8)
-        ax.set_ylabel("leads", fontsize=8)
+        ax.set_ylabel("leads per point (log scale)", fontsize=8)
         ax.set_title(f"{b} build, {len(leads):,} leads" + "".join(f"; {t} {int((leads.lead_type == t).sum()):,}" for t in ("L1", "L7") if (leads.lead_type == t).any()),
                      loc="left", fontsize=9, color=INK)
         ax.tick_params(labelsize=7)
@@ -947,7 +1040,8 @@ def figure(results: dict[str, dict], path: Path = FIG_PATH, log=print) -> Path |
     research_note = (" Research build: noncommercial, CC BY-NC 4.0, contains Global Fishing Watch data. Powered by Global Fishing Watch."
                      if "research" in builds else "")
     fig.text(0.02, 0.01, "Review priority is not a risk score. Dark = no AIS match; not evidence of illegal activity; an AIS gap is not proof "
-             f"of intent. L7 (outline) is a coverage lead for tasking, not a vessel lead; it scores at most {P.L7_CEILING} without an analyst area weight."
+             f"of intent. L7 (outline) is a coverage lead for tasking, not a vessel lead; it scores at most {P.L7_CEILING} without an analyst area weight, "
+             f"so vessel leads (L1) sort first. Open L1: live passes (live AIS relayed by aisstream.io; terms UNVERIFIED)."
              + research_note, fontsize=6.5, color=INK_2, wrap=True)
     fig.subplots_adjust(left=0.08, right=0.98, top=0.74, bottom=0.27, wspace=0.25)
     path.parent.mkdir(parents=True, exist_ok=True)

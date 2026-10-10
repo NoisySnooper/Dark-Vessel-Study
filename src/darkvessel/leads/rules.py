@@ -189,13 +189,17 @@ def l1_gate(df: pd.DataFrame) -> pd.DataFrame:
 
 def l1_gate_counts(gate: pd.DataFrame) -> dict:
     """Counts for the about layer and the docs: unmatched contacts, how many fail each later condition (among the
-    unmatched), how many pass, and how many pass with weather unknown."""
+    unmatched; the conditions overlap), how many remain after each condition when they are applied one after another
+    (remaining_after_condition; its last entry equals pass_all), how many pass, and how many pass with weather unknown."""
     um = gate[gate.unmatched]
-    out = {"unmatched": int(gate.unmatched.sum()), "fail_by_condition_among_unmatched": {}}
+    out = {"unmatched": int(gate.unmatched.sum()), "fail_by_condition_among_unmatched": {}, "remaining_after_condition": {}}
+    keep = gate.unmatched.copy()
     for c in L1_CONDITIONS[1:]:
         if c == "not_ambiguous" and not gate.attrs.get("has_ambiguity", True):
             continue  # inputs without the flag (the September run) keep their earlier count layout
         out["fail_by_condition_among_unmatched"][c] = int((~um[c]).sum())
+        keep &= gate[c]   # the conditions applied one after another, in the order of L1_CONDITIONS: a waterfall
+        out["remaining_after_condition"][c] = int(keep.sum())
     out["pass_all"] = int(gate.l1.sum())
     out["pass_with_weather_unknown"] = int((gate.l1 & ~gate.weather_known).sum())
     out["pass_with_weather_known"] = int((gate.l1 & gate.weather_known).sum())

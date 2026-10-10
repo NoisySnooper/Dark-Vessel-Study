@@ -17,19 +17,21 @@ L1 (one radar contact)
 - area_weight, 0 to 10: analyst-set per reporting box, default 0.
 
 L7 (one 0.25 degree cell, a coverage lead), scored within the same factor meanings
-- evidence_quality, 0 to 10 of 30: 10 x min(1, ln(1 + n_lights) / ln(31)). A light shows lit activity, not a vessel at a
-  radar look (no length, no class, no time match), so L7 uses a third of the L1 scale.
+- evidence_quality, 0 to 5 of 30: 5 x min(1, ln(1 + n_lights) / ln(31)). A light shows lit activity, not a vessel at a
+  radar look (no length, no class, no time match), so L7 uses a sixth of the L1 scale.
 - corroboration, 0: radar did not image the cell in 90 days and the lights are not matched to AIS, so nothing can
   corroborate them; by construction of the type.
 - ais_reach, 0: an L7 lead makes no claim about AIS (lights are not matched to AIS in this build); the cell's
   ais_reach_share is shown as context only.
-- persistence, 0 to 10 of 15: lights on another night, the L7 reading of "seen again": 10 x min(1, (n_nights - 1) / 6),
-  so one night scores 0 and seven or more nights score 10.
+- persistence, 0 to 5 of 15: lights on another night, the L7 reading of "seen again": 5 x min(1, (n_nights - 1) / 6),
+  so one night scores 0 and seven or more nights score 5.
 - area_weight, 0 to 10: as L1.
-Without an analyst area weight an L7 lead scores at most 20 (low band). That keeps vessel detection and identification
-first: on the September research leads, 93 % of L1 leads score above 20 even with their weather and corroboration
-points removed (the open build had neither when the ceiling was set; live weather sidecars came later), and every L1
-lead with CNN 0.75, both channels and half AIS reach does.
+Without an analyst area weight an L7 lead scores at most 10 (L7_CEILING, low band). That keeps vessel detection and
+identification first (owner priority P0): an L1 lead always has both channels (5, a gate condition where the
+polarisation is known) and, when its wind and deep convection are known and calm, 5 weather points, so its floor is 10
+(L1_FLOOR_WEATHER_KNOWN) and it sorts above or level with every L7 lead (ties sort L1 first by lead_id). Model v0 capped
+L7 at 20; on the first real open L1 leads (Pearl River pass, 2026-10-10) 21 of 395 L1 leads scored 11 to 20 and fell
+among the coverage cells, which is why v1 halves both L7 parts. An L1 lead with weather unknown can still score 5 to 9.
 
 Factor `source` values are registry keys of app/CONTRACT.md section 2, several joined by "; ".
 """
@@ -60,11 +62,14 @@ L1_DENSITY_PTS = 8
 L1_DENSITY_SATURATION = 10      # n_ais_10km at which the density part saturates
 L1_PERSISTENCE_PTS = 15
 # L7 sub-weights
-L7_EVIDENCE_PTS = 10            # a third of the evidence_quality maximum
-L7_PERSISTENCE_PTS = 10         # two thirds of the persistence maximum
+L7_EVIDENCE_PTS = 5             # a sixth of the evidence_quality maximum
+L7_PERSISTENCE_PTS = 5          # a third of the persistence maximum
 L7_LIGHTS_SATURATION = 30
 L7_NIGHTS_SATURATION = 7        # persistence full at lights on 7 or more nights
-L7_CEILING = L7_EVIDENCE_PTS + L7_PERSISTENCE_PTS   # 20: the most an L7 lead scores without an analyst area weight
+L7_CEILING = L7_EVIDENCE_PTS + L7_PERSISTENCE_PTS   # 10: the most an L7 lead scores without an analyst area weight
+# The least an L1 lead scores when its weather is known and calm: both channels (a gate condition) plus calm weather.
+L1_FLOOR_WEATHER_KNOWN = L1_BOTH_CHANNELS_PTS + L1_WEATHER_PTS
+assert L7_CEILING <= L1_FLOOR_WEATHER_KNOWN, "an L7 lead must not outrank an L1 lead with known weather (owner P0)"
 
 WEIGHTS = {
     "model_id": PRIORITY_MODEL_ID, "calibrated": False, "max_points": MAX_POINTS,
@@ -74,11 +79,11 @@ WEIGHTS = {
            "light_2km_3h": L1_LIGHT_PTS, "ais_event_2km_3h": L1_AIS_EVENT_PTS,
            "ais_reach": f"{L1_REACH_PTS} x ais_reach", "ais_density": f"{L1_DENSITY_PTS} x min(1, n_ais_10km / {L1_DENSITY_SATURATION})",
            "persistence_72h_2km": L1_PERSISTENCE_PTS, "no_ais_match": 0, "area_weight_default": 0},
-    "L7": {"evidence_quality": f"{L7_EVIDENCE_PTS} x min(1, ln(1 + n_lights) / ln(1 + {L7_LIGHTS_SATURATION})) (a third of the L1 scale)",
+    "L7": {"evidence_quality": f"{L7_EVIDENCE_PTS} x min(1, ln(1 + n_lights) / ln(1 + {L7_LIGHTS_SATURATION})) (a sixth of the L1 scale)",
            "corroboration": "0 by construction (radar did not look; lights not matched to AIS)",
            "ais_reach": "0 (an L7 lead makes no AIS claim; ais_reach_share is context)",
            "persistence": f"{L7_PERSISTENCE_PTS} x min(1, (n_nights - 1) / {L7_NIGHTS_SATURATION - 1})", "area_weight_default": 0,
-           "ceiling_without_area_weight": L7_CEILING},
+           "ceiling_without_area_weight": L7_CEILING, "l1_floor_weather_known": L1_FLOOR_WEATHER_KNOWN},
 }
 
 
