@@ -98,6 +98,31 @@ def test_filters_and_low_objects(shared_clients):
     assert c.get(f"{A}/contacts/{IDS['live_unmatched']}").json()["item"]["lead_ids"] == [IDS["lead_l1"]]
 
 
+def test_cnn_join_reads_only_loaded_contacts(data_dir):
+    """regional_cnn.parquet also scores the low objects of the September run; the loader converts only the rows of the
+    contacts it loads, and the joined values are unchanged."""
+    import pandas as pd
+
+    from scs_api.catalog import Catalog
+    from scs_api.config import Settings
+    from scs_api.loaders.contacts import read_cnn
+
+    p = data_dir / "ml" / "regional_cnn.parquet"
+    df = pd.read_parquet(p)
+    low = df.iloc[[0, 1]].assign(det_id=["S1C_20260920T104816_90001", "S1C_20260920T104816_90002"], confidence="low",
+                                 cnn_score=0.01)
+    pd.concat([df, low], ignore_index=True).to_parquet(p, index=False)
+    cat = Catalog(Settings(build="open", data_dir=data_dir))
+    got = read_cnn(cat, [pd.Series(IDS["reg"][:2]), pd.Series([IDS["struct"][0], "not_a_contact"])])
+    assert sorted(got.index) == sorted(IDS["reg"][:2] + [IDS["struct"][0]]) and "det_id" not in got.columns
+    assert got.loc[IDS["reg"][0], "cnn_score"] == pytest.approx(float(df.set_index("det_id").loc[IDS["reg"][0], "cnn_score"]))
+    assert read_cnn(cat, []).empty
+    c = make_client(data_dir, "open")
+    rec = c.get(f"{A}/contacts/{IDS['reg'][0]}").json()["item"]
+    assert rec["cnn_score"] == pytest.approx(float(df.set_index("det_id").loc[IDS["reg"][0], "cnn_score"]))
+    assert c.get(f"{A}/contacts/S1C_20260920T104816_90001").status_code == 404
+
+
 def test_research_identity_and_vessels(shared_clients):
     c = shared_clients["research"]
     rec = c.get(f"{A}/contacts/{IDS['reg'][0]}").json()["item"]

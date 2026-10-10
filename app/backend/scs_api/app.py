@@ -7,7 +7,9 @@ mounted last, after every /api/v1 route.
 
 from __future__ import annotations
 
+import asyncio
 import html
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -41,8 +43,16 @@ def not_built_page(settings: Settings) -> str:
 
 def create_app(settings: Settings, store: Store | None = None) -> FastAPI:
     store = store or Store(settings)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        """Release the held background work background_delay_s after startup (uvicorn binds the port right after it)."""
+        if settings.background_delay_s is not None:
+            asyncio.get_running_loop().call_later(settings.background_delay_s, store.release_background)
+        yield
+
     app = FastAPI(title="SCS Vessel Watch API", version=APP_VERSION, docs_url=None, redoc_url=None,
-                  openapi_url="/openapi.json",
+                  openapi_url="/openapi.json", lifespan=lifespan,
                   description=f"Local backend of SCS Vessel Watch, data contract {CONTRACT_VERSION}, {settings.build} build. "
                               + PRODUCT_CAVEAT)
     app.state.store = store

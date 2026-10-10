@@ -201,6 +201,30 @@ def test_meta_counts_do_not_wait_for_background_events(data_dir, monkeypatch):
     assert m["loading"] == [] and m["counts"]["events"] == 4
 
 
+def test_background_work_is_held_until_the_server_listens(data_dir, monkeypatch):
+    """serve.py sets background_delay_s: the research events load and the warm-up wait until the lifespan startup
+    releases them (a moment after the server listens), and a request that needs the events releases them at once."""
+    from scs_api.loaders import events as L_events
+
+    calls = []
+    real = L_events.load
+    monkeypatch.setattr(L_events, "load", lambda *a, **k: calls.append(time.time()) or real(*a, **k))
+    c = _client(data_dir, build="research", background_delay_s=0.2)
+    store = c.app.state.store
+    time.sleep(0.5)
+    m = c.get(f"{A}/meta").json()["item"]
+    assert not calls and m["loading"] == ["events"] and m["counts"]["events"] == 4  # held, counted from the catalog
+    r = c.get(f"{A}/events?limit=1")  # needs the events: releases the hold and waits for the load
+    assert r.status_code == 200 and r.json()["total"] == 4 and len(calls) == 1
+    c2 = _client(data_dir, build="research", background_delay_s=0.2)
+    with c2:  # runs the lifespan: the hold is released 0.2 s after startup
+        deadline = time.time() + 15
+        while c2.app.state.store.loading() and time.time() < deadline:
+            time.sleep(0.05)
+        assert c2.get(f"{A}/meta").json()["item"]["loading"] == []
+    store.wait_background()
+
+
 def test_empty_csv_export_carries_caveat_build_and_licences(shared_clients):
     from scs_api.config import PRODUCT_CAVEAT
 

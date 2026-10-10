@@ -36,6 +36,8 @@ def iso_z(v) -> str | None:
 
 def to_utc_series(s: pd.Series) -> pd.Series:
     """A column of mixed time strings or timestamps as tz-aware UTC timestamps (NaT for nulls)."""
+    if pd.api.types.is_datetime64_any_dtype(s):  # already timestamps (parquet): no parsing, naive means UTC
+        return s.dt.tz_localize("UTC") if s.dt.tz is None else s.dt.tz_convert("UTC")
     return pd.to_datetime(s, utc=True, errors="coerce", format="ISO8601")
 
 

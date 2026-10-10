@@ -61,6 +61,9 @@ class Settings:
     repo_root: Path = REPO_ROOT
     check_interval_s: float = 2.0  # how often a request may stat the files for an mtime change
     tracks_reload_s: float = 300.0  # the aisstream hour files change every minute; tracks reload at most this often
+    # serve.py: hold the background work (research events, index warm-up) until this many seconds after the server
+    # starts listening, so it does not slow the start and the first page; None starts it at once (tests, bundle builder)
+    background_delay_s: float | None = None
     host: str = "127.0.0.1"
     port: int = 8750
     extra: dict = field(default_factory=dict)

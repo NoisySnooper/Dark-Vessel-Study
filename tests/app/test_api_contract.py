@@ -130,6 +130,25 @@ def test_b_open_catalog_refuses_research_paths(data_dir):
     assert rcat.guard("research/regional_identity.parquet").name == "regional_identity.parquet"
 
 
+def test_b_open_glob_listing_guards_symlinks_into_research(data_dir):
+    """A glob or dir spec lists plain files without resolving each one, but a symlink (or a nested pattern) into
+    data/research/ is still refused."""
+    from scs_api.catalog import Catalog, ResearchPathError
+    from scs_api.config import Settings
+
+    cat = Catalog(Settings(build="open", data_dir=data_dir))
+    assert [p.name for p in cat.paths("chips")] == [f"{IDS['chip']}.webp"]
+    (data_dir / "research" / "x.webp").write_bytes(b"RIFF")
+    (data_dir / "cache" / "chips" / "S1D_20261008T230108_99999.webp").symlink_to(data_dir / "research" / "x.webp")
+    with pytest.raises(ResearchPathError):
+        cat.paths("chips")
+    day = data_dir / "cache" / "ais" / "aisstream" / "positions" / "20261009"
+    day.symlink_to(data_dir / "research", target_is_directory=True)
+    (data_dir / "research" / "05.parquet").write_bytes(b"PAR1")
+    with pytest.raises(ResearchPathError):
+        cat.paths("ais_positions")
+
+
 def test_b_open_build_never_opens_research(data_dir, monkeypatch):
     """Run the open app over every endpoint with research files present; no path under data/research/ is opened."""
     import builtins

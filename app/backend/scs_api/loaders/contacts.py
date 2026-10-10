@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.compute as pc
 
 from ..config import PRODUCT_CAVEAT
 from ..models import AIS_STATUS_VALUES, contact_spec
@@ -102,12 +104,23 @@ class ContactsData:
         self.pos = self.pos[~self.pos.index.duplicated()]
 
 
+def _index(other: pd.DataFrame | None) -> pd.DataFrame | None:
+    """A join table keyed by det_id (first row per id, index named `det_id`, no det_id column). Built once per load and
+    reused for every source frame: the weather and CNN tables have 10^5 to 10^6 rows."""
+    if other is None:
+        return None
+    o = other.drop_duplicates("det_id")
+    return o.set_index(pd.Index(o["det_id"].astype(str).to_numpy(), name="det_id")).drop(columns="det_id")
+
+
 def _join(df: pd.DataFrame, other: pd.DataFrame | None, cols: list[str], fill: bool = True) -> pd.DataFrame:
+    """Add `cols` to `df` from `other` by det_id, or fill their nulls when `fill`. `other` is a frame with a det_id column
+    or an `_index` result."""
     if other is None or not len(df):
         return df
-    have = [c for c in cols if c in other.columns]
-    o = other[["det_id"] + have].drop_duplicates("det_id").set_index("det_id")
-    j = o.reindex(df["det_id"].astype(str).to_numpy())
+    o = _index(other) if "det_id" in other.columns else other
+    have = [c for c in cols if c in o.columns]
+    j = o[have].reindex(df["det_id"].astype(str).to_numpy())
     for c in have:
         vals = j[c].to_numpy()
         if c in df.columns and fill:
@@ -116,6 +129,20 @@ def _join(df: pd.DataFrame, other: pd.DataFrame | None, cols: list[str], fill: b
         elif c not in df.columns:
             df[c] = vals
     return df
+
+
+def read_cnn(cat, id_cols: list[pd.Series]) -> pd.DataFrame | None:
+    """The regional CNN scores of the given det_ids only, keyed by det_id (`_index`). regional_cnn.parquet also scores
+    the 823,285 low objects of the September run, which no product contact holds; filtering in Arrow before the pandas
+    conversion keeps the start fast."""
+    if not cat.exists("regional_cnn"):
+        return None
+    tb = cat.read_arrow("regional_cnn", ["det_id", "scene_id"] + CNN_COLS)
+    if tb is None:
+        return None
+    ids = pd.unique(pd.concat([s.astype(str) for s in id_cols], ignore_index=True)) if id_cols else []
+    tb = tb.filter(pc.is_in(tb["det_id"], value_set=pa.array(list(ids), type=tb.schema.field("det_id").type)))
+    return _index(tb.to_pandas())
 
 
 def _finish(df: pd.DataFrame, source: str, fields: set[str]) -> tuple[pd.DataFrame, list[str]]:
@@ -146,9 +173,8 @@ def _finish(df: pd.DataFrame, source: str, fields: set[str]) -> tuple[pd.DataFra
 def load(cat, settings) -> ContactsData:
     fields = [f for f, _ in contact_spec(settings.build)]
     fset = set(fields)
-    cnn = cat.read_parquet("regional_cnn", ["det_id", "scene_id"] + CNN_COLS)
-    weather = cat.read_parquet("weather", ["det_id"] + WEATHER_COLS)
-    optical = cat.read_gpkg("optical", ["det_id"] + OPTICAL_COLS)
+    weather = _index(cat.read_parquet("weather", ["det_id"] + WEATHER_COLS))
+    optical = _index(cat.read_gpkg("optical", ["det_id"] + OPTICAL_COLS))
     scenes = cat.read_gpkg("regional_scenes")
     if scenes is not None and len(scenes):
         scenes = group_passes(scenes)
@@ -186,23 +212,26 @@ def load(cat, settings) -> ContactsData:
             live["cnn_threshold"] = pd.to_numeric(pd.Series([about.get("cnn_threshold")]), errors="coerce").iloc[0]
         add(live, "live")
 
-    # September run: research identity replaces the not_checked rows in the research build (contract 4.2)
-    if settings.research and cat.exists("regional_identity"):
+    # September run: research identity replaces the not_checked rows in the research build (contract 4.2). The run and
+    # the structures are read before the CNN table, so only their CNN rows are converted.
+    research = settings.research and cat.exists("regional_identity")
+    if research:
         reg = cat.read_parquet("regional_identity")
-        det = cat.read_gpkg("regional_contacts", REGIONAL_DETECTOR)
-        reg = _join(reg, det, REGIONAL_DETECTOR[1:], fill=True)
+        reg = _join(reg, cat.read_gpkg("regional_contacts", REGIONAL_DETECTOR), REGIONAL_DETECTOR[1:], fill=True)
+    else:
+        reg = cat.read_gpkg("regional_contacts")
+    st = cat.read_gpkg("structures")
+    cnn = read_cnn(cat, [f["det_id"] for f in (reg, st) if f is not None and len(f)])
+    if research:
         reg = _join(reg, cnn, ["scene_id"] + CNN_COLS)
         reg = regional_scene_cols(reg)
         add(reg, "research")
-    else:
-        reg = cat.read_gpkg("regional_contacts")
-        if reg is not None and len(reg):
-            reg["run_id"] = "regional_2026-09"
-            reg = _join(reg, cnn, ["scene_id"] + CNN_COLS)
-            reg = regional_scene_cols(reg)
-            add(reg, "regional")
+    elif reg is not None and len(reg):
+        reg["run_id"] = "regional_2026-09"
+        reg = _join(reg, cnn, ["scene_id"] + CNN_COLS)
+        reg = regional_scene_cols(reg)
+        add(reg, "regional")
 
-    st = cat.read_gpkg("structures")
     if st is not None and len(st):
         st["run_id"] = "regional_2026-09"
         st = _join(st, cnn, ["scene_id"] + CNN_COLS)

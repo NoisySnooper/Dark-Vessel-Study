@@ -32,7 +32,8 @@ def main(argv=None):
     from .app import create_app
     from .config import settings_from_env
 
-    settings = settings_from_env(build=a.build, data_dir=a.data_dir, host=a.host, port=a.port)
+    # the research events load and the index warm-up start 1 s after the server listens (Settings.background_delay_s)
+    settings = settings_from_env(build=a.build, data_dir=a.data_dir, host=a.host, port=a.port, background_delay_s=1.0)
     app = create_app(settings)
     store = app.state.store
     c = store.counts()  # never waits for the background events load

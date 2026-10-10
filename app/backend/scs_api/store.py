@@ -57,7 +57,8 @@ DEPS = {
 AFTER = {"contacts": {"vessels", "passes"}}  # loaders that read the contacts frame of the same State
 ORDER = ["contacts", "lights", "events", "leads", "cells", "rasters", "tracks", "vessels", "passes"]
 SECOND = ("vessels", "passes")  # loaded after the first group, from the new contacts frame
-BACKGROUND = {"events"}  # loaded in a thread after the others; the first request that needs them waits (research: 610k rows)
+BACKGROUND = {"events"}  # loaded in a thread after the others (held until release_background when Settings.background_delay_s
+# is set); the first request that needs them releases the hold and waits (research: 610k rows)
 QUIET = {"tracks"}  # reloaded in the background, at most once per Settings.tracks_reload_s; requests never wait for them
 LINKED = {"contacts", "leads", "vessels"}  # a reload of any of these rebuilds the cross-object indexes
 
@@ -70,10 +71,13 @@ class DataMap(dict):
     def __init__(self):
         super().__init__()
         self.pending: dict = {}
+        self.on_wait = None  # called before waiting on a pending load (releases held background work)
 
     def __getitem__(self, key):
         fut = self.pending.get(key)
         if fut is not None:
+            if not fut.done() and self.on_wait is not None:
+                self.on_wait()
             dict.__setitem__(self, key, fut.result())
             self.pending.pop(key, None)
         return dict.__getitem__(self, key)
@@ -92,6 +96,7 @@ class DataMap(dict):
         out = DataMap()
         dict.update(out, dict.items(self))
         out.pending = dict(self.pending)
+        out.on_wait = self.on_wait
         return out
 
 
@@ -206,9 +211,19 @@ class Store:
         self._bg = ThreadPoolExecutor(max_workers=1, thread_name_prefix="scs-bg")
         self._warm_ex = ThreadPoolExecutor(max_workers=1, thread_name_prefix="scs-warm")
         self._quiet_ex = ThreadPoolExecutor(max_workers=1, thread_name_prefix="scs-quiet")
+        self._go = threading.Event()  # background work waits for it (serve.py releases it once the server listens)
+        if settings.background_delay_s is None:
+            self._go.set()
         self._state = State(DataMap())
         self.geo = Geo(self.cat, settings)
         self.load_all()
+
+    def release_background(self):
+        """Let the held background work start (serve.py after the server listens; any request that needs its data)."""
+        self._go.set()
+
+    def _hold(self):
+        self._go.wait(timeout=60.0)  # never forever: without a release the work starts after a minute
 
     # ------------------------------------------------------------ the pinned State
     @property
@@ -277,6 +292,7 @@ class Store:
         t = time.time()
         new = base.derive({}) if base is not None else State(DataMap())
         data = new.data
+        data.on_wait = self.release_background
         later = []
         for n in sorted(names & BACKGROUND):  # a placeholder now; the load starts once the rest is in (less contention)
             fut = Future()
@@ -302,6 +318,7 @@ class Store:
         return new
 
     def _fill(self, fut: Future, name: str, data: DataMap):
+        self._hold()
         try:
             fut.set_result(self._load_one(name, data))
         except BaseException as e:  # noqa: BLE001  (the request that needs it gets the error, as an enveloped 500)
@@ -433,6 +450,7 @@ class Store:
     def _warm(self, st: State):
         """Build the lazy indexes (event ids, Omnibar prefixes, the lead summaries) of `st` in the background. Indexes
         of loaders that did not reload are already built and kept."""
+        self._hold()
         _PINNED.set((self, st))
         try:  # the lead queue first (the first view), then the Omnibar indexes, the 610k event ids last
             self.lead_rows(np.arange(len(st.data["leads"].df)), summary=True)

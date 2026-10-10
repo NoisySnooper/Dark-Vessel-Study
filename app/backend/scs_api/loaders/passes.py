@@ -53,7 +53,7 @@ def load(cat, settings, contacts_df: pd.DataFrame | None) -> pd.DataFrame:
     rows = []
     counts = {}
     if contacts_df is not None and len(contacts_df):
-        c = contacts_df[contacts_df["confidence"].astype(str) != "low"]
+        c = contacts_df.loc[contacts_df["confidence"].astype(str) != "low", ["pass_id", "ais_status"]]  # two columns, not 100
         g = c.groupby(["pass_id", "ais_status"]).size()
         for (pid, st), n in g.items():
             counts.setdefault(str(pid), {})[str(st)] = int(n)

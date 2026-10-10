@@ -158,7 +158,11 @@ class Catalog:
         if s.kind in ("glob", "dir"):
             if not base.is_dir():
                 return []
-            return sorted(self.guard(p) for p in base.glob(s.pattern or "*") if p.is_file())
+            # `base` is resolved and guarded, so a plain file directly in it needs no resolve of its own (the chip cache
+            # holds thousands); a symlink, or a file under a subdirectory that may be one, is resolved and guarded.
+            nested = "/" in (s.pattern or "")
+            return sorted(self.guard(p) if nested or p.is_symlink() else p
+                          for p in base.glob(s.pattern or "*") if p.is_file())
         return [base] if base.exists() else []
 
     def exists(self, key: str) -> bool:
