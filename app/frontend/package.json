@@ -1,0 +1,35 @@
+{
+  "name": "scs-vessel-watch-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SCS Vessel Watch frontend: one React and Blueprint app that builds the local app (dist/) and the single-file page (dist-single/index.html, no data).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build --mode single",
+    "typecheck": "tsc --noEmit",
+    "fixture:inject": "node fixtures/inject.mjs",
+    "check": "NODE_PATH=/opt/node-tools/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node checks/smoke.mjs"
+  },
+  "dependencies": {
+    "@blueprintjs/colors": "5.1.16",
+    "@blueprintjs/core": "6.20.0",
+    "@blueprintjs/icons": "6.14.1",
+    "@blueprintjs/select": "6.3.6",
+    "@blueprintjs/table": "6.2.6",
+    "leaflet": "1.9.4",
+    "mgrs": "2.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/leaflet": "1.9.22",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "6.0.3",
+    "vite": "8.3.1",
+    "vite-plugin-singlefile": "2.3.3"
+  }
+}

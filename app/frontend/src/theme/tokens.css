@@ -1,0 +1,92 @@
+/* Colour tokens (docs/product_design.md section 10). Plain hex from the Blueprint 6 palette.
+   Light values on :root; dark values under prefers-color-scheme guarded by :root:not([data-theme="light"]),
+   and again under :root[data-theme="dark"]. The startup script writes data-theme="dark" unless the viewer chose light. */
+:root {
+  --bg-app: #f6f7f9;
+  --bg-panel: #ffffff;
+  --bg-elevated: #edeff2;
+  --map-sea: #e5e8eb;
+  --map-land: #c5cbd3;
+  --text: #1c2127;
+  --text-muted: #5f6b7c;
+  --link: #215db0;
+  --border: rgba(17, 20, 24, 0.15);
+  --focus: #2d72d2;
+  --caveat-bg: #f0e8de;
+  --caveat-text: #77450d;
+  --research-bg: #ebe1ee;
+  --research-text: #5c255c;
+  --status-matched: #215db0;
+  --status-unmatched: #935610;
+  --status-nocov: #5f6b7c;
+  --status-notchecked: #738091;
+  --fixed: #007067;
+  --light: #866103;
+  --vessel: #1c6e42;
+  --lead-ring: #1c2127;
+  --footprint: #5f6b7c;
+  --eez-line: #738091;
+  --band-low: #8f99a8;
+  --band-medium: #c87619;
+  --band-high: #184a90;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-app: #1c2127;
+    --bg-panel: #252a31;
+    --bg-elevated: #2f343c;
+    --map-sea: #111418;
+    --map-land: #383e47;
+    --text: #f6f7f9;
+    --text-muted: #abb3bf;
+    --link: #8abbff;
+    --border: rgba(255, 255, 255, 0.2);
+    --focus: #8abbff;
+    --caveat-bg: #3e3224;
+    --caveat-text: #fbb360;
+    --research-bg: #3c2844;
+    --research-text: #d69fd6;
+    --status-matched: #4c90f0;
+    --status-unmatched: #ec9a3c;
+    --status-nocov: #8f99a8;
+    --status-notchecked: #738091;
+    --fixed: #13c9ba;
+    --light: #fbd065;
+    --vessel: #72ca9b;
+    --lead-ring: #f6f7f9;
+    --footprint: #abb3bf;
+    --eez-line: #8f99a8;
+    --band-low: #738091;
+    --band-medium: #ec9a3c;
+    --band-high: #8abbff;
+  }
+}
+:root[data-theme="dark"] {
+  --bg-app: #1c2127;
+  --bg-panel: #252a31;
+  --bg-elevated: #2f343c;
+  --map-sea: #111418;
+  --map-land: #383e47;
+  --text: #f6f7f9;
+  --text-muted: #abb3bf;
+  --link: #8abbff;
+  --border: rgba(255, 255, 255, 0.2);
+  --focus: #8abbff;
+  --caveat-bg: #3e3224;
+  --caveat-text: #fbb360;
+  --research-bg: #3c2844;
+  --research-text: #d69fd6;
+  --status-matched: #4c90f0;
+  --status-unmatched: #ec9a3c;
+  --status-nocov: #8f99a8;
+  --status-notchecked: #738091;
+  --fixed: #13c9ba;
+  --light: #fbd065;
+  --vessel: #72ca9b;
+  --lead-ring: #f6f7f9;
+  --footprint: #abb3bf;
+  --eez-line: #8f99a8;
+  --band-low: #738091;
+  --band-medium: #ec9a3c;
+  --band-high: #8abbff;
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>SCS Vessel Watch</title>
+    <meta name="description" content="Radar contacts over the South China Sea with AIS identification. Dark means only no AIS match, not evidence of illegal activity." />
+    <script>
+      // Theme before first paint (spec section 10): dark unless this viewer chose light. Storage can throw.
+      (function () {
+        var t = "dark";
+        try { var s = window.localStorage.getItem("scs.theme"); if (s === "light") t = "light"; } catch (e) {}
+        document.documentElement.setAttribute("data-theme", t);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>
