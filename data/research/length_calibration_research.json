@@ -1,0 +1,700 @@
+{
+ "schema": "darkvessel.length_calibration/1",
+ "build": "research",
+ "calibration_id": "length_cal_research_4d3aa433",
+ "min_claim_m": 25.0,
+ "level": 0.8,
+ "model": {
+  "kind": "loglinear",
+  "intercept": 2.562835028312968,
+  "slope": 0.4005936430110127,
+  "covariates": [
+   {
+    "name": "fill_width_m",
+    "centre": 45.68210262828536,
+    "range": [
+     1.5781167806417675,
+     97.50122488975992
+    ],
+    "coef": 0.013816545893846984
+   },
+   {
+    "name": "scr_max_db",
+    "centre": 28.7,
+    "range": [
+     8.2,
+     39.2
+    ],
+    "coef": -0.020661246113706448
+   }
+  ],
+  "interval": {
+   "level": 0.8,
+   "q_lo": -0.48960178581766023,
+   "q_hi": 0.5293416156006119,
+   "factor_lo": 0.6128703992829769,
+   "factor_hi": 1.697814126228252,
+   "source": "held-out log residuals of grouped cross-validation (18 folds)"
+  },
+  "valid_length_est_m": [
+   30.0,
+   449.0
+  ],
+  "n_pairs": 89
+ },
+ "fallback": {
+  "kind": "ratio",
+  "intercept": -0.5869964633596183,
+  "slope": 1.0,
+  "covariates": [],
+  "interval": {
+   "level": 0.8,
+   "q_lo": -0.6707558674787455,
+   "q_hi": 0.3690023343627189,
+   "factor_lo": 0.5113219400558502,
+   "factor_hi": 1.446290979838543,
+   "source": "held-out log residuals of grouped cross-validation (18 folds)"
+  },
+  "valid_length_est_m": [
+   30.0,
+   449.0
+  ],
+  "n_pairs": 89
+ },
+ "reasons": {
+  "missing_length": "no radar length estimate",
+  "pixel_floor": "radar length at the 2-pixel floor (24.1 m or less): the extent cannot tell a 5 m boat from a 30 m one",
+  "below_range": "radar length below the shortest radar length of the calibration pairs",
+  "above_range": "radar length above the longest radar length of the calibration pairs",
+  "short_return": "the calibrated hull would be longer than the radar return itself: a weak or partial return, where the hull depends on which vessels carry such returns (mostly large AIS ships in the pairs, not small boats)",
+  "below_min_claim": "calibrated length under 25 m: the pairs hold almost no vessels this small, so no claim",
+  "no_calibration": "no calibration loaded"
+ },
+ "covariate_definitions": {
+  "fill_width_m": "detected area over radar length (m): n_pixels x 100 / length_est_m, the blob's mean width; low for thin streaks (wakes, smeared or fragmented returns)",
+  "scr_max_db": "peak-to-background ratio of the brighter channel (dB): max(scr_vv_db, scr_vh_db)"
+ },
+ "created_utc": "2026-10-10T15:36:10+00:00",
+ "target": "hull length: GFW vessels API registry length (registryInfo lengthM) for the regional pairs; AIS static A + B for the live pairs",
+ "contains_gfw_data": true,
+ "research_only": true,
+ "pairs": {
+  "gfw": {
+   "matched": 9954,
+   "matched_vessel_with_registry_length": 161,
+   "gear_with_length": 0,
+   "stored_quality_reproduced_sar": 1.0,
+   "pixel_counts": "data/detections_regional_all.gpkg, 161 of 161 pairs",
+   "used": 62,
+   "passes": 17,
+   "excluded": {
+    "quality_position_not_high_or_medium": 89,
+    "ratio_below_feasible": 8,
+    "radar_at_pixel_floor": 2
+   }
+  },
+  "live": {
+   "used": 27,
+   "passes": [
+    "live_S1D_20261010T1032"
+   ]
+  },
+  "total_used": 89,
+  "groups": 18,
+  "selection": "matched pairs with a hull length; quality_position high or medium (position quality: the match quality rule without its radar/AIS length terms); review_note not 'doubtful'; radar/hull ratio at least 0.25 (live matcher feasibility rule)"
+ },
+ "structure": {
+  "chosen": {
+   "kind": "loglinear",
+   "covariates": [
+    "fill_width_m",
+    "scr_max_db"
+   ],
+   "table": [
+    {
+     "kind": "ratio",
+     "covariates": [],
+     "male": 0.3608,
+     "mae_m": 43.2,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [],
+     "male": 0.376,
+     "mae_m": 45.5,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "scr_max_db"
+     ],
+     "male": 0.382,
+     "mae_m": 46.1,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "fill_width_m"
+     ],
+     "male": 0.3377,
+     "mae_m": 40.6,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "inc_angle_deg"
+     ],
+     "male": 0.3721,
+     "mae_m": 44.8,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "dual_pol"
+     ],
+     "male": 0.3619,
+     "mae_m": 44.3,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "mission_s1d"
+     ],
+     "male": 0.3806,
+     "mae_m": 45.7,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "fill_width_m",
+      "scr_max_db"
+     ],
+     "male": 0.3134,
+     "mae_m": 38.5,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "fill_width_m",
+      "inc_angle_deg"
+     ],
+     "male": 0.3183,
+     "mae_m": 38.5,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "fill_width_m",
+      "dual_pol"
+     ],
+     "male": 0.3138,
+     "mae_m": 39.5,
+     "n_folds": 18
+    },
+    {
+     "kind": "loglinear",
+     "covariates": [
+      "fill_width_m",
+      "mission_s1d"
+     ],
+     "male": 0.3279,
+     "mae_m": 39.4,
+     "n_folds": 18
+    },
+    {
+     "kind": "isotonic",
+     "covariates": [],
+     "male": 0.3509,
+     "mae_m": 42.2,
+     "n_folds": 18
+    }
+   ],
+   "rule": "grouped CV, mean absolute log error: loglinear over ratio and each covariate only for a gain of at least 5%, at most 2 covariates (available on every pair); isotonic only for a gain of at least 10% with MAE not higher"
+  },
+  "fallback_form": "ratio"
+ },
+ "grouped_cv_leave_one_pass_out": {
+  "before": {
+   "n": 89,
+   "mae_m": 136.3,
+   "median_ae_m": 136.6,
+   "median_ratio": 1.799,
+   "within_1_5": 0.247,
+   "within_2": 0.584,
+   "mean_abs_log_err": 0.7238
+  },
+  "after": {
+   "n": 89,
+   "mae_m": 38.5,
+   "median_ae_m": 32.0,
+   "median_ratio": 1.055,
+   "within_1_5": 0.674,
+   "within_2": 0.933,
+   "mean_abs_log_err": 0.3134,
+   "coverage": 0.775,
+   "n_with_interval": 89,
+   "median_interval_factor": 2.71,
+   "n_folds": 18
+  },
+  "by_source": {
+   "gfw_registry": {
+    "before": {
+     "n": 62,
+     "mae_m": 142.4,
+     "median_ae_m": 144.2,
+     "median_ratio": 1.867,
+     "within_1_5": 0.21,
+     "within_2": 0.532,
+     "mean_abs_log_err": 0.7392
+    },
+    "after": {
+     "n": 62,
+     "mae_m": 42.1,
+     "median_ae_m": 38.4,
+     "median_ratio": 1.056,
+     "within_1_5": 0.661,
+     "within_2": 0.919,
+     "mean_abs_log_err": 0.326,
+     "coverage": 0.774,
+     "n_with_interval": 62,
+     "median_interval_factor": 2.91
+    }
+   },
+   "live_aisstream": {
+    "before": {
+     "n": 27,
+     "mae_m": 122.4,
+     "median_ae_m": 96.6,
+     "median_ratio": 1.761,
+     "within_1_5": 0.333,
+     "within_2": 0.704,
+     "mean_abs_log_err": 0.6886
+    },
+    "after": {
+     "n": 27,
+     "mae_m": 30.2,
+     "median_ae_m": 31.4,
+     "median_ratio": 1.007,
+     "within_1_5": 0.704,
+     "within_2": 0.963,
+     "mean_abs_log_err": 0.2846,
+     "coverage": 0.778,
+     "n_with_interval": 27,
+     "median_interval_factor": 2.66
+    }
+   }
+  }
+ },
+ "cv_by_form_length_only": {
+  "ratio": {
+   "n": 89,
+   "mae_m": 43.2,
+   "median_ae_m": 28.6,
+   "median_ratio": 0.986,
+   "within_1_5": 0.697,
+   "within_2": 0.854,
+   "mean_abs_log_err": 0.3608,
+   "coverage": 0.831,
+   "n_with_interval": 89,
+   "median_interval_factor": 2.9,
+   "n_folds": 18
+  },
+  "loglinear": {
+   "n": 89,
+   "mae_m": 45.5,
+   "median_ae_m": 45.7,
+   "median_ratio": 0.991,
+   "within_1_5": 0.64,
+   "within_2": 0.899,
+   "mean_abs_log_err": 0.376,
+   "coverage": 0.798,
+   "n_with_interval": 89,
+   "median_interval_factor": 2.77,
+   "n_folds": 18
+  },
+  "isotonic": {
+   "n": 89,
+   "mae_m": 42.2,
+   "median_ae_m": 36.2,
+   "median_ratio": 0.972,
+   "within_1_5": 0.708,
+   "within_2": 0.921,
+   "mean_abs_log_err": 0.3509,
+   "coverage": 0.798,
+   "n_with_interval": 89,
+   "median_interval_factor": 2.54,
+   "n_folds": 18
+  }
+ },
+ "gfw_pairs_only": {
+  "kind": "ratio",
+  "before": {
+   "n": 62,
+   "mae_m": 142.4,
+   "median_ae_m": 144.2,
+   "median_ratio": 1.867,
+   "within_1_5": 0.21,
+   "within_2": 0.532,
+   "mean_abs_log_err": 0.7392
+  },
+  "after": {
+   "n": 62,
+   "mae_m": 45.8,
+   "median_ae_m": 34.5,
+   "median_ratio": 0.968,
+   "within_1_5": 0.613,
+   "within_2": 0.887,
+   "mean_abs_log_err": 0.3774,
+   "coverage": 0.823,
+   "n_with_interval": 62,
+   "median_interval_factor": 2.97,
+   "n_folds": 17
+  }
+ },
+ "cnn_score_covariate_check": {
+  "loglinear+none": {
+   "n": 89,
+   "mae_m": 45.5,
+   "median_ae_m": 45.7,
+   "median_ratio": 0.991,
+   "within_1_5": 0.64,
+   "within_2": 0.899,
+   "mean_abs_log_err": 0.376,
+   "coverage": 0.798,
+   "n_with_interval": 89,
+   "median_interval_factor": 2.77,
+   "n_folds": 18
+  },
+  "loglinear+cnn_score": {
+   "n": 89,
+   "mae_m": 42.1,
+   "median_ae_m": 38.9,
+   "median_ratio": 1.029,
+   "within_1_5": 0.674,
+   "within_2": 0.944,
+   "mean_abs_log_err": 0.3331,
+   "coverage": 0.809,
+   "n_with_interval": 89,
+   "median_interval_factor": 2.67,
+   "n_folds": 18
+  },
+  "gfw_pairs_cnn_below_threshold": {
+   "n": 6,
+   "median_ratio": 0.736,
+   "share_ratio_below_1": 0.667
+  }
+ },
+ "on_project_contacts": {
+  "live_contacts": {
+   "n": 8573,
+   "share_by_reason": {
+    "calibrated": 0.4183,
+    "pixel_floor": 0.2833,
+    "short_return": 0.265,
+    "below_min_claim": 0.033,
+    "above_range": 0.0003
+   },
+   "median_length_cal_m": 84.6
+  },
+  "regional_contacts": {
+   "n": 78615,
+   "share_by_reason": {
+    "calibrated": 0.4383,
+    "pixel_floor": 0.373,
+    "below_min_claim": 0.1886,
+    "above_range": 0.0002
+   },
+   "median_length_cal_m": 50.0
+  },
+  "note": "regional contacts carry no n_pixels in data/detections_regional.gpkg, so a model with fill_width_m uses its fallback"
+ },
+ "sensitivity_stored_quality": {
+  "fit_set": "stored match_quality high or medium (GFW pairs only)",
+  "n": 49,
+  "passes": 16,
+  "before": {
+   "n": 49,
+   "mae_m": 121.3,
+   "median_ae_m": 130.0,
+   "median_ratio": 1.734,
+   "within_1_5": 0.265,
+   "within_2": 0.673,
+   "mean_abs_log_err": 0.5964
+  },
+  "after": {
+   "n": 49,
+   "mae_m": 36.2,
+   "median_ae_m": 30.7,
+   "median_ratio": 0.993,
+   "within_1_5": 0.796,
+   "within_2": 0.939,
+   "mean_abs_log_err": 0.2679,
+   "coverage": 0.837,
+   "n_with_interval": 49,
+   "median_interval_factor": 2.41,
+   "n_folds": 16
+  }
+ },
+ "external_validation_ai2": {
+  "n": 1399,
+  "n_scored": 1355,
+  "null_reasons": {
+   "short_return": 43,
+   "above_range": 1
+  },
+  "before": {
+   "n": 1355,
+   "mae_m": 98.5,
+   "median_ae_m": 82.2,
+   "median_ratio": 1.584,
+   "within_1_5": 0.435,
+   "within_2": 0.708,
+   "mean_abs_log_err": 0.5526
+  },
+  "after": {
+   "n": 1355,
+   "mae_m": 34.6,
+   "median_ae_m": 25.9,
+   "median_ratio": 0.954,
+   "within_1_5": 0.801,
+   "within_2": 0.948,
+   "mean_abs_log_err": 0.2642,
+   "coverage": 0.888,
+   "n_with_interval": 1355,
+   "median_interval_factor": 2.77
+  },
+  "after_by_radar_length_m": {
+   "50-100": {
+    "n": 47,
+    "mae_m": 27.0,
+    "median_ae_m": 19.3,
+    "median_ratio": 1.24,
+    "within_1_5": 0.638,
+    "within_2": 0.851,
+    "mean_abs_log_err": 0.3996,
+    "coverage": 0.681,
+    "n_with_interval": 47,
+    "median_interval_factor": 2.77
+   },
+   "100-200": {
+    "n": 462,
+    "mae_m": 22.9,
+    "median_ae_m": 16.8,
+    "median_ratio": 1.008,
+    "within_1_5": 0.833,
+    "within_2": 0.926,
+    "mean_abs_log_err": 0.259,
+    "coverage": 0.885,
+    "n_with_interval": 462,
+    "median_interval_factor": 2.77
+   },
+   "200-451": {
+    "n": 846,
+    "mae_m": 41.5,
+    "median_ae_m": 34.8,
+    "median_ratio": 0.912,
+    "within_1_5": 0.792,
+    "within_2": 0.966,
+    "mean_abs_log_err": 0.2595,
+    "coverage": 0.901,
+    "n_with_interval": 846,
+    "median_interval_factor": 2.77
+   }
+  }
+ },
+ "open_model_on_gfw_pairs": {
+  "n": 62,
+  "n_scored": 60,
+  "null_reasons": {
+   "below_range": 1,
+   "above_range": 1
+  },
+  "before": {
+   "n": 60,
+   "mae_m": 140.7,
+   "median_ae_m": 144.2,
+   "median_ratio": 1.867,
+   "within_1_5": 0.217,
+   "within_2": 0.55,
+   "mean_abs_log_err": 0.7227
+  },
+  "after": {
+   "n": 60,
+   "mae_m": 44.2,
+   "median_ae_m": 32.8,
+   "median_ratio": 1.06,
+   "within_1_5": 0.633,
+   "within_2": 0.9,
+   "mean_abs_log_err": 0.3418,
+   "coverage": 0.883,
+   "n_with_interval": 60,
+   "median_interval_factor": 3.63
+  },
+  "after_by_radar_length_m": {
+   "100-200": {
+    "n": 13,
+    "mae_m": 29.4,
+    "median_ae_m": 22.3,
+    "median_ratio": 0.823,
+    "within_1_5": 0.769,
+    "within_2": 0.846,
+    "mean_abs_log_err": 0.298,
+    "coverage": 0.692,
+    "n_with_interval": 13,
+    "median_interval_factor": 3.63
+   },
+   "200-451": {
+    "n": 44,
+    "mae_m": 47.7,
+    "median_ae_m": 37.9,
+    "median_ratio": 1.19,
+    "within_1_5": 0.614,
+    "within_2": 0.955,
+    "mean_abs_log_err": 0.3209,
+    "coverage": 0.955,
+    "n_with_interval": 44,
+    "median_interval_factor": 3.63
+   }
+  }
+ },
+ "diagnosis": {
+  "gfw_registry": {
+   "n": 62,
+   "median_ratio": 1.867,
+   "pixel_floor": {
+    "pairs_at_floor": 0,
+    "pairs_hull_under_25m": 1,
+    "median_ratio_hull_under_25m": 4.15,
+    "min_radar_length_m": 30.0
+   },
+   "linear_fit_radar_on_hull": {
+    "intercept_m": 131.1,
+    "slope": 1.074
+   },
+   "loglog_fit_radar_on_hull": {
+    "intercept": 2.744,
+    "slope": 0.587
+   },
+   "ratio_by_hull_length": {
+    "<25": {
+     "n": 1,
+     "median_ratio": 4.15
+    },
+    "25-50": {
+     "n": 1,
+     "median_ratio": 5.79
+    },
+    "50-100": {
+     "n": 11,
+     "median_ratio": 2.38
+    },
+    "100-200": {
+     "n": 42,
+     "median_ratio": 1.88
+    },
+    ">=200": {
+     "n": 7,
+     "median_ratio": 1.65
+    }
+   },
+   "spearman_size_adjusted_log_ratio": {
+    "scr_max_db": {
+     "n": 62,
+     "rho": 0.337,
+     "p": 0.00731
+    },
+    "fill_width_m": {
+     "n": 62,
+     "rho": 0.153,
+     "p": 0.236
+    },
+    "speed_kn": {
+     "n": 0,
+     "rho": null,
+     "p": null
+    },
+    "diagonality": {
+     "n": 0,
+     "rho": null,
+     "p": null
+    },
+    "azimuth_alignment": {
+     "n": 0,
+     "rho": null,
+     "p": null
+    },
+    "inc_angle_deg": {
+     "n": 62,
+     "rho": 0.173,
+     "p": 0.179
+    },
+    "dual_pol": {
+     "n": 62,
+     "rho": -0.013,
+     "p": 0.917
+    }
+   },
+   "by_fill_width": {
+    "thin_lt_15m": {
+     "n": 4,
+     "median_ratio": 1.11
+    },
+    "wide_ge_15m": {
+     "n": 58,
+     "median_ratio": 1.88
+    },
+    "share_thin_among_ratio_gt_3": 0.083,
+    "share_thin_among_ratio_le_3": 0.06
+   },
+   "by_polarisation": {
+    "dual": {
+     "n": 42,
+     "median_ratio": 1.87
+    },
+    "single": {
+     "n": 20,
+     "median_ratio": 1.72
+    }
+   }
+  }
+ },
+ "caveat": "A calibrated radar length is a statistical estimate from the extent of the radar return, not a measurement of the hull. It describes typical pairs of steel ships of 25 m and longer that carry AIS; it makes no claim below 25 m, and a return that holds two hulls side by side or a hull and its wake reads long whatever the calibration. Global Fishing Watch detections and events are another model's output, not ground truth. GFW SAR detections cover industrial vessels and miss most vessels under 15 m (GFW data caveats; Paolo et al. 2024, doi:10.1038/s41586-023-06825-8). GFW's 'matched' flag is GFW's own AIS match, not ours. An AIS gap event is not proof of intent: GFW's own documentation calls the gaps dataset a prototype, and AIS can be off or unreceived for lawful and technical reasons. 'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "sources": {
+  "s1_grd_spec": "https://sentiwiki.copernicus.eu/web/s1-products (IW GRDH: resolution 20 x 22 m, pixel spacing 10 x 10 m, 5 x 1 looks, ENL 4.4; Hamming weighting 0.70 to 0.75; resolved 2026-10-10)",
+  "ai2_labels": "https://github.com/allenai/vessel-detection-sentinels (README: point labels with properties Length, Width, Heading, ShipAndCargoType, Speed; LICENSE Apache-2.0; resolved 2026-10-10)",
+  "stasolla_greidanus_2016": "doi:10.1080/2150704X.2016.1226522 (Remote Sensing Letters 7(12):1219-1228; abstract read via https://api.openalex.org/works/doi:10.1080/2150704X.2016.1226522, resolved 2026-10-10)",
+  "conformal_jackknife": "doi:10.1214/20-AOS1965 (Barber, Candes, Ramdas, Tibshirani 2021, Annals of Statistics 49(1); resolved 2026-10-10)"
+ },
+ "script": "scripts/35_length_calibration.py",
+ "use": "research build only, noncommercial (Global Fishing Watch data, CC BY-NC 4.0)",
+ "licence": "CC BY-NC 4.0",
+ "licence_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+ "terms_url": "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits",
+ "attribution": "Global Fishing Watch. 2026, updated daily. public-global-sar-presence:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 to 2026-10-09 at https://globalfishingwatch.org/our-apis/ .",
+ "dataset": "public-global-sar-presence:v4.0",
+ "datasets": {
+  "sar": "public-global-sar-presence:v4.0",
+  "presence": "public-global-presence:v4.0",
+  "gaps": "public-global-gaps-events:v4.0",
+  "encounters": "public-global-encounters-events:v4.0",
+  "loitering": "public-global-loitering-events:v4.0",
+  "vessels": "public-global-vessel-identity:v4.0"
+ },
+ "accessed_by_dataset": {
+  "sar": "2026-10-08",
+  "presence": "2026-10-08",
+  "gaps": "2026-10-08",
+  "encounters": "2026-10-08",
+  "loitering": "2026-10-08",
+  "vessels": "2026-10-08 to 2026-10-09"
+ }
+}
