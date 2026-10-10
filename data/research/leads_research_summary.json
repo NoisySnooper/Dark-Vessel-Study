@@ -1,0 +1,424 @@
+{
+ "product": "SCS Vessel Watch leads queue",
+ "build": "research",
+ "generated_utc": "2026-10-10T01:42:13Z",
+ "inputs_signature": "87f6f0523d3e4b0b",
+ "priority_model_id": "lead_priority_v0_20261009",
+ "calibrated": false,
+ "counts": {
+  "leads": 14261,
+  "by_type": {
+   "L1": 12124,
+   "L7": 2137
+  },
+  "by_band": {
+   "high": 7,
+   "low": 5424,
+   "medium": 8830
+  },
+  "by_type_band": {
+   "L1_high": 7,
+   "L1_low": 3287,
+   "L1_medium": 8830,
+   "L7_low": 2137
+  },
+  "by_region_box": {
+   "Central sea": 1259,
+   "Gulf of Thailand": 1660,
+   "Gulf of Tonkin": 4398,
+   "North shelf": 3544,
+   "South Vietnam shelf": 1053,
+   "Southern sea": 1169,
+   "other": 1178
+  },
+  "by_type_region_box": {
+   "L1|Central sea": 52,
+   "L1|Gulf of Thailand": 1660,
+   "L1|Gulf of Tonkin": 4381,
+   "L1|North shelf": 3251,
+   "L1|South Vietnam shelf": 803,
+   "L1|Southern sea": 1074,
+   "L1|other": 903,
+   "L7|Central sea": 1207,
+   "L7|Gulf of Tonkin": 17,
+   "L7|North shelf": 293,
+   "L7|South Vietnam shelf": 250,
+   "L7|Southern sea": 95,
+   "L7|other": 275
+  },
+  "evidence_rows": 93499,
+  "L1": {
+   "contacts": 78615,
+   "gate": {
+    "unmatched": 68470,
+    "fail_by_condition_among_unmatched": {
+     "vessel_class": 0,
+     "cnn": 47073,
+     "both_channels": 45397,
+     "not_clutter": 0,
+     "not_near_fixed": 0,
+     "weather": 19094
+    },
+    "pass_all": 12124,
+    "pass_with_weather_unknown": 127,
+    "pass_with_weather_known": 11997,
+    "pass_weather_missing_by_part": {
+     "wind": 127,
+     "deep convection": 0,
+     "wind and deep convection": 0
+    },
+    "pass_strict_weather_known": 11997
+   },
+   "leads": 12124,
+   "weather_unknown": 127,
+   "with_light_2km_3h": 0,
+   "with_ais_event_2km_3h": 485,
+   "with_persistence_72h": 1584,
+   "with_next_look": 12117,
+   "under_25_m": 27
+  },
+  "L7": {
+   "lights": 164333,
+   "clear_lit_vessel_candidates": 123756,
+   "clear_never_imaged_90d": 41801,
+   "excluded_near_satlas_1km": 41,
+   "kept": 41760,
+   "leads": 2137,
+   "lights_in_leads": 41760,
+   "with_next_look": 44,
+   "cells_with_one_night": 295,
+   "cells_by_nights": {
+    "1": 295,
+    "2": 256,
+    "3": 248,
+    "4-6": 655,
+    "7+": 683
+   },
+   "light_evidence_rows": 25427,
+   "lights_at_sites": 221,
+   "cells_with_any_ais_reach": 0,
+   "max_priority": 20
+  },
+  "with_next_look": 12161,
+  "factor_distributions": {
+   "L1": {
+    "n": 12124,
+    "priority": {
+     "min": 11.0,
+     "q25": 33.0,
+     "median": 39.0,
+     "q75": 43.0,
+     "max": 74.0,
+     "mean": 38.61
+    },
+    "evidence_quality": {
+     "min": 6.0,
+     "q25": 19.0,
+     "median": 25.0,
+     "q75": 28.0,
+     "max": 30.0,
+     "mean": 23.2
+    },
+    "corroboration": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 10.0,
+     "mean": 0.4
+    },
+    "ais_reach": {
+     "min": 0.0,
+     "q25": 12.0,
+     "median": 12.0,
+     "q75": 14.0,
+     "max": 20.0,
+     "mean": 13.05
+    },
+    "persistence": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 15.0,
+     "mean": 1.96
+    },
+    "area_weight": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 0.0,
+     "mean": 0.0
+    }
+   },
+   "L7": {
+    "n": 2137,
+    "priority": {
+     "min": 2.0,
+     "q25": 8.0,
+     "median": 14.0,
+     "q75": 19.0,
+     "max": 20.0,
+     "mean": 12.84
+    },
+    "evidence_quality": {
+     "min": 2.0,
+     "q25": 5.0,
+     "median": 7.0,
+     "q75": 9.0,
+     "max": 10.0,
+     "mean": 7.04
+    },
+    "corroboration": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 0.0,
+     "mean": 0.0
+    },
+    "ais_reach": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 0.0,
+     "mean": 0.0
+    },
+    "persistence": {
+     "min": 0.0,
+     "q25": 2.0,
+     "median": 7.0,
+     "q75": 10.0,
+     "max": 10.0,
+     "mean": 5.81
+    },
+    "area_weight": {
+     "min": 0.0,
+     "q25": 0.0,
+     "median": 0.0,
+     "q75": 0.0,
+     "max": 0.0,
+     "mean": 0.0
+    }
+   }
+  },
+  "corroboration_window": {
+   "window_h": 3.0,
+   "radar_passes": 32,
+   "radar_hours_utc": [
+    9,
+    10,
+    11,
+    21,
+    22,
+    23
+   ],
+   "viirs_hours_utc": [
+    16,
+    17,
+    18,
+    19
+   ],
+   "passes_within_3h_by_time_of_day": 11,
+   "min_gap_by_time_of_day_h": 1.85,
+   "passes_within_3h_absolute": 6,
+   "min_gap_absolute_h": 2.4,
+   "radar_dates": [
+    "2026-09-20",
+    "2026-10-01"
+   ],
+   "viirs_dates": [
+    "2026-09-05",
+    "2026-10-01"
+   ]
+  },
+  "top_of_queue_by_type": {
+   "top_100": {
+    "L1": 100
+   },
+   "top_1000": {
+    "L1": 1000
+   }
+  }
+ },
+ "weights": {
+  "model_id": "lead_priority_v0_20261009",
+  "calibrated": false,
+  "max_points": {
+   "evidence_quality": 30,
+   "corroboration": 25,
+   "ais_reach": 20,
+   "persistence": 15,
+   "area_weight": 10
+  },
+  "bands": {
+   "low": [
+    0,
+    33
+   ],
+   "medium": [
+    34,
+    66
+   ],
+   "high": [
+    67,
+    100
+   ]
+  },
+  "L1": {
+   "cnn": "20 x (cnn_score - 0.5) / (1 - 0.5), clipped to 0..20",
+   "both_channels": 5,
+   "weather_known_calm": 5,
+   "weather_unknown": 0,
+   "light_2km_3h": 15,
+   "ais_event_2km_3h": 10,
+   "ais_reach": "12 x ais_reach",
+   "ais_density": "8 x min(1, n_ais_10km / 10)",
+   "persistence_72h_2km": 15,
+   "no_ais_match": 0,
+   "area_weight_default": 0
+  },
+  "L7": {
+   "evidence_quality": "10 x min(1, ln(1 + n_lights) / ln(1 + 30)) (a third of the L1 scale)",
+   "corroboration": "0 by construction (radar did not look; lights not matched to AIS)",
+   "ais_reach": "0 (an L7 lead makes no AIS claim; ais_reach_share is context)",
+   "persistence": "10 x min(1, (n_nights - 1) / 6)",
+   "area_weight_default": 0,
+   "ceiling_without_area_weight": 20
+  }
+ },
+ "rules": {
+  "L1": "ais_status = unmatched (AIS was heard near the contact, so an absence of a match means something here); confidence high or medium (never low or fixed); cnn_score >= 0.5; both channels where the polarisation is known (pol_class VV+VH, or regional class high which is VV and VH); not in a clutter zone (n_low_1km < 5) and not near a fixed structure (near_fixed_m > 250 m) where those flags exist; weather gated per component: excluded when wind_ms is known and >= 12, or deep_convection is known and true; when either is missing and the known one passes, the lead is kept with the factor 'weather unknown' at 0 points (board D4.5).",
+  "L7": "VIIRS Day/Night Band lights of class lit_vessel_candidate with quality clear and s1_passes_90d = 0 (no Sentinel-1 pass over the 0.05 degree coverage cell in the 90-day window), excluding lights within 1 km of a Satlas marine infrastructure point, grouped by 0.25 degree model-grid cell; one lead per cell over the VIIRS window. A coverage lead for tasking: it names no vessel and is not a vessel lead."
+ },
+ "lead_names": {
+  "L1": "Unmatched radar contact in AIS reach",
+  "L7": "Lit activity where radar does not look"
+ },
+ "corroboration_rule": "a VIIRS lit-vessel candidate within 2 km and 3 h of the contact (15 points), or a GFW loitering or encounter event within 2 km whose span, padded by 3 h, contains the contact time (10 points)",
+ "plan_file": {
+  "generated_utc": "2026-10-10T00:20:09Z",
+  "window_start_utc": "2026-10-07T00:20:09Z",
+  "window_end_utc": "2026-10-22T00:20:09Z",
+  "primary_source": "esa_plan"
+ },
+ "inputs": [
+  {
+   "role": "ais_reach_tif",
+   "path": "data/outputs/small/ais_reach_share_4326.tif",
+   "size": 6162,
+   "mtime_utc": "2026-10-08T23:37:54Z"
+  },
+  {
+   "role": "gfw_events_encounters",
+   "path": "data/research/gfw_events_encounters.parquet",
+   "size": 875198,
+   "mtime_utc": "2026-10-09T06:43:16Z"
+  },
+  {
+   "role": "gfw_events_loitering",
+   "path": "data/research/gfw_events_loitering_part1of3.parquet",
+   "size": 12996759,
+   "mtime_utc": "2026-10-09T06:43:19Z"
+  },
+  {
+   "role": "gfw_events_loitering",
+   "path": "data/research/gfw_events_loitering_part2of3.parquet",
+   "size": 12968276,
+   "mtime_utc": "2026-10-09T06:43:20Z"
+  },
+  {
+   "role": "gfw_events_loitering",
+   "path": "data/research/gfw_events_loitering_part3of3.parquet",
+   "size": 12835060,
+   "mtime_utc": "2026-10-09T06:43:20Z"
+  },
+  {
+   "role": "live_contacts",
+   "path": "data/live/live_contacts.gpkg",
+   "size": 5246976,
+   "mtime_utc": "2026-10-09T07:37:07Z"
+  },
+  {
+   "role": "ocean_static",
+   "path": "data/ocean_static_cells.parquet",
+   "size": 346692,
+   "mtime_utc": "2026-10-09T14:02:01Z"
+  },
+  {
+   "role": "regional_identity",
+   "path": "data/research/regional_identity.parquet",
+   "size": 4044122,
+   "mtime_utc": "2026-10-09T13:51:46Z"
+  },
+  {
+   "role": "s1_coverage",
+   "path": "data/s1_coverage.json",
+   "size": 633,
+   "mtime_utc": "2026-10-02T15:44:12Z"
+  },
+  {
+   "role": "s1_footprints_plan",
+   "path": "data/ais_live.gpkg",
+   "size": 2232320,
+   "mtime_utc": "2026-10-10T00:20:34Z"
+  },
+  {
+   "role": "s1_next_passes",
+   "path": "data/s1_next_passes.json",
+   "size": 98265,
+   "mtime_utc": "2026-10-10T00:20:35Z"
+  },
+  {
+   "role": "s1_passes_tif",
+   "path": "data/outputs/small/s1_passes_4326.tif",
+   "size": 22487,
+   "mtime_utc": "2026-10-02T15:44:12Z"
+  },
+  {
+   "role": "viirs_lights",
+   "path": "data/viirs_lights.gpkg",
+   "size": 32251904,
+   "mtime_utc": "2026-10-03T01:35:02Z"
+  },
+  {
+   "role": "viirs_lights_all",
+   "path": "data/viirs_lights_all.gpkg",
+   "size": 148709376,
+   "mtime_utc": "2026-10-03T01:35:01Z"
+  },
+  {
+   "role": "viirs_summary",
+   "path": "data/viirs_summary.json",
+   "size": 18319,
+   "mtime_utc": "2026-10-03T01:35:05Z"
+  },
+  {
+   "role": "weather",
+   "path": "data/weather_context.parquet",
+   "size": 1131514,
+   "mtime_utc": "2026-10-02T23:41:05Z"
+  }
+ ],
+ "input_notes": {
+  "contacts": "78615 September contacts from regional_identity.parquet",
+  "viirs": "164333 lit-vessel candidates of 191622 lights from viirs_lights_all.gpkg, 27 nights 2026-09-05 to 2026-10-01"
+ },
+ "outputs": {
+  "gpkg": "data/research/leads_research.gpkg",
+  "parquet": "data/research/leads_research.parquet"
+ },
+ "caveat": "'Dark' means only that no AIS position was matched to this radar contact. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and both satellite and terrestrial AIS have blind spots: satellite AIS misses messages in busy coastal waters, and shore receivers cover only the waters within their radio range. Treat every unmatched contact as a lead for review, not as evidence of wrongdoing. An AIS gap is not proof of intent. Research build, noncommercial, CC BY-NC 4.0. Contains Global Fishing Watch data. Powered by Global Fishing Watch.",
+ "research_only": true,
+ "use": "research build only, noncommercial (Global Fishing Watch data, CC BY-NC 4.0)",
+ "licence": "CC BY-NC 4.0",
+ "licence_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+ "terms_url": "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits",
+ "attribution": "Global Fishing Watch. 2026, updated daily. public-global-sar-presence:v4.0, 2026-09-01 to 2026-10-08. Data set accessed 2026-10-08 to 2026-10-09 at https://globalfishingwatch.org/our-apis/ .",
+ "accessed_by_dataset": "{\"sar\": \"2026-10-08\", \"presence\": \"2026-10-08\", \"gaps\": \"2026-10-08\", \"encounters\": \"2026-10-08\", \"loitering\": \"2026-10-08\", \"vessels\": \"2026-10-08 to 2026-10-09\"}",
+ "datasets": "{\"sar\": \"public-global-sar-presence:v4.0\", \"presence\": \"public-global-presence:v4.0\", \"gaps\": \"public-global-gaps-events:v4.0\", \"encounters\": \"public-global-encounters-events:v4.0\", \"loitering\": \"public-global-loitering-events:v4.0\", \"vessels\": \"public-global-vessel-identity:v4.0\"}",
+ "gfw_caveat": "Global Fishing Watch detections and events are another model's output, not ground truth. GFW SAR detections cover industrial vessels and miss most vessels under 15 m (GFW data caveats; Paolo et al. 2024, doi:10.1038/s41586-023-06825-8). GFW's 'matched' flag is GFW's own AIS match, not ours. An AIS gap event is not proof of intent: GFW's own documentation calls the gaps dataset a prototype, and AIS can be off or unreceived for lawful and technical reasons. 'Dark' means only that no AIS position was matched to this radar detection. It does not mean illegal. Many vessels are not required to carry AIS, AIS can be off for lawful reasons, and satellite AIS misses messages in busy coastal waters. Treat every unmatched detection as a lead for review, not as evidence of wrongdoing.",
+ "research_line": "Research build, noncommercial, CC BY-NC 4.0. Contains Global Fishing Watch data. Powered by Global Fishing Watch."
+}
