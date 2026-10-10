@@ -13,7 +13,8 @@ L1 (one radar contact)
   match is evidence on the card, not corroboration, and adds nothing.
 - ais_reach, 0 to 20: 12 x ais_reach of the cell (share) plus 8 x min(1, n_ais_10km / 10): how much an absence of AIS
   can mean here.
-- persistence, 0 to 15: 15 when an unmatched contact lies within 2 km on another pass within 72 h, else 0.
+- persistence, 0 to 15: 15 when an unmatched high or medium contact, not ambiguous, lies within 2 km on another pass
+  within 72 h, else 0.
 - area_weight, 0 to 10: analyst-set per reporting box, default 0.
 
 L7 (one 0.25 degree cell, a coverage lead), scored within the same factor meanings

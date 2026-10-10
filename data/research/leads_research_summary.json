@@ -1,8 +1,8 @@
 {
  "product": "SCS Vessel Watch leads queue",
  "build": "research",
- "generated_utc": "2026-10-10T17:33:23Z",
- "inputs_signature": "c043a4e27c23ed54",
+ "generated_utc": "2026-10-10T22:48:16Z",
+ "inputs_signature": "4e05803d8c6ca721",
  "priority_model_id": "lead_priority_v1_20261010",
  "calibrated": false,
  "counts": {
@@ -360,9 +360,9 @@
  },
  "corroboration_rule": "a VIIRS lit-vessel candidate within 2 km and 3 h of the contact (15 points), or a GFW loitering or encounter event within 2 km whose span, padded by 3 h, contains the contact time (10 points)",
  "plan_file": {
-  "generated_utc": "2026-10-10T12:20:33Z",
-  "window_start_utc": "2026-10-07T12:20:33Z",
-  "window_end_utc": "2026-10-22T12:20:33Z",
+  "generated_utc": "2026-10-10T18:21:00Z",
+  "window_start_utc": "2026-10-07T18:21:00Z",
+  "window_end_utc": "2026-10-22T18:21:00Z",
   "primary_source": "esa_plan"
  },
  "inputs": [
@@ -418,13 +418,13 @@
    "role": "s1_footprints_plan",
    "path": "data/ais_live.gpkg",
    "size": 2240512,
-   "mtime_utc": "2026-10-10T12:20:46Z"
+   "mtime_utc": "2026-10-10T18:21:12Z"
   },
   {
    "role": "s1_next_passes",
    "path": "data/s1_next_passes.json",
    "size": 102274,
-   "mtime_utc": "2026-10-10T12:20:46Z"
+   "mtime_utc": "2026-10-10T18:21:13Z"
   },
   {
    "role": "s1_passes_tif",

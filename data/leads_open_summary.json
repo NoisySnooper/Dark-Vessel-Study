@@ -1,8 +1,8 @@
 {
  "product": "SCS Vessel Watch leads queue",
  "build": "open",
- "generated_utc": "2026-10-10T17:33:11Z",
- "inputs_signature": "e135d19ab9595147",
+ "generated_utc": "2026-10-10T22:48:04Z",
+ "inputs_signature": "ecba5f6c20026d34",
  "priority_model_id": "lead_priority_v1_20261010",
  "calibrated": false,
  "counts": {
@@ -322,9 +322,9 @@
  "weather_live": "Live contacts: GFS 10 m wind of the hour nearest the scene and Himawari-9 cloud-top temperature (deep convection below 220 K) from data/live/<run_id>_weather.parquet (darkvessel.live.weather, the method of scripts/16_weather_context.py); a part whose source could not be read stays unknown, never calm.",
  "corroboration_rule": "a VIIRS lit-vessel candidate within 2 km and 3 h of the contact (15 points); AIS behaviour events (10 points) have no source in the open build yet",
  "plan_file": {
-  "generated_utc": "2026-10-10T12:20:33Z",
-  "window_start_utc": "2026-10-07T12:20:33Z",
-  "window_end_utc": "2026-10-22T12:20:33Z",
+  "generated_utc": "2026-10-10T18:21:00Z",
+  "window_start_utc": "2026-10-07T18:21:00Z",
+  "window_end_utc": "2026-10-22T18:21:00Z",
   "primary_source": "esa_plan"
  },
  "inputs": [
@@ -338,7 +338,7 @@
    "role": "live_contacts",
    "path": "data/live/live_contacts.gpkg",
    "size": 14790656,
-   "mtime_utc": "2026-10-10T15:23:41Z"
+   "mtime_utc": "2026-10-10T17:51:30Z"
   },
   {
    "role": "live_weather",
@@ -374,13 +374,13 @@
    "role": "s1_footprints_plan",
    "path": "data/ais_live.gpkg",
    "size": 2240512,
-   "mtime_utc": "2026-10-10T12:20:46Z"
+   "mtime_utc": "2026-10-10T18:21:12Z"
   },
   {
    "role": "s1_next_passes",
    "path": "data/s1_next_passes.json",
    "size": 102274,
-   "mtime_utc": "2026-10-10T12:20:46Z"
+   "mtime_utc": "2026-10-10T18:21:13Z"
   },
   {
    "role": "s1_passes_tif",

@@ -108,8 +108,11 @@ COLUMN_DOC = {
     "weather_missing": "L1: which weather part is missing (wind, deep convection, both); null when both are known",
     "deep_convection": "L1: 1 yes, 0 no, null unknown (Himawari-9 cloud-top temperature below 220 K)",
     "n_lights_2km_3h": "L1: VIIRS lit-vessel candidates within 2 km and 3 h",
-    "n_persist_72h": "L1: unmatched contacts within 2 km on another pass within 72 h",
-    "cell_id": "0.25 degree model-grid cell r<row>c<col>", "depth_mean_m, dist_coast_km, dist_port_km": "location context of the cell (GEBCO, Natural Earth coast, WPI ports)",
+    "n_persist_72h": "L1: unmatched high or medium contacts, not match_ambiguous, within 2 km on another pass within 72 h",
+    "cell_id": "0.25 degree model-grid cell r<row>c<col>",
+    "depth_mean_m, dist_coast_km, dist_port_km": ("location context of the cell (GEBCO, Natural Earth coast, WPI ports): 0.25 degree "
+                                                  "cell means, not values at the contact, so a near-shore contact can lie much closer "
+                                                  "to the coast than its cell mean"),
     "n_lights": "L7: clear-sky lit-vessel candidates never imaged in 90 d, more than 1 km from Satlas infrastructure (all of them; the evidence lists the 20 brightest)", "n_nights": "L7: nights with such lights",
     "nights": "L7: JSON list of those nights (local evening dates)", "n_lights_at_sites": "L7: of those lights, how many lie within 500 m of a recurring light site",
     "radiance_med_nw": "L7: median radiance of the lights, nW cm-2 sr-1", "share_never_imaged": "L7: share of the cell's AOI sea with 0 Sentinel-1 passes in the 90-day window (context, not a factor)",
@@ -355,7 +358,9 @@ def build_l1(contacts: pd.DataFrame, build: str, weather, static, lights, events
     cand = E.join_static(cand, static)
     light_hits = E.lights_near(cand, lights)
     event_hits = E.events_near(cand, events)
-    pool = c[(c.ais_status.astype(str) == "unmatched") & c.confidence.astype(str).isin(R.L1_CLASSES)]
+    # Persistence pool: unmatched high or medium contacts that are not ambiguous (an ambiguous contact on another pass is
+    # very likely an AIS vessel, so it must not lend a lead the persistence points).
+    pool = c[(gate.unmatched & gate.not_ambiguous & gate.vessel_class).to_numpy(bool)]
     persist = E.persistence_pairs(cand, pool)
     cand["n_lights_2km_3h"] = [len(h) for h in light_hits]
     cand["n_ais_events_2km_3h"] = [len(h) for h in event_hits]
@@ -787,7 +792,7 @@ def about_frame(result: dict, generated_utc: str) -> pd.DataFrame:
         "lead_types": json.dumps(R.LEAD_NAMES), "rules": json.dumps(R.RULE_TEXT),
         **({"rules_l1_ambiguity": R.L1_AMBIGUITY_TEXT, "weather_live": WEATHER_LIVE_TEXT} if build == "open" else {}),
         "corroboration_rule": CORROBORATION_RULE[build],
-        "persistence_rule": f"an unmatched contact within {R.PERSISTENCE_KM:.0f} km on another pass (over {R.PERSISTENCE_MIN_GAP_S:.0f} s apart) within {R.PERSISTENCE_H:.0f} h",
+        "persistence_rule": f"an unmatched high or medium contact, not match_ambiguous where the flag exists, within {R.PERSISTENCE_KM:.0f} km on another pass (over {R.PERSISTENCE_MIN_GAP_S:.0f} s apart) within {R.PERSISTENCE_H:.0f} h",
         "next_look_rule": ("first planned pass that starts after both time_utc and the plan's generated_utc (passes with status past are "
                            "skipped) and whose footprint contains the point (data/s1_next_passes.json; polygons from data/ais_live.gpkg "
                            "s1_next_passes_4326, else the plan bbox); a repeat_cycle row is a prediction, not ESA's plan"),

@@ -8,7 +8,8 @@ every lead and evidence row, the contract 3.5 field names, the VIIRS file choice
 a GeoPackage round trip (atomic write, constant columns as defaults, generated time, no GFW text in the open files,
 the open build's two-file layout of board D6.3 and byte-identical reruns of every file), the script rule that only a
 run of both builds redraws the two-panel figure, the gate waterfall counts, the gate re-checked on the output rows (no
-matched, no_coverage, fixed, low or ambiguous contact becomes a lead), the queue order of model v1 (every L1 lead with
+matched, no_coverage, fixed, low or ambiguous contact becomes a lead, and no ambiguous contact lends persistence
+points), the queue order of model v1 (every L1 lead with
 known weather before every L7 lead), the codes of board D5.1 against the frontend's text.ts, and a research input
 signature that ignores live passes.
 """
@@ -650,6 +651,24 @@ def test_build_l1_never_makes_a_lead_of_matched_no_coverage_fixed_or_ambiguous()
     allow_all = lambda df: real_gate(df).assign(l1=True)   # noqa: E731
     with um.patch.object(B.R, "l1_gate", allow_all), pytest.raises(AssertionError, match="break the gate"):
         B.build_l1(_contacts_with_ambiguous(), "open", _weather_with_ambiguous(), None, None, None, E.passes_frame(plan()))
+
+
+def test_persistence_pool_skips_ambiguous_contacts():
+    """An ambiguous contact on another pass is very likely an AIS vessel: it must not give an L1 lead the persistence
+    points, while a plain unmatched contact in the same place does."""
+    km = 1 / 111.0
+    t1 = (T0 + pd.Timedelta(hours=24)).isoformat()
+    ok = contacts().iloc[[0]].assign(match_ambiguous=False)
+    other = ok.assign(det_id="other_pass", run_id="live_S1C_20260926T2230", pass_id="live_S1C_20260926T2230",
+                      acq_utc=t1, lon=102.5 + km)
+    w = weather()
+    w = pd.concat([w[w.det_id == "ok"], w[w.det_id == "ok"].assign(det_id="other_pass")], ignore_index=True)
+    for amb, want in ((True, 0), (False, 1)):
+        c = pd.concat([ok, other.assign(match_ambiguous=amb)], ignore_index=True)
+        leads, _, _ = B.build_l1(c, "open", w, None, None, None, E.passes_frame(plan()))
+        row = leads.set_index("det_id").loc["ok"]
+        assert int(row.n_persist_72h) == want and int(row.pts_persistence) == (P.L1_PERSISTENCE_PTS if want else 0)
+        assert ("other_pass" in leads.det_id.tolist()) == (not amb)
 
 
 def test_queue_order_puts_l1_before_l7():
